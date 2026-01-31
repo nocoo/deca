@@ -12,7 +12,7 @@ export function ConsoleApp() {
     []
   );
   const [message, setMessage] = useState(baseViewModel.getState().title);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('sk-ec80be891acd4897b9c95bc19dcda53c');
   const [providers, setProviders] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [script, setScript] = useState('display dialog "Hello from Deca"');
@@ -109,11 +109,7 @@ export function ConsoleApp() {
           <textarea
             rows={4}
             value={script}
-            onChange={(event) => {
-              const value = event.target.value;
-              viewModel.setScript(value);
-              setScript(value);
-            }}
+            onChange={(event) => setScript(event.target.value)}
           />
         </label>
       </div>
@@ -121,8 +117,6 @@ export function ConsoleApp() {
         <button
           type="button"
           onClick={async () => {
-            viewModel.setScript(script);
-            viewModel.setSelectedProvider(selectedProvider);
             try {
               const normalizedKey = apiKey.trim();
               if (!normalizedKey) {
