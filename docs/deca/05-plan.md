@@ -71,7 +71,7 @@
 - UT + Lint 通过
 - Console 可用并与 API 调通
 
-进度：等待模板
+进度：完成
 
 ### Milestone 3：AppleScript Executor
 
