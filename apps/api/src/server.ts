@@ -13,6 +13,8 @@ export const createApp = () =>
     .use(
       cors({
         origin: ['https://deca.dev.hexly.ai', 'https://deca-console.dev.hexly.ai'],
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['content-type', 'x-deca-key'],
       })
     )
     .use(authMiddleware())
