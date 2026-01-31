@@ -6,5 +6,6 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 7011,
+    allowedHosts: ['deca-console.dev.hexly.ai', 'deca.dev.hexly.ai'],
   },
 });
