@@ -26,6 +26,11 @@ Local-first macOS control gateway for AI agents.
 - Header: `x-deca-key`
 - Key stored in ignored file: `config/secret.local.json`
 
+## Local Domains
+
+- API: `http://deca.dev.hexly.ai` (maps to 127.0.0.1:7010)
+- Console: `http://deca-console.dev.hexly.ai` (maps to 127.0.0.1:7011)
+
 ## Dev
 
 ```bash
