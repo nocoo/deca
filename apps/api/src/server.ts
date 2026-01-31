@@ -12,7 +12,7 @@ export const createApp = () =>
   new Elysia()
     .use(
       cors({
-        origin: ['http://deca.dev.hexly.ai', 'http://deca-console.dev.hexly.ai'],
+        origin: ['https://deca.dev.hexly.ai', 'https://deca-console.dev.hexly.ai'],
       })
     )
     .use(authMiddleware())
