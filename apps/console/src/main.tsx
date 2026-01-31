@@ -1,8 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import React from "react";
+import ReactDOM from "react-dom/client";
 
-import { ConsoleApp } from './ui/ConsoleApp';
-import './styles/console.css';
+import App from "./App";
+import "./index.css";
 
 const rootElement = document.getElementById('root');
 
@@ -12,6 +12,6 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ConsoleApp />
+    <App />
   </React.StrictMode>
 );
