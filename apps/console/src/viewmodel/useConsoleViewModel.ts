@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { consoleConfig } from "../config/consoleConfig";
+import { readKeyStore } from "../state/consoleKeyStore";
 import {
   createConsoleViewModel,
   getDefaultConsoleState,
@@ -10,7 +11,10 @@ import {
 import type { ConsoleState } from "./consoleViewModel";
 
 export const useConsoleViewModel = () => {
-  const [state, setState] = useState<ConsoleState>(getDefaultConsoleState());
+  const [state, setState] = useState<ConsoleState>(() => {
+    const storedKey = readKeyStore();
+    return { ...getDefaultConsoleState(), apiKey: storedKey.key };
+  });
   const viewModel = useMemo(
     () =>
       createConsoleViewModel(fetch, {
@@ -32,8 +36,9 @@ export const useConsoleViewModel = () => {
     updateState((current) => ({ ...current, selectedProvider: value }));
   const setResult = (value: string) =>
     updateState((current) => ({ ...current, result: value }));
-  const setApiKey = (value: string) =>
+  const setApiKey = (value: string) => {
     updateState((current) => ({ ...current, apiKey: value }));
+  };
   const setLoading = (value: boolean) =>
     updateState((current) => ({ ...current, loading: value }));
   const setProviders = (value: string[]) =>
