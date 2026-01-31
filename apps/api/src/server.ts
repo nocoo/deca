@@ -1,11 +1,15 @@
 import { Elysia } from 'elysia';
 
 import { authHeaderName, authMiddleware, getAuthKey } from './state/auth';
-import { createAppleScriptProvider } from './providers/applescript';
-import type { Provider } from './router/provider';
-import { runWithFallback } from './router/runner';
+import { createAppleScriptProvider } from "./providers/applescript";
+import { createCodexProvider } from "./providers/codex";
+import type { Provider } from "./router/provider";
+import { runWithFallback } from "./router/runner";
 
-const providers: Provider[] = [createAppleScriptProvider()];
+const providers: Provider[] = [
+  createCodexProvider(),
+  createAppleScriptProvider(),
+];
 const allowedOrigins = new Set([
   'https://deca.dev.hexly.ai',
   'https://deca-console.dev.hexly.ai',
