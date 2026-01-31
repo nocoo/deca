@@ -10,7 +10,7 @@ describe('health', () => {
     const app = buildApp();
     const key = await ensureAuthKey();
     const response = await app.handle(
-      new Request('http://localhost/health', {
+      new Request('http://127.0.0.1/health', {
         headers: { 'x-deca-key': key },
       })
     );

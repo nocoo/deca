@@ -6,7 +6,7 @@ import { ensureAuthKey } from './auth';
 describe('auth middleware', () => {
   it('rejects missing key', async () => {
     const app = createApp();
-    const response = await app.handle(new Request('http://localhost/health'));
+    const response = await app.handle(new Request('http://127.0.0.1/health'));
     expect(response.status).toBe(401);
   });
 
@@ -14,7 +14,7 @@ describe('auth middleware', () => {
     const key = await ensureAuthKey();
     const app = createApp();
     const response = await app.handle(
-      new Request('http://localhost/health', {
+      new Request('http://127.0.0.1/health', {
         headers: { 'x-deca-key': key },
       })
     );

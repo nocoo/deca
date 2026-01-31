@@ -11,6 +11,7 @@ export type ConsoleViewModel = {
 };
 
 export const createConsoleViewModel = (fetcher: typeof fetch): ConsoleViewModel => {
+  const apiBaseUrl = 'http://127.0.0.1:7010';
   let state: ConsoleState = { title: 'Deca Console' };
 
   const getState = () => state;
@@ -19,7 +20,7 @@ export const createConsoleViewModel = (fetcher: typeof fetch): ConsoleViewModel 
   };
 
   const fetchHealth = async () => {
-    const response = await fetcher('http://127.0.0.1:3210/health');
+    const response = await fetcher(`${apiBaseUrl}/health`);
     if (!response.ok) {
       throw new Error('health_check_failed');
     }
