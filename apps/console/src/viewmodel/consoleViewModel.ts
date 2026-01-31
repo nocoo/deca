@@ -80,7 +80,8 @@ export const createConsoleViewModel = (
       headers: { 'x-deca-key': config.apiKey },
     });
     if (!response.ok) {
-      throw new Error('providers_failed');
+      const text = await response.text();
+      throw new Error(text || 'providers_failed');
     }
     return (await response.json()) as ProvidersResponse;
   };
@@ -98,7 +99,8 @@ export const createConsoleViewModel = (
       }),
     });
     if (!response.ok) {
-      throw new Error('exec_failed');
+      const text = await response.text();
+      throw new Error(text || 'exec_failed');
     }
     return (await response.json()) as ExecResponse;
   };

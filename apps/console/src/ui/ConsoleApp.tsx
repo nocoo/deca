@@ -12,7 +12,7 @@ export function ConsoleApp() {
     []
   );
   const [message, setMessage] = useState(baseViewModel.getState().title);
-  const [apiKey, setApiKey] = useState('sk-1980b0682f8648988a083ff5e8967ac7');
+  const [apiKey, setApiKey] = useState('sk-b96b739b6689486394a89470d12d9f57');
   const [providers, setProviders] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [script, setScript] = useState('display dialog "Hello from Deca"');
@@ -64,7 +64,9 @@ export function ConsoleApp() {
           />
         </label>
         <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
-          Key length: {apiKey.trim().length}
+          Key prefix: {apiKey.trim().slice(0, 6)}
+          {'...'}
+          {apiKey.trim().slice(-6)}
         </div>
       </div>
       <div style={{ marginTop: 8 }}>
