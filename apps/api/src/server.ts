@@ -34,6 +34,7 @@ const applyCors = (origin: string | null, set: Elysia['set']) => {
 export const createApp = () =>
   new Elysia()
     .onAfterHandle(({ request, set }) => {
+      if (request.method === 'OPTIONS') return;
       applyCors(request.headers.get('origin'), set);
     })
     .options('*', ({ request }) => {
