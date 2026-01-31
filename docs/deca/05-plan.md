@@ -91,7 +91,7 @@
 ### Milestone 4：Codex Executor
 
 目标：
-- Codex sandbox 执行可用
+- Codex sandbox 执行可用（需要本机安装 Codex CLI）
 
 交付：
 - Codex 执行器与可用性检查
@@ -100,6 +100,8 @@
 验证：
 - UT + Lint 通过
 - Console 执行命令
+
+进度：实现完成，等待环境验证
 
 ### Milestone 5：Claude Executor
 
