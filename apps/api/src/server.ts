@@ -1,4 +1,3 @@
-import { cors } from '@elysiajs/cors';
 import { Elysia } from 'elysia';
 
 import { authMiddleware } from './state/auth';
@@ -7,16 +6,30 @@ import type { Provider } from './router/provider';
 import { runWithFallback } from './router/runner';
 
 const providers: Provider[] = [createAppleScriptProvider()];
+const allowedOrigins = new Set([
+  'https://deca.dev.hexly.ai',
+  'https://deca-console.dev.hexly.ai',
+]);
+
+const applyCors = (origin: string | null, set: Elysia['set']) => {
+  if (!origin || !allowedOrigins.has(origin)) return;
+  set.headers['access-control-allow-origin'] = origin;
+  set.headers['access-control-allow-methods'] = 'GET,POST,OPTIONS';
+  set.headers['access-control-allow-headers'] = 'content-type,x-deca-key';
+  set.headers['access-control-allow-credentials'] = 'true';
+  set.headers.vary = 'Origin';
+};
 
 export const createApp = () =>
   new Elysia()
-    .use(
-      cors({
-        origin: ['https://deca.dev.hexly.ai', 'https://deca-console.dev.hexly.ai'],
-        methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['content-type', 'x-deca-key'],
-      })
-    )
+    .onRequest(({ request, set }) => {
+      applyCors(request.headers.get('origin'), set);
+    })
+    .options('*', ({ request, set }) => {
+      applyCors(request.headers.get('origin'), set);
+      set.status = 204;
+      return null;
+    })
     .use(authMiddleware())
     .get('/health', () => ({ ok: true }))
     .get('/capabilities', () => ({

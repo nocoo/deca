@@ -9,7 +9,6 @@
     "format": "biome format src"
   },
   "dependencies": {
-    "@elysiajs/cors": "1.1.1",
     "elysia": "1.1.1"
   },
   "devDependencies": {

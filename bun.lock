@@ -11,7 +11,6 @@
     "apps/api": {
       "name": "@deca/api",
       "dependencies": {
-        "@elysiajs/cors": "1.1.1",
         "elysia": "1.1.1",
       },
       "devDependencies": {
@@ -116,8 +115,6 @@
     "@deca/api": ["@deca/api@workspace:apps/api"],
 
     "@deca/console": ["@deca/console@workspace:apps/console"],
-
-    "@elysiajs/cors": ["@elysiajs/cors@1.1.1", "", { "peerDependencies": { "elysia": ">= 1.1.0" } }, "sha512-Bl6JSURwbneaJqkq02bd0C/F8StkmU5zoPLpnSncy4DZSU8TDwWPXxmoHqozI3hf1piDaSQ+I21cmpjPlQ8uYQ=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.21.5", "", { "os": "aix", "cpu": "ppc64" }, "sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ=="],
 
