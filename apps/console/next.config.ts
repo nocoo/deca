@@ -17,7 +17,12 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  allowedDevOrigins: ["https://deca-console.dev.hexly.ai"],
+  allowedDevOrigins: [
+    "https://deca-console.dev.hexly.ai",
+    "http://deca-console.dev.hexly.ai",
+    "http://localhost:7011",
+    "http://127.0.0.1:7011",
+  ],
 };
 
 export default nextConfig;
