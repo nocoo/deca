@@ -34,6 +34,7 @@ export const createClaudeExecutor = (): Executor => ({
           "dontAsk",
           "--allowed-tools",
           "Bash",
+          "--allow-dangerously-skip-permissions",
           "--dangerously-skip-permissions",
           "--no-session-persistence",
         ],
