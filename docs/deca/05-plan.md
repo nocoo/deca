@@ -43,6 +43,36 @@
 
 进度：完成并通过 Console 验证
 
+### Milestone 2.5：Console UI 基础美化
+
+目标：
+- 初步可用的 Console UI 结构与视觉风格
+
+交付：
+- Console 主题样式与布局
+
+验证：
+- UT + Lint 通过
+- Console 基础交互可用
+
+进度：完成
+
+### Milestone 2.6：合并 lovable 模板并重实现 Console
+
+目标：
+- 合并 lovable 模板
+- 使用模板重新实现 Console UI 并调通
+
+交付：
+- 替换 Console UI 结构与样式
+- 保持现有功能（Load Key/Providers/Run/Result）
+
+验证：
+- UT + Lint 通过
+- Console 可用并与 API 调通
+
+进度：等待模板
+
 ### Milestone 3：AppleScript Executor
 
 目标：
