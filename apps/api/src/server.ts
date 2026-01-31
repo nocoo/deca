@@ -11,15 +11,23 @@ const allowedOrigins = new Set([
   'https://deca-console.dev.hexly.ai',
 ]);
 
+const getCorsHeaders = (origin: string | null): Record<string, string> => {
+  if (!origin || !allowedOrigins.has(origin)) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'content-type,x-deca-key',
+    'Access-Control-Allow-Credentials': 'true',
+    Vary: 'Origin',
+  };
+};
+
 const applyCors = (origin: string | null, set: Elysia['set']) => {
-  if (!origin || !allowedOrigins.has(origin)) return;
+  const headers = getCorsHeaders(origin);
+  if (Object.keys(headers).length === 0) return;
   set.headers = {
     ...set.headers,
-    'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
-    'access-control-allow-headers': 'content-type,x-deca-key',
-    'access-control-allow-credentials': 'true',
-    vary: 'Origin',
+    ...headers,
   };
 };
 
@@ -31,10 +39,9 @@ export const createApp = () =>
     .onAfterHandle(({ request, set }) => {
       applyCors(request.headers.get('origin'), set);
     })
-    .options('*', ({ request, set }) => {
-      applyCors(request.headers.get('origin'), set);
-      set.status = 204;
-      return null;
+    .options('*', ({ request }) => {
+      const headers = getCorsHeaders(request.headers.get('origin'));
+      return new Response(null, { status: 204, headers });
     })
     .use(authMiddleware())
     .get('/health', () => ({ ok: true }))
