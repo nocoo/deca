@@ -13,16 +13,22 @@ const allowedOrigins = new Set([
 
 const applyCors = (origin: string | null, set: Elysia['set']) => {
   if (!origin || !allowedOrigins.has(origin)) return;
-  set.headers['access-control-allow-origin'] = origin;
-  set.headers['access-control-allow-methods'] = 'GET,POST,OPTIONS';
-  set.headers['access-control-allow-headers'] = 'content-type,x-deca-key';
-  set.headers['access-control-allow-credentials'] = 'true';
-  set.headers.vary = 'Origin';
+  set.headers = {
+    ...set.headers,
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-headers': 'content-type,x-deca-key',
+    'access-control-allow-credentials': 'true',
+    vary: 'Origin',
+  };
 };
 
 export const createApp = () =>
   new Elysia()
     .onRequest(({ request, set }) => {
+      applyCors(request.headers.get('origin'), set);
+    })
+    .onAfterHandle(({ request, set }) => {
       applyCors(request.headers.get('origin'), set);
     })
     .options('*', ({ request, set }) => {
