@@ -3,11 +3,13 @@ import { Elysia } from 'elysia';
 import { authHeaderName, authMiddleware, getAuthKey } from './state/auth';
 import { createAppleScriptProvider } from "./providers/applescript";
 import { createCodexProvider } from "./providers/codex";
+import { createClaudeProvider } from "./providers/claude";
 import type { Provider } from "./router/provider";
 import { runWithFallback } from "./router/runner";
 
 const providers: Provider[] = [
   createCodexProvider(),
+  createClaudeProvider(),
   createAppleScriptProvider(),
 ];
 const allowedOrigins = new Set([
