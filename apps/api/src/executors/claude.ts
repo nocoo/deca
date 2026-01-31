@@ -24,7 +24,7 @@ export const createClaudeExecutor = (): Executor => ({
     try {
       const { stdout, stderr } = await execFileAsync(
         "claude",
-        ["run", request.command],
+        ["-p", request.command],
         { timeout: DEFAULT_TIMEOUT_MS }
       );
       const elapsedMs = performance.now() - start;
