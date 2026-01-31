@@ -116,6 +116,8 @@
 - UT + Lint 通过
 - Console 执行命令
 
+进度：完成并通过 Console 验证
+
 ### Milestone 6：OpenCode Executor
 
 目标：
