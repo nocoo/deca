@@ -12,7 +12,7 @@ export function ConsoleApp() {
     []
   );
   const [message, setMessage] = useState(baseViewModel.getState().title);
-  const [apiKey, setApiKey] = useState('sk-ec80be891acd4897b9c95bc19dcda53c');
+  const [apiKey, setApiKey] = useState('sk-1980b0682f8648988a083ff5e8967ac7');
   const [providers, setProviders] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [script, setScript] = useState('display dialog "Hello from Deca"');
