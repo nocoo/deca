@@ -3,7 +3,7 @@ export type HealthResponse = {
 };
 
 export type ProviderCapabilities = {
-  isolation: 'none' | 'process' | 'container' | 'vm';
+  isolation: "none" | "process" | "container" | "vm";
   networking: boolean;
   workspace: boolean;
 };

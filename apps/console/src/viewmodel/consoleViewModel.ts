@@ -4,7 +4,7 @@ import type {
   ExecResponse,
   HealthResponse,
   ProvidersResponse,
-} from '../model/api';
+} from "../model/api";
 
 export type ConsoleState = {
   title: string;
@@ -12,6 +12,9 @@ export type ConsoleState = {
   selectedProvider: string;
   script: string;
   result: string;
+  apiKey: string;
+  loading: boolean;
+  providersLoaded: boolean;
 };
 
 export type ConsoleViewModel = {
@@ -20,6 +23,10 @@ export type ConsoleViewModel = {
   setScript: (value: string) => void;
   setSelectedProvider: (value: string) => void;
   setResult: (value: string) => void;
+  setApiKey: (value: string) => void;
+  setLoading: (value: boolean) => void;
+  setProviders: (value: string[]) => void;
+  setProvidersLoaded: (value: boolean) => void;
   fetchHealth: () => Promise<HealthResponse>;
   fetchCapabilities: () => Promise<CapabilitiesResponse>;
   fetchProviders: () => Promise<ProvidersResponse>;
@@ -32,18 +39,23 @@ export type ConsoleConfig = {
   apiKey: string;
 };
 
+const createInitialState = (): ConsoleState => ({
+  title: "Deca Console",
+  providers: [],
+  selectedProvider: "",
+  script: 'display dialog "Hello from Deca"',
+  result: "",
+  apiKey: "",
+  loading: false,
+  providersLoaded: false,
+});
+
 export const createConsoleViewModel = (
   fetcher: typeof fetch,
-  config: ConsoleConfig
+  config: ConsoleConfig,
 ): ConsoleViewModel => {
   const apiBaseUrl = config.apiBaseUrl;
-  let state: ConsoleState = {
-    title: 'Deca Console',
-    providers: [],
-    selectedProvider: '',
-    script: '',
-    result: '',
-  };
+  let state: ConsoleState = createInitialState();
 
   const getState = () => state;
   const setTitle = (value: string) => {
@@ -58,42 +70,54 @@ export const createConsoleViewModel = (
   const setResult = (value: string) => {
     state = { ...state, result: value };
   };
+  const setApiKey = (value: string) => {
+    state = { ...state, apiKey: value };
+  };
+  const setLoading = (value: boolean) => {
+    state = { ...state, loading: value };
+  };
+  const setProviders = (value: string[]) => {
+    state = { ...state, providers: value };
+  };
+  const setProvidersLoaded = (value: boolean) => {
+    state = { ...state, providersLoaded: value };
+  };
 
   const fetchHealth = async () => {
     const response = await fetcher(`${apiBaseUrl}/health`);
     if (!response.ok) {
-      throw new Error('health_check_failed');
+      throw new Error("health_check_failed");
     }
     return (await response.json()) as HealthResponse;
   };
 
   const fetchCapabilities = async () => {
     const response = await fetcher(`${apiBaseUrl}/capabilities`, {
-      headers: { 'x-deca-key': config.apiKey },
+      headers: { "x-deca-key": config.apiKey },
     });
     if (!response.ok) {
-      throw new Error('capabilities_failed');
+      throw new Error("capabilities_failed");
     }
     return (await response.json()) as CapabilitiesResponse;
   };
 
   const fetchProviders = async () => {
     const response = await fetcher(`${apiBaseUrl}/providers`, {
-      headers: { 'x-deca-key': config.apiKey },
+      headers: { "x-deca-key": config.apiKey },
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || 'providers_failed');
+      throw new Error(text || "providers_failed");
     }
     return (await response.json()) as ProvidersResponse;
   };
 
   const execScript = async () => {
     const response = await fetcher(`${apiBaseUrl}/exec`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'content-type': 'application/json',
-        'x-deca-key': config.apiKey,
+        "content-type": "application/json",
+        "x-deca-key": config.apiKey,
       },
       body: JSON.stringify({
         command: state.script,
@@ -102,7 +126,7 @@ export const createConsoleViewModel = (
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || 'exec_failed');
+      throw new Error(text || "exec_failed");
     }
     return (await response.json()) as ExecResponse;
   };
@@ -111,7 +135,7 @@ export const createConsoleViewModel = (
     const response = await fetcher(`${apiBaseUrl}/auth/key`);
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || 'auth_key_failed');
+      throw new Error(text || "auth_key_failed");
     }
     return (await response.json()) as AuthKeyResponse;
   };
@@ -122,6 +146,10 @@ export const createConsoleViewModel = (
     setScript,
     setSelectedProvider,
     setResult,
+    setApiKey,
+    setLoading,
+    setProviders,
+    setProvidersLoaded,
     fetchHealth,
     fetchCapabilities,
     fetchProviders,
@@ -129,3 +157,5 @@ export const createConsoleViewModel = (
     fetchAuthKey,
   };
 };
+
+export const getDefaultConsoleState = () => createInitialState();

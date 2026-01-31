@@ -1,40 +1,53 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { createConsoleViewModel } from './consoleViewModel';
+import {
+  createConsoleViewModel,
+  getDefaultConsoleState,
+} from "./consoleViewModel";
 
-describe('consoleViewModel', () => {
-  it('initializes with default title', () => {
+describe("consoleViewModel", () => {
+  it("initializes with default title", () => {
     const viewModel = createConsoleViewModel(fetch, {
-      apiBaseUrl: 'http://127.0.0.1:7010',
-      apiKey: 'sk-test',
+      apiBaseUrl: "http://127.0.0.1:7010",
+      apiKey: "sk-test",
     });
-    expect(viewModel.getState().title).toBe('Deca Console');
+    expect(viewModel.getState().title).toBe("Deca Console");
   });
 
-  it('updates title', () => {
-    const viewModel = createConsoleViewModel(fetch, {
-      apiBaseUrl: 'http://127.0.0.1:7010',
-      apiKey: 'sk-test',
-    });
-    viewModel.setTitle('Updated');
-    expect(viewModel.getState().title).toBe('Updated');
+  it("returns a fresh default state", () => {
+    const first = getDefaultConsoleState();
+    const second = getDefaultConsoleState();
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
   });
 
-  it('fetches health', async () => {
+  it("updates title", () => {
+    const viewModel = createConsoleViewModel(fetch, {
+      apiBaseUrl: "http://127.0.0.1:7010",
+      apiKey: "sk-test",
+    });
+    viewModel.setTitle("Updated");
+    expect(viewModel.getState().title).toBe("Updated");
+  });
+
+  it("fetches health", async () => {
     const viewModel = createConsoleViewModel(
       async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
-      { apiBaseUrl: 'http://127.0.0.1:7010', apiKey: 'sk-test' }
+      { apiBaseUrl: "http://127.0.0.1:7010", apiKey: "sk-test" },
     );
     const response = await viewModel.fetchHealth();
     expect(response.ok).toBe(true);
   });
 
-  it('fetches auth key', async () => {
+  it("fetches auth key", async () => {
     const viewModel = createConsoleViewModel(
-      async () => new Response(JSON.stringify({ key: 'sk-test', header: 'x-deca-key' }), { status: 200 }),
-      { apiBaseUrl: 'http://127.0.0.1:7010', apiKey: '' }
+      async () =>
+        new Response(JSON.stringify({ key: "sk-test", header: "x-deca-key" }), {
+          status: 200,
+        }),
+      { apiBaseUrl: "http://127.0.0.1:7010", apiKey: "" },
     );
     const response = await viewModel.fetchAuthKey();
-    expect(response.key).toBe('sk-test');
+    expect(response.key).toBe("sk-test");
   });
 });
