@@ -23,8 +23,8 @@ export const createClaudeExecutor = (): Executor => ({
     const start = performance.now();
     try {
       const { stdout, stderr } = await execFileAsync(
-        "srt",
-        ["run", "--", "sh", "-c", request.command],
+        "claude",
+        ["run", request.command],
         { timeout: DEFAULT_TIMEOUT_MS }
       );
       const elapsedMs = performance.now() - start;

@@ -10,7 +10,7 @@ export const createClaudeProvider = (): Provider => ({
   type: "claude",
   isAvailable: async () => {
     try {
-      await execFileAsync("srt", ["--version"], { timeout: 5000 });
+      await execFileAsync("claude", ["--version"], { timeout: 5000 });
       return true;
     } catch {
       return false;
