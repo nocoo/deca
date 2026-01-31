@@ -48,6 +48,11 @@ const decaItems: NavItem[] = [
     name: "Stats & Logs",
     path: "/stats",
   },
+  {
+    icon: <ListIcon />,
+    name: "Execution",
+    path: "/execution",
+  },
 ];
 
 const navItems: NavItem[] = [
