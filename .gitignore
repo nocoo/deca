@@ -2,7 +2,7 @@ node_modules
 dist
 .DS_Store
 .env
-config/secret.local.json
+**/config/secret.local.json
 apps/**/dist
 apps/**/.vite
 apps/**/.turbo
