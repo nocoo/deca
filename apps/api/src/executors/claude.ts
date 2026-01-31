@@ -1,10 +1,6 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
 import type { ExecRequest } from "../router/types";
 import type { Executor } from "../router/provider";
-
-const execFileAsync = promisify(execFile);
+import { runClaude } from "./claude-runner";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -23,22 +19,9 @@ export const createClaudeExecutor = (): Executor => ({
     const start = performance.now();
     try {
       const prompt = `Run this shell command and return only stdout.\n${request.command}`;
-      const { stdout, stderr } = await execFileAsync(
-        "claude",
-        [
-          "-p",
-          prompt,
-          "--output-format",
-          "text",
-          "--permission-mode",
-          "dontAsk",
-          "--allowed-tools",
-          "Bash",
-          "--allow-dangerously-skip-permissions",
-          "--dangerously-skip-permissions",
-          "--no-session-persistence",
-        ],
-        { timeout: DEFAULT_TIMEOUT_MS }
+      const { stdout, stderr } = await runClaude(
+        request.command,
+        DEFAULT_TIMEOUT_MS
       );
       const elapsedMs = performance.now() - start;
       return {

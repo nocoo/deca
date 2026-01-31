@@ -6,6 +6,7 @@ import { createCodexProvider } from "./providers/codex";
 import { createClaudeProvider } from "./providers/claude";
 import type { Provider } from "./router/provider";
 import { runWithFallback } from "./router/runner";
+import { runClaude } from "./executors/claude-runner";
 
 const providers: Provider[] = [
   createCodexProvider(),
@@ -61,6 +62,21 @@ export const createApp = () =>
       return { key, header: authHeaderName };
     })
     .use(authMiddleware())
+    .get('/debug/claude', async ({ query, set }) => {
+      const token = String(query.token ?? '');
+      if (!token || token !== (await getAuthKey())) {
+        set.status = 401;
+        return { error: 'unauthorized' };
+      }
+      try {
+        const { stdout, stderr } = await runClaude('echo claude_ok', 15000);
+        return { stdout: stdout.trim(), stderr: stderr.trim() };
+      } catch (error) {
+        const err = error as { message?: string };
+        set.status = 500;
+        return { error: err.message ?? 'claude_debug_failed' };
+      }
+    })
     .get('/health', () => ({ ok: true }))
     .get('/capabilities', () => ({
       providers: providers.map((provider) => ({
