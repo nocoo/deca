@@ -86,7 +86,7 @@
 - UT + Lint 通过
 - Console 触发示例脚本执行
 
-进度：进行中
+进度：完成并通过 Console 验证
 
 ### Milestone 4：Codex Executor
 
