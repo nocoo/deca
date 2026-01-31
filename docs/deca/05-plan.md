@@ -24,6 +24,8 @@
 - UT + Lint 通过
 - Console 能执行 /capabilities（返回 mock）
 
+进度：完成实现，等待 Console 验证
+
 ### Milestone 2：路由层与 Provider/Executor 抽象
 
 目标：

@@ -1,0 +1,17 @@
+{
+  "name": "@deca/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "lint": "biome lint src",
+    "format": "biome format src"
+  },
+  "dependencies": {
+    "elysia": "1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.9"
+  }
+}
