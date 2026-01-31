@@ -41,6 +41,8 @@
 - UT + Lint 通过
 - Console 能查看 provider 列表
 
+进度：完成并通过 Console 验证
+
 ### Milestone 3：AppleScript Executor
 
 目标：
@@ -53,6 +55,8 @@
 验证：
 - UT + Lint 通过
 - Console 触发示例脚本执行
+
+进度：进行中
 
 ### Milestone 4：Codex Executor
 

@@ -6,6 +6,7 @@ const defaultPriority: ProviderType[] = [
   'claude',
   'opencode',
   'native',
+  'applescript',
 ];
 
 const meetsConstraints = (provider: Provider, request: ExecRequest) => {

@@ -14,7 +14,7 @@ Router 只依赖 Provider 接口，不直接调用系统命令。
 
 ## 选择规则（默认）
 
-优先级：Codex → Claude → OpenCode → Native
+优先级：Codex → Claude → OpenCode → Native → AppleScript
 
 规则：
 - 需要联网：跳过 Codex
