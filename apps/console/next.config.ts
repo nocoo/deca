@@ -17,9 +17,7 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  devServer: {
-    allowedHosts: ["deca-console.dev.hexly.ai"],
-  },
+  allowedDevOrigins: ["https://deca-console.dev.hexly.ai"],
 };
 
 export default nextConfig;
