@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { ApexOptions } from "apexcharts";
+import type { ApexOptions } from "apexcharts";
 
 import dynamic from "next/dynamic";
 // Dynamically import the ReactApexChart component
@@ -18,7 +18,8 @@ export default function LineChartOne() {
     },
     colors: ["#465FFF", "#9CB9FF"], // Define line colors
     chart: {
-      fontFamily: "Outfit, sans-serif",
+      fontFamily:
+        "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
       height: 310,
       type: "line", // Set the chart type to 'line'
       toolbar: {

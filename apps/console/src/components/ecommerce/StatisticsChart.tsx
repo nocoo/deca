@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
-import { ApexOptions } from "apexcharts";
+import type { ApexOptions } from "apexcharts";
 import flatpickr from "flatpickr";
-import ChartTab from "../common/ChartTab";
+import dynamic from "next/dynamic";
+import { useEffect, useRef } from "react";
 import { CalenderIcon } from "../../icons";
+import ChartTab from "../common/ChartTab";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -46,7 +46,8 @@ export default function StatisticsChart() {
     },
     colors: ["#465FFF", "#9CB9FF"], // Define line colors
     chart: {
-      fontFamily: "Outfit, sans-serif",
+      fontFamily:
+        "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
       height: 310,
       type: "line", // Set the chart type to 'line'
       toolbar: {

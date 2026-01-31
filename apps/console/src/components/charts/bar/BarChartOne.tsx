@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { ApexOptions } from "apexcharts";
+import type { ApexOptions } from "apexcharts";
 
 import dynamic from "next/dynamic";
 // Dynamically import the ReactApexChart component
@@ -13,7 +13,8 @@ export default function BarChartOne() {
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {
-      fontFamily: "Outfit, sans-serif",
+      fontFamily:
+        "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
       type: "bar",
       height: 180,
       toolbar: {
@@ -62,7 +63,8 @@ export default function BarChartOne() {
       show: true,
       position: "top",
       horizontalAlign: "left",
-      fontFamily: "Outfit",
+      fontFamily:
+        "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
     },
     yaxis: {
       title: {

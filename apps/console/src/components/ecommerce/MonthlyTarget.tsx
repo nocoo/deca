@@ -1,11 +1,11 @@
 "use client";
 // import Chart from "react-apexcharts";
-import { ApexOptions } from "apexcharts";
+import type { ApexOptions } from "apexcharts";
 
-import dynamic from "next/dynamic";
-import { Dropdown } from "../ui/dropdown/Dropdown";
 import { MoreDotIcon } from "@/icons";
+import dynamic from "next/dynamic";
 import { useState } from "react";
+import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -17,7 +17,8 @@ export default function MonthlyTarget() {
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {
-      fontFamily: "Outfit, sans-serif",
+      fontFamily:
+        "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
       type: "radialBar",
       height: 330,
       sparkline: {
@@ -45,9 +46,7 @@ export default function MonthlyTarget() {
             fontWeight: "600",
             offsetY: -40,
             color: "#1D2939",
-            formatter: function (val) {
-              return val + "%";
-            },
+            formatter: (val) => `${val}%`,
           },
         },
       },
@@ -85,7 +84,11 @@ export default function MonthlyTarget() {
             </p>
           </div>
           <div className="relative inline-block">
-            <button onClick={toggleDropdown} className="dropdown-toggle">
+            <button
+              type="button"
+              onClick={toggleDropdown}
+              className="dropdown-toggle"
+            >
               <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
             </button>
             <Dropdown
@@ -144,6 +147,7 @@ export default function MonthlyTarget() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>Target trend down</title>
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -154,7 +158,7 @@ export default function MonthlyTarget() {
           </p>
         </div>
 
-        <div className="w-px bg-gray-200 h-7 dark:bg-gray-800"></div>
+        <div className="h-7 w-px bg-gray-200 dark:bg-gray-800" />
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
@@ -169,6 +173,7 @@ export default function MonthlyTarget() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>Revenue trend up</title>
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -179,7 +184,7 @@ export default function MonthlyTarget() {
           </p>
         </div>
 
-        <div className="w-px bg-gray-200 h-7 dark:bg-gray-800"></div>
+        <div className="h-7 w-px bg-gray-200 dark:bg-gray-800" />
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
@@ -194,6 +199,7 @@ export default function MonthlyTarget() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>Today trend up</title>
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"

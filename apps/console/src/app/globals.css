@@ -4,7 +4,7 @@
 
 @theme {
   --font-*: initial;
-  --font-outfit: Outfit, sans-serif;
+  --font-outfit: ui-sans-serif, system-ui, -apple-system, Segoe\ UI, sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;

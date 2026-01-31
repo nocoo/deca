@@ -1,11 +1,11 @@
-import React from "react";
 // import { VectorMap } from "@react-jvectormap/core";
 import { worldMill } from "@react-jvectormap/world";
 import dynamic from "next/dynamic";
+import type React from "react";
 
 const VectorMap = dynamic(
   () => import("@react-jvectormap/core").then((mod) => mod.VectorMap),
-  { ssr: false }
+  { ssr: false },
 );
 
 // Define the component props
@@ -89,7 +89,8 @@ const CountryMap: React.FC<CountryMapProps> = ({ mapColor }) => {
         initial: {
           fill: mapColor || "#D0D5DD",
           fillOpacity: 1,
-          fontFamily: "Outfit",
+          fontFamily:
+            "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
           stroke: "none",
           strokeWidth: 0,
           strokeOpacity: 0,
