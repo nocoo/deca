@@ -12,7 +12,7 @@ describe('ConsoleApp', () => {
   it('updates message on start', async () => {
     const user = userEvent.setup();
     render(<ConsoleApp />);
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(screen.getByRole('button', { name: 'Start Session' }));
     expect(screen.getByText('Deca Console Ready')).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import { ConsoleApp } from './ui/ConsoleApp';
+import './styles/console.css';
 
 const rootElement = document.getElementById('root');
 

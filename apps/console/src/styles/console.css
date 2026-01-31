@@ -1,0 +1,161 @@
+:root {
+  color-scheme: light;
+  font-family: "Instrument Sans", "Space Grotesk", system-ui, sans-serif;
+  background: #f7f3ea;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 10% -10%, #f7ead6 0%, rgba(247, 234, 214, 0) 60%),
+    radial-gradient(900px 520px at 90% 10%, #e7eef6 0%, rgba(231, 238, 246, 0) 55%),
+    #f7f3ea;
+  color: #1c1a17;
+}
+
+.console-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.console-hero {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 32px;
+}
+
+.console-title {
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.console-subtitle {
+  margin: 0;
+  color: #4d463d;
+  max-width: 640px;
+}
+
+.console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .console-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.console-card {
+  background: #fbfaf8;
+  border: 1px solid #e5dccc;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(102, 76, 32, 0.08);
+}
+
+.card-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a6a57;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6f6253;
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #dfd2be;
+  padding: 10px 12px;
+  background: #fffdf9;
+  font-size: 14px;
+  color: #1c1a17;
+  font-family: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #8a7b69;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn {
+  border-radius: 999px;
+  padding: 10px 18px;
+  border: 1px solid #d6c6ad;
+  background: #f3e5cf;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(140, 98, 42, 0.16);
+}
+
+.btn.secondary {
+  background: #f7f3ea;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: #e9e2d3;
+  color: #5a4b3d;
+}
+
+.result-box {
+  background: #191611;
+  color: #f5f0e8;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 13px;
+  min-height: 140px;
+  white-space: pre-wrap;
+}
+
+.divider {
+  height: 1px;
+  background: #e5dccc;
+  margin: 16px 0;
+}
