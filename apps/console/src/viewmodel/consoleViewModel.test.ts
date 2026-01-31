@@ -28,4 +28,13 @@ describe('consoleViewModel', () => {
     const response = await viewModel.fetchHealth();
     expect(response.ok).toBe(true);
   });
+
+  it('fetches auth key', async () => {
+    const viewModel = createConsoleViewModel(
+      async () => new Response(JSON.stringify({ key: 'sk-test', header: 'x-deca-key' }), { status: 200 }),
+      { apiBaseUrl: 'http://127.0.0.1:7010', apiKey: '' }
+    );
+    const response = await viewModel.fetchAuthKey();
+    expect(response.key).toBe('sk-test');
+  });
 });

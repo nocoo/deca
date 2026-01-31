@@ -1,4 +1,5 @@
 import type {
+  AuthKeyResponse,
   CapabilitiesResponse,
   ExecResponse,
   HealthResponse,
@@ -23,6 +24,7 @@ export type ConsoleViewModel = {
   fetchCapabilities: () => Promise<CapabilitiesResponse>;
   fetchProviders: () => Promise<ProvidersResponse>;
   execScript: () => Promise<ExecResponse>;
+  fetchAuthKey: () => Promise<AuthKeyResponse>;
 };
 
 export type ConsoleConfig = {
@@ -105,6 +107,15 @@ export const createConsoleViewModel = (
     return (await response.json()) as ExecResponse;
   };
 
+  const fetchAuthKey = async () => {
+    const response = await fetcher(`${apiBaseUrl}/auth/key`);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'auth_key_failed');
+    }
+    return (await response.json()) as AuthKeyResponse;
+  };
+
   return {
     getState,
     setTitle,
@@ -115,5 +126,6 @@ export const createConsoleViewModel = (
     fetchCapabilities,
     fetchProviders,
     execScript,
+    fetchAuthKey,
   };
 };

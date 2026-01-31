@@ -35,3 +35,8 @@ export type ExecResponse = {
     attempted: string[];
   };
 };
+
+export type AuthKeyResponse = {
+  key: string;
+  header: string;
+};

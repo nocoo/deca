@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 
-import { authMiddleware } from './state/auth';
+import { authHeaderName, authMiddleware, getAuthKey } from './state/auth';
 import { createAppleScriptProvider } from './providers/applescript';
 import type { Provider } from './router/provider';
 import { runWithFallback } from './router/runner';
@@ -40,6 +40,19 @@ export const createApp = () =>
     .options('*', ({ request }) => {
       const headers = getCorsHeaders(request.headers.get('origin'));
       return new Response(null, { status: 204, headers });
+    })
+    .get('/auth/key', async ({ request, set }) => {
+      const origin = request.headers.get('origin');
+      if (!origin || origin !== 'https://deca-console.dev.hexly.ai') {
+        set.status = 403;
+        return { error: 'forbidden' };
+      }
+      const key = await getAuthKey();
+      if (!key) {
+        set.status = 503;
+        return { error: 'auth_key_missing' };
+      }
+      return { key, header: authHeaderName };
     })
     .use(authMiddleware())
     .get('/health', () => ({ ok: true }))

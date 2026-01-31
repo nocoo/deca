@@ -12,7 +12,7 @@ export function ConsoleApp() {
     []
   );
   const [message, setMessage] = useState(baseViewModel.getState().title);
-  const [apiKey, setApiKey] = useState('sk-b96b739b6689486394a89470d12d9f57');
+  const [apiKey, setApiKey] = useState('');
   const [providers, setProviders] = useState<string[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [script, setScript] = useState('display dialog "Hello from Deca"');
@@ -39,6 +39,21 @@ export function ConsoleApp() {
       const message = error instanceof Error ? error.message : 'providers_failed';
       setResult(message);
       setProviders([]);
+    }
+  };
+
+  const loadAuthKey = async () => {
+    const configured = createConsoleViewModel(fetch, {
+      apiBaseUrl: 'https://deca.dev.hexly.ai',
+      apiKey: '',
+    });
+    try {
+      const data = await configured.fetchAuthKey();
+      setApiKey(data.key);
+      setResult('auth_key_loaded');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'auth_key_failed';
+      setResult(message);
     }
   };
 
@@ -72,6 +87,11 @@ export function ConsoleApp() {
       <div style={{ marginTop: 8 }}>
         <button type="button" onClick={loadProviders}>
           Load Providers
+        </button>
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button type="button" onClick={loadAuthKey}>
+          Load Key
         </button>
       </div>
       <div style={{ marginTop: 8 }}>
