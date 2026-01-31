@@ -1,11 +1,18 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import type { Elysia } from 'elysia';
 
-export const configPath = () =>
-  join(process.cwd(), 'config', 'secret.local.json');
+const rootDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../'
+);
+
+const configDir = () => process.env.DECA_CONFIG_DIR || join(rootDir, 'config');
+
+export const configPath = () => join(configDir(), 'secret.local.json');
 const AUTH_HEADER = 'x-deca-key';
 const KEY_PREFIX = 'sk-';
 
