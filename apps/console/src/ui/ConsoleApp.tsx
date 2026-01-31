@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { createConsoleViewModel } from '../viewmodel/consoleViewModel';
 
@@ -18,34 +18,28 @@ export function ConsoleApp() {
   const [script, setScript] = useState('display dialog "Hello from Deca"');
   const [result, setResult] = useState('');
 
-  useEffect(() => {
-    let mounted = true;
+  const loadProviders = async () => {
     if (!apiKey) {
-      setProviders([]);
-      return () => undefined;
+      setResult('missing_api_key');
+      return;
     }
     const configured = createConsoleViewModel(fetch, {
       apiBaseUrl: 'https://deca.dev.hexly.ai',
       apiKey,
     });
-    configured
-      .fetchProviders()
-      .then((data) => {
-        if (!mounted) return;
-        const list = data.providers.map((provider) => provider.type);
-        setProviders(list);
-        if (!selectedProvider && list.length > 0) {
-          setSelectedProvider(list[0]);
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setProviders([]);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [apiKey, selectedProvider]);
+    try {
+      const data = await configured.fetchProviders();
+      const list = data.providers.map((provider) => provider.type);
+      setProviders(list);
+      if (!selectedProvider && list.length > 0) {
+        setSelectedProvider(list[0]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'providers_failed';
+      setResult(message);
+      setProviders([]);
+    }
+  };
 
   return (
     <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
@@ -68,6 +62,11 @@ export function ConsoleApp() {
             onChange={(event) => setApiKey(event.target.value)}
           />
         </label>
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button type="button" onClick={loadProviders}>
+          Load Providers
+        </button>
       </div>
       <div style={{ marginTop: 8 }}>
         <button
