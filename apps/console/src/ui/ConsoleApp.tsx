@@ -19,13 +19,14 @@ export function ConsoleApp() {
   const [result, setResult] = useState('');
 
   const loadProviders = async () => {
-    if (!apiKey) {
+    const normalizedKey = apiKey.trim();
+    if (!normalizedKey) {
       setResult('missing_api_key');
       return;
     }
     const configured = createConsoleViewModel(fetch, {
       apiBaseUrl: 'https://deca.dev.hexly.ai',
-      apiKey,
+      apiKey: normalizedKey,
     });
     try {
       const data = await configured.fetchProviders();
@@ -62,6 +63,9 @@ export function ConsoleApp() {
             onChange={(event) => setApiKey(event.target.value)}
           />
         </label>
+        <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
+          Key length: {apiKey.trim().length}
+        </div>
       </div>
       <div style={{ marginTop: 8 }}>
         <button type="button" onClick={loadProviders}>
@@ -120,13 +124,14 @@ export function ConsoleApp() {
             viewModel.setScript(script);
             viewModel.setSelectedProvider(selectedProvider);
             try {
-              if (!apiKey) {
+              const normalizedKey = apiKey.trim();
+              if (!normalizedKey) {
                 setResult('missing_api_key');
                 return;
               }
               const configured = createConsoleViewModel(fetch, {
                 apiBaseUrl: 'https://deca.dev.hexly.ai',
-                apiKey,
+                apiKey: normalizedKey,
               });
               configured.setScript(script);
               configured.setSelectedProvider(selectedProvider);
