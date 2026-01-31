@@ -43,6 +43,11 @@ const decaItems: NavItem[] = [
     name: "Session",
     path: "/session",
   },
+  {
+    icon: <PieChartIcon />,
+    name: "Stats & Logs",
+    path: "/stats",
+  },
 ];
 
 const navItems: NavItem[] = [
