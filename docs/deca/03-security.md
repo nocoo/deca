@@ -4,6 +4,11 @@
 - Header 鉴权使用 `sk-` 前缀 key
 - key 保存在忽略的本地配置文件
 
+## 本地域名
+
+- 使用 Caddy 将域名映射到本机端口
+- Console 验证地址：`https://deca-console.dev.hexly.ai`
+
 ## Console 行为
 
 - Console 读取并使用本地 key

@@ -28,8 +28,8 @@ Local-first macOS control gateway for AI agents.
 
 ## Local Domains
 
-- API: `http://deca.dev.hexly.ai` (maps to 127.0.0.1:7010)
-- Console: `http://deca-console.dev.hexly.ai` (maps to 127.0.0.1:7011)
+- API: `https://deca.dev.hexly.ai` (Caddy -> 127.0.0.1:7010)
+- Console: `https://deca-console.dev.hexly.ai` (Caddy -> 127.0.0.1:7011)
 
 ## Dev
 
