@@ -61,7 +61,6 @@ export const createApp = () =>
       }
       return { key, header: authHeaderName };
     })
-    .use(authMiddleware())
     .get('/debug/claude', async ({ query, set }) => {
       const token = String(query.token ?? '');
       if (!token || token !== (await getAuthKey())) {
@@ -77,6 +76,7 @@ export const createApp = () =>
         return { error: err.message ?? 'claude_debug_failed' };
       }
     })
+    .use(authMiddleware())
     .get('/health', () => ({ ok: true }))
     .get('/capabilities', () => ({
       providers: providers.map((provider) => ({
