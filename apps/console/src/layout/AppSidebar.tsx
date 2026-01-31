@@ -38,6 +38,11 @@ const decaItems: NavItem[] = [
     name: "Key Management",
     path: "/key-management",
   },
+  {
+    icon: <CalenderIcon />,
+    name: "Session",
+    path: "/session",
+  },
 ];
 
 const navItems: NavItem[] = [
