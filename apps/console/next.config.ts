@@ -19,10 +19,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: [
     "deca-console.dev.hexly.ai",
-    "deca-console.dev.hexly.ai:443",
-    "localhost",
     "localhost:7011",
-    "127.0.0.1",
     "127.0.0.1:7011",
   ],
 };
