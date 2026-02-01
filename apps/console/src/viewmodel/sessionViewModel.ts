@@ -85,17 +85,25 @@ export const createSessionViewModel = (
         healthOk: health.ok,
         events: [...current.events, "health_check_ok"],
       }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        healthOk: false,
+        events: [...current.events, "health_check_failed"],
+      }));
+    }
 
-      const keyState = readKeyStore();
-      if (!keyState.key) {
-        setState((current) => ({
-          ...current,
-          status: "ready",
-          events: [...current.events, "missing_api_key"],
-        }));
-        return;
-      }
+    const keyState = readKeyStore();
+    if (!keyState.key) {
+      setState((current) => ({
+        ...current,
+        status: "ready",
+        events: [...current.events, "missing_api_key"],
+      }));
+      return;
+    }
 
+    try {
       const providers = await fetchProviders(keyState.key);
       setState((current) => ({
         ...current,
@@ -104,12 +112,13 @@ export const createSessionViewModel = (
         events: [...current.events, "providers_loaded"],
       }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "session_failed";
+      const message =
+        error instanceof Error ? error.message : "providers_failed";
       setState((current) => ({
         ...current,
         status: "error",
         errorMessage: message,
-        events: [...current.events, "session_failed"],
+        events: [...current.events, "providers_failed"],
       }));
     }
   };

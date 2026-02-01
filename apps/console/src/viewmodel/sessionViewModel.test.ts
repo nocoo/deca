@@ -72,4 +72,26 @@ describe("sessionViewModel", () => {
     expect(state.status).toBe("ready");
     expect(state.events).toContain("missing_api_key");
   });
+
+  it("captures provider errors without health fail", async () => {
+    window.localStorage.setItem("deca.console.key", "sk-test");
+    const fetcher = vi.fn(async (input: RequestInfo) => {
+      const url = input.toString();
+      if (url.endsWith("/health")) {
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+      if (url.endsWith("/providers")) {
+        return new Response("forbidden", { status: 403 });
+      }
+      return new Response("not_found", { status: 404 });
+    });
+
+    const viewModel = createSessionViewModel(fetcher);
+    await viewModel.actions.startSession();
+    const state = viewModel.getState();
+    expect(state.healthOk).toBe(true);
+    expect(state.status).toBe("error");
+    expect(state.errorMessage).toBe("forbidden");
+    expect(state.events).toContain("providers_failed");
+  });
 });
