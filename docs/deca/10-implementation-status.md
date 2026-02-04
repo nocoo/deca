@@ -36,7 +36,8 @@
 | M1: Storage 包 | ✅ 完成 | 100% | 路径解析、配置管理、凭证管理 |
 | M2: Agent 核心包 | ✅ 完成 | 97.28% | Agent 循环、会话管理、上下文、工具 |
 | M3: Heartbeat 机制 | ✅ 完成 | 99.66% | 主动唤醒、任务解析、调度 |
-| E2E 验证 | ✅ 完成 | - | 真实 LLM API 调用测试 |
+| E2E 验证 | ✅ 完成 | 33 tests | 真实 LLM API 调用测试 |
+| Husky Hooks | ✅ 完成 | - | Pre-commit (lint+unit), Pre-push (e2e) |
 | M4: Discord Gateway | ⏳ 待开始 | - | Discord Bot 连接 |
 | M5: Discord + Agent | ⏳ 待开始 | - | 完整集成 |
 
@@ -348,19 +349,28 @@ cd packages/agent && bunx biome check ./src
 # 安装依赖
 bun install
 
-# 运行测试
-cd packages/agent && bun test
-cd packages/storage && bun test
+# 运行单元测试
+bun run test:unit
 
-# 带覆盖率
-bun test --coverage
+# 运行 E2E 测试
+bun run test:e2e
+
+# 运行所有测试
+bun run test:all
 
 # Lint
 bun run lint
 
-# E2E 测试 (需要凭据)
-cd packages/agent && bun test src/e2e/
+# 带覆盖率
+cd packages/agent && bun test --coverage
 ```
+
+### Git Hooks (Husky)
+
+| Hook | 触发时机 | 检查内容 |
+|------|----------|----------|
+| pre-commit | commit 前 | lint + unit tests |
+| pre-push | push 前 | e2e tests |
 
 ### Git 规范
 
@@ -490,3 +500,5 @@ cat ~/.deca/credentials/anthropic.json | jq
 - ✅ 扩展 CredentialStore 支持 ModelConfig
 - ✅ Agent 支持 baseUrl 配置
 - ✅ 验证 Agent + Heartbeat 完整链路
+- ✅ 设置 Husky pre-commit/pre-push hooks
+- ✅ 扩展 E2E 测试至 33 个 (Agent + Heartbeat)
