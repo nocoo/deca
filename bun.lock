@@ -13,6 +13,7 @@
       "name": "@deca/api",
       "dependencies": {
         "@deca/agent": "workspace:*",
+        "@deca/storage": "workspace:*",
         "discord.js": "^14.25.1",
         "elysia": "1.1.1",
       },

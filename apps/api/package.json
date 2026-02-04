@@ -4,12 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "bun run src/index.ts",
+    "discord": "bun run src/discord-cli.ts",
+    "discord:echo": "bun run src/discord-cli.ts --echo",
     "test": "bun test",
     "lint": "biome lint src",
     "format": "biome format src"
   },
   "dependencies": {
     "@deca/agent": "workspace:*",
+    "@deca/storage": "workspace:*",
     "discord.js": "^14.25.1",
     "elysia": "1.1.1"
   },
