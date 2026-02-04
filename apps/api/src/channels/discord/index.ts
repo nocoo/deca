@@ -65,3 +65,12 @@ export {
   markError,
   type ReactionType,
 } from "./reaction";
+
+// Debounce
+export {
+  createDebounceManager,
+  DEFAULT_DEBOUNCE_WINDOW_MS,
+  type DebounceConfig,
+  type DebouncedHandler,
+  type DebounceManager,
+} from "./debounce";

@@ -13,6 +13,10 @@ import {
 } from "discord.js";
 import { isAllowed } from "./allowlist";
 import {
+  type DebounceManager,
+  createDebounceManager,
+} from "./debounce";
+import {
   type GracefulShutdown,
   createGracefulShutdown,
 } from "./graceful-shutdown";
@@ -53,6 +57,14 @@ export interface ListenerConfig {
 
   /** Graceful shutdown timeout in milliseconds (default: 30000) */
   shutdownTimeoutMs?: number;
+
+  /** Debounce configuration */
+  debounce?: {
+    /** Enable debounce (default: false) */
+    enabled: boolean;
+    /** Debounce window in milliseconds (default: 3000) */
+    windowMs?: number;
+  };
 }
 
 /**
@@ -85,12 +97,37 @@ export function createMessageListener(
     timeoutMs: config.shutdownTimeoutMs ?? 30000,
   });
 
+  // Create debounce manager if enabled
+  let debounce: DebounceManager | null = null;
+  if (config.debounce?.enabled) {
+    debounce = createDebounceManager(
+      async (firstMessage, combinedContent, allMessages) => {
+        await shutdown.wrapTask(async () => {
+          await processDebouncedMessage(
+            firstMessage,
+            combinedContent,
+            allMessages,
+            botUserId,
+            config,
+          );
+        });
+      },
+      { windowMs: config.debounce.windowMs ?? 3000 },
+    );
+  }
+
   const onMessage = async (message: Message) => {
     if (!shouldProcessMessage(message, botUserId, config)) {
       return;
     }
 
-    // Wrap message processing with graceful shutdown tracking
+    // If debounce is enabled, queue the message
+    if (debounce) {
+      debounce.add(message);
+      return;
+    }
+
+    // Otherwise, process immediately
     await shutdown.wrapTask(async () => {
       await processMessage(message, botUserId, config);
     });
@@ -101,18 +138,21 @@ export function createMessageListener(
   // Create cleanup function with shutdown support
   const cleanup = (() => {
     client.off(Events.MessageCreate, onMessage);
+    debounce?.clear();
     shutdown.reset();
   }) as ListenerCleanup;
 
   cleanup.shutdown = async () => {
     // Stop accepting new messages
     client.off(Events.MessageCreate, onMessage);
+    // Clear pending debounces (they won't be processed)
+    debounce?.clear();
     // Wait for pending messages
     await shutdown.initiateShutdown();
   };
 
   Object.defineProperty(cleanup, "pendingCount", {
-    get: () => shutdown.pendingCount,
+    get: () => shutdown.pendingCount + (debounce?.pendingCount ?? 0),
   });
 
   return cleanup;
@@ -196,6 +236,54 @@ export async function processMessage(
   // Build request
   const request = buildMessageRequest(message, content, config.agentId);
 
+  await executeHandler(message, request, botUserId, config);
+}
+
+/**
+ * Process debounced messages (multiple merged into one).
+ *
+ * @param firstMessage - First message in the group (for reactions/replies)
+ * @param combinedContent - Merged content from all messages
+ * @param allMessages - All messages in the group
+ * @param botUserId - Bot's user ID
+ * @param config - Listener configuration
+ */
+async function processDebouncedMessage(
+  firstMessage: Message,
+  combinedContent: string,
+  allMessages: Message[],
+  botUserId: string,
+  config: ListenerConfig,
+): Promise<void> {
+  // Mark first message as received
+  await markReceived(firstMessage);
+
+  // Show typing indicator
+  await showTyping(firstMessage.channel);
+
+  // Clean combined content
+  const content = extractContent(combinedContent, botUserId);
+
+  // Skip empty messages
+  if (!content) {
+    return;
+  }
+
+  // Build request using first message for context
+  const request = buildMessageRequest(firstMessage, content, config.agentId);
+
+  await executeHandler(firstMessage, request, botUserId, config);
+}
+
+/**
+ * Execute handler and manage response/reactions.
+ */
+async function executeHandler(
+  message: Message,
+  request: MessageRequest,
+  botUserId: string,
+  config: ListenerConfig,
+): Promise<void> {
   try {
     // Call handler
     const response = await config.handler.handle(request);
