@@ -50,10 +50,21 @@ export async function removeReaction(
   botUserId: string,
 ): Promise<void> {
   try {
-    const reaction = message.reactions.cache.get(REACTIONS[type]);
-    if (reaction) {
-      await reaction.users.remove(botUserId);
+    const emoji = REACTIONS[type];
+
+    // Try cache first (fast path)
+    const cached = message.reactions.cache.get(emoji);
+    if (cached) {
+      await cached.users.remove(botUserId);
+      return;
     }
+
+    // If not cached, use REST API directly
+    // DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me
+    const encodedEmoji = encodeURIComponent(emoji);
+    await message.client.rest.delete(
+      `/channels/${message.channel.id}/messages/${message.id}/reactions/${encodedEmoji}/@me`,
+    );
   } catch {
     // Ignore reaction errors - non-critical
   }
