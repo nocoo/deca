@@ -16,6 +16,7 @@ import {
   type GracefulShutdown,
   createGracefulShutdown,
 } from "./graceful-shutdown";
+import { markError, markReceived, markSuccess } from "./reaction";
 import { sendReply, showTyping } from "./sender";
 import { resolveDiscordSessionKey } from "./session";
 import type {
@@ -178,6 +179,9 @@ export async function processMessage(
   botUserId: string,
   config: ListenerConfig,
 ): Promise<void> {
+  // Mark message as received
+  await markReceived(message);
+
   // Show typing indicator
   await showTyping(message.channel);
 
@@ -199,9 +203,11 @@ export async function processMessage(
     // Send response
     if (response.success && response.text) {
       await sendReply(message, response.text);
+      await markSuccess(message, botUserId);
     } else if (!response.success) {
       const errorMsg = response.error || "An error occurred";
       await sendReply(message, `⚠️ ${errorMsg}`);
+      await markError(message, botUserId);
     }
   } catch (error) {
     // Handle exceptions
@@ -212,6 +218,7 @@ export async function processMessage(
     } catch {
       // Ignore reply errors
     }
+    await markError(message, botUserId);
   }
 }
 

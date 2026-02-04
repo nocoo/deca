@@ -46,6 +46,12 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
   const guild = createMockGuild(overrides.guild as Partial<Guild>);
   const channel = createMockChannel(overrides.channel as Partial<TextChannel>);
 
+  // Track reactions for testing
+  const reactionsCache = new Map<
+    string,
+    { users: { remove: ReturnType<typeof mock> } }
+  >();
+
   return {
     id: "msg-id",
     content: "Hello bot!",
@@ -57,6 +63,16 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
       has: () => false,
     },
     reply: mock(() => Promise.resolve({ id: "reply-id" })),
+    react: mock(async (emoji: string) => {
+      reactionsCache.set(emoji, {
+        users: { remove: mock(() => Promise.resolve()) },
+      });
+    }),
+    reactions: {
+      cache: {
+        get: (emoji: string) => reactionsCache.get(emoji),
+      },
+    },
     ...overrides,
   } as unknown as Message;
 }
@@ -388,6 +404,65 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(channel.sendTyping).toHaveBeenCalled();
+  });
+
+  describe("reactions", () => {
+    it("adds 👀 reaction when message received", async () => {
+      const handler = createMockHandler();
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      expect(message.react).toHaveBeenCalledWith("👀");
+    });
+
+    it("adds ✅ reaction on success", async () => {
+      const handler = createMockHandler({ text: "OK", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      expect(message.react).toHaveBeenCalledWith("✅");
+    });
+
+    it("adds ❌ reaction on handler error", async () => {
+      const handler: MessageHandler = {
+        handle: mock(() => Promise.reject(new Error("Error"))),
+      };
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      expect(message.react).toHaveBeenCalledWith("❌");
+    });
+
+    it("adds ❌ reaction on failure response", async () => {
+      const handler = createMockHandler({
+        text: "",
+        success: false,
+        error: "Failed",
+      });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      expect(message.react).toHaveBeenCalledWith("❌");
+    });
+
+    it("removes 👀 reaction after processing", async () => {
+      const handler = createMockHandler({ text: "OK", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      // 👀 reaction should have users.remove called
+      const receivedReaction = (
+        message.reactions as unknown as {
+          cache: { get: (emoji: string) => { users: { remove: unknown } } };
+        }
+      ).cache.get("👀");
+      expect(receivedReaction?.users.remove).toHaveBeenCalledWith("bot123");
+    });
   });
 });
 

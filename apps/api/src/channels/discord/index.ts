@@ -54,3 +54,14 @@ export {
 
 // Handlers
 export { createEchoHandler } from "./echo-handler";
+
+// Reactions
+export {
+  REACTIONS,
+  addReaction,
+  removeReaction,
+  markReceived,
+  markSuccess,
+  markError,
+  type ReactionType,
+} from "./reaction";
