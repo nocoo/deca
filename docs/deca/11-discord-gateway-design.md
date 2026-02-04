@@ -37,10 +37,7 @@ apps/api/
 │   ├── gateway.ts             # 组装层
 │   └── e2e/                   # E2E 测试
 │
-├── adapters/
-│   └── discord-agent-adapter.ts  # Agent 适配器（依赖 @deca/agent）
-│
-└── discord-cli.ts             # CLI 入口
+└── discord-cli.ts             # CLI 入口（目前仅 echo 模式）
 ```
 
 ### 消息处理流程

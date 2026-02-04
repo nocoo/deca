@@ -2,34 +2,33 @@
 /**
  * Discord Bot CLI
  *
- * Starts the Discord bot with @deca/agent integration.
+ * Starts the Discord bot for testing.
+ * Currently only supports echo mode.
  *
  * Usage:
  *   bun run src/discord-cli.ts [options]
  *
  * Options:
- *   --echo          Use echo handler instead of agent (for testing)
- *   --agent-id=X    Custom agent ID (default: deca)
+ *   --agent-id=X        Custom agent ID (default: deca)
  *   --require-mention   Require @mention to respond
+ *   --debounce          Enable message debouncing
+ *   --allow-bots        Allow responding to bot messages
  *
  * Environment:
  *   DISCORD_BOT_TOKEN   Bot token (alternative to ~/.deca/credentials/discord.json)
  */
 
-import { Agent, type AgentConfig } from "@deca/agent";
 import {
   type CredentialStore,
   createCredentialManager,
   resolvePaths,
 } from "@deca/storage";
-import { createDiscordAgentAdapter } from "./adapters/discord-agent-adapter";
 import { createEchoHandler } from "./channels/discord/echo-handler";
 import { createDiscordGateway } from "./channels/discord/gateway";
 import type { MessageHandler } from "./channels/discord/types";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const useEcho = args.includes("--echo");
 const requireMention = args.includes("--require-mention");
 const useDebounce = args.includes("--debounce");
 const allowBots = args.includes("--allow-bots");
@@ -68,66 +67,12 @@ async function loadDiscordToken(): Promise<string> {
   return discord.botToken;
 }
 
-async function loadAnthropicCredentials(): Promise<{
-  apiKey: string;
-  baseUrl?: string;
-}> {
-  const paths = resolvePaths();
-  const credentials = createCredentialManager(paths.credentialsDir);
-
-  const anthropic =
-    await credentials.get<CredentialStore["anthropic"]>("anthropic");
-
-  if (!anthropic?.apiKey) {
-    console.error("❌ Anthropic API key not found.");
-    console.error("");
-    console.error("Please configure your Anthropic API key:");
-    console.error("  mkdir -p ~/.deca/credentials");
-    console.error(
-      '  echo \'{"apiKey":"your-api-key"}\' > ~/.deca/credentials/anthropic.json',
-    );
-    console.error("  chmod 600 ~/.deca/credentials/anthropic.json");
-    process.exit(1);
-  }
-
-  return {
-    apiKey: anthropic.apiKey,
-    baseUrl: anthropic.baseUrl,
-  };
-}
-
-async function createHandler(): Promise<MessageHandler> {
-  if (useEcho) {
-    console.log("📢 Using echo handler (test mode)");
-    return createEchoHandler({
-      prefix: "🔊 Echo: ",
-      includeSender: true,
-      includeChannel: true,
-    });
-  }
-
-  // Load Anthropic credentials and create agent
-  console.log("🤖 Loading agent...");
-  const anthropic = await loadAnthropicCredentials();
-
-  const agentConfig: AgentConfig = {
-    model: process.env.DECA_MODEL || "claude-sonnet-4-20250514",
-    provider: {
-      apiKey: anthropic.apiKey,
-      baseUrl: anthropic.baseUrl,
-    },
-  };
-
-  const agent = new Agent(agentConfig);
-  console.log(`   Model: ${agentConfig.model}`);
-
-  return createDiscordAgentAdapter({
-    agent,
-    systemPrompt: `You are a helpful Discord bot named Deca. 
-You are friendly, concise, and helpful.
-Keep responses brief and to the point, as Discord has a 2000 character limit per message.
-Use markdown formatting when appropriate.`,
-    includeContext: true,
+function createHandler(): MessageHandler {
+  console.log("📢 Using echo handler");
+  return createEchoHandler({
+    prefix: "🔊 Echo: ",
+    includeSender: true,
+    includeChannel: true,
   });
 }
 
@@ -141,7 +86,7 @@ async function main() {
   console.log("   Token loaded successfully");
 
   // Create handler
-  const handler = await createHandler();
+  const handler = createHandler();
 
   // Create gateway
   console.log("");

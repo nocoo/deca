@@ -255,9 +255,7 @@ apps/api/src/
 │   ├── listener.ts       # 消息监听 + 路由
 │   ├── gateway.ts        # 组装层
 │   └── index.ts          # 导出
-├── adapters/
-│   └── discord-agent-adapter.ts  # MessageHandler → Agent 适配器
-├── discord-cli.ts        # CLI 入口
+├── discord-cli.ts        # CLI 入口（目前仅 echo 模式）
 └── e2e/
     ├── discord.unit.e2e.test.ts        # Mock 全部
     ├── discord.integration.e2e.test.ts # Mock Discord, 真实 Agent

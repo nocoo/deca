@@ -82,11 +82,8 @@ apps/api/
 │   │   ├── slash-commands.test.ts # 12 个测试
 │   │   ├── e2e/               # E2E 测试
 │   │   └── index.ts           # 模块导出
-│   ├── adapters/
-│   │   ├── discord-agent-adapter.ts      # Agent 适配器
-│   │   └── discord-agent-adapter.test.ts # 7 个测试
-│   └── discord-cli.ts         # CLI 入口点
-└── package.json               # 添加 discord.js, @deca/agent, @deca/storage
+│   └── discord-cli.ts         # CLI 入口点（目前仅 echo 模式）
+└── package.json               # 添加 discord.js, @deca/storage
 ```
 
 **核心接口**:
@@ -603,8 +600,7 @@ cat ~/.deca/credentials/anthropic.json | jq
 - ✅ 12 个原子化提交
 - ✅ 129 个 Discord 相关测试
 - ✅ 实现 MessageHandler 接口解耦
-- ✅ Discord CLI 入口点 (echo + agent 模式)
-- ✅ Agent 适配器 (discord-agent-adapter.ts)
+- ✅ Discord CLI 入口点 (echo 模式)
 
 ### 2026-02-04 (晚)
 
