@@ -6,6 +6,7 @@
     "dev": "bun run src/index.ts",
     "discord": "bun run src/discord-cli.ts",
     "discord:echo": "bun run src/discord-cli.ts --echo",
+    "discord:e2e": "bun run src/channels/discord/e2e/runner.ts",
     "test": "bun test",
     "lint": "biome lint src",
     "format": "biome format src"
