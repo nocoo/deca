@@ -337,6 +337,49 @@ describe("processMessage", () => {
     expect(replyCall[0]).toContain("error");
   });
 
+  it("handles handler sync exceptions", async () => {
+    const handler: MessageHandler = {
+      handle: mock(() => {
+        throw new Error("Sync handler crash");
+      }),
+    };
+    const message = createMockMessage();
+
+    // Should not throw, should handle gracefully
+    await processMessage(message, "bot123", { handler });
+
+    expect(message.reply).toHaveBeenCalled();
+    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    expect(replyCall[0]).toContain("error");
+  });
+
+  it("handles reply failures gracefully", async () => {
+    const handler: MessageHandler = {
+      handle: mock(() => Promise.reject(new Error("Handler error"))),
+    };
+    const message = createMockMessage();
+    // Make reply throw
+    message.reply = mock(() => Promise.reject(new Error("Reply failed")));
+
+    // Should not throw even if reply fails
+    await expect(
+      processMessage(message, "bot123", { handler }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("handles non-Error exceptions", async () => {
+    const handler: MessageHandler = {
+      handle: mock(() => Promise.reject("string error")),
+    };
+    const message = createMockMessage();
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(message.reply).toHaveBeenCalled();
+    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    expect(replyCall[0]).toContain("error");
+  });
+
   it("shows typing before handler call", async () => {
     const handler = createMockHandler();
     const channel = createMockChannel();
