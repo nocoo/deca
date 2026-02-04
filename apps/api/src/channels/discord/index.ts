@@ -28,3 +28,15 @@ export {
   DEFAULT_CONNECTION_TIMEOUT,
   DISCORD_SESSION_PREFIX,
 } from "./types";
+
+// Core modules
+export { chunkMessage } from "./chunk";
+export { createAllowlistFilter, isAllowed } from "./allowlist";
+export { generateSessionKey, parseSessionKey } from "./session";
+export { createDiscordClient } from "./client";
+export { createMessageSender } from "./sender";
+export { createMessageListener } from "./listener";
+export { createDiscordGateway } from "./gateway";
+
+// Handlers
+export { createEchoHandler } from "./echo-handler";
