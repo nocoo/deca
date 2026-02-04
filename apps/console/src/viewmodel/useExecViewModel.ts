@@ -20,6 +20,11 @@ export const useExecViewModel = () => {
     syncState();
   };
 
+  const setWorkspace = (value: string) => {
+    viewModel.actions.setWorkspace(value);
+    syncState();
+  };
+
   const clearOutput = () => {
     viewModel.actions.clearOutput();
     syncState();
@@ -54,6 +59,7 @@ export const useExecViewModel = () => {
     actions: {
       setProvider,
       setScript,
+      setWorkspace,
       clearOutput,
       loadProviders,
       run,

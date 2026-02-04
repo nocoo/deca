@@ -36,6 +36,15 @@ export type ExecResponse = {
   };
 };
 
+export type ExecRequest = {
+  command: string;
+  provider?: string;
+  needsNetwork?: boolean;
+  needsIsolation?: boolean;
+  needsWorkspace?: boolean;
+  workspace?: string;
+};
+
 export type AuthKeyResponse = {
   key: string;
   header: string;

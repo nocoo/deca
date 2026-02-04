@@ -71,6 +71,7 @@ describe("execViewModel", () => {
 
     const viewModel = createExecViewModel(fetcher);
     viewModel.actions.setScript("echo ok");
+    viewModel.actions.setWorkspace("/tmp");
     await viewModel.actions.run();
     const state = viewModel.getState();
     expect(state.output).toBe("ok");

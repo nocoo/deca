@@ -45,6 +45,18 @@ export default function ExecPage() {
                   placeholder='display dialog "Hello from Deca"'
                 />
               </div>
+              <div>
+                <Label>Workspace</Label>
+                <TextArea
+                  rows={2}
+                  value={state.workspace}
+                  onChange={actions.setWorkspace}
+                  placeholder="/Users/you/workspace/project"
+                />
+                <p className="mt-2 text-xs text-gray-400">
+                  Required for OpenCode execution.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={actions.run} size="md">
                   Run

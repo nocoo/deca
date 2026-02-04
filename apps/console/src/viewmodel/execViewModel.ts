@@ -6,6 +6,7 @@ export type ExecState = {
   provider: string;
   providers: string[];
   script: string;
+  workspace: string;
   output: string;
   status: "idle" | "running" | "error";
   errorMessage: string | null;
@@ -15,6 +16,7 @@ export type ExecState = {
 export type ExecActions = {
   setProvider: (value: string) => void;
   setScript: (value: string) => void;
+  setWorkspace: (value: string) => void;
   loadProviders: () => Promise<void>;
   run: () => Promise<void>;
   clearOutput: () => void;
@@ -29,6 +31,7 @@ const createInitialState = (): ExecState => ({
   provider: "",
   providers: [],
   script: "",
+  workspace: "",
   output: "",
   status: "idle",
   errorMessage: null,
@@ -49,6 +52,10 @@ export const createExecViewModel = (fetcher: typeof fetch): ExecViewModel => {
 
   const setScript = (value: string) => {
     setState((current) => ({ ...current, script: value }));
+  };
+
+  const setWorkspace = (value: string) => {
+    setState((current) => ({ ...current, workspace: value }));
   };
 
   const clearOutput = () => {
@@ -123,6 +130,7 @@ export const createExecViewModel = (fetcher: typeof fetch): ExecViewModel => {
       body: JSON.stringify({
         command: state.script,
         provider: state.provider || undefined,
+        workspace: state.workspace || undefined,
       }),
     });
 
@@ -150,6 +158,7 @@ export const createExecViewModel = (fetcher: typeof fetch): ExecViewModel => {
     actions: {
       setProvider,
       setScript,
+      setWorkspace,
       loadProviders,
       run,
       clearOutput,
