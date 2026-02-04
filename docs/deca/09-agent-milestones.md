@@ -233,84 +233,126 @@ export function markTaskCompleted(content: string, lineNumber: number): string;
 
 ### Milestone 4: Discord Gateway
 
-**目标**: 实现 Discord Bot 连接
+> **详细设计**: [11-discord-gateway-design.md](./11-discord-gateway-design.md)
+
+**目标**: 实现 Discord Bot 连接，支持消息收发和通道过滤
+
+**核心设计决策**:
+- **模块独立性**: Discord 模块不直接依赖 `@deca/agent`，通过 `MessageHandler` 接口解耦
+- **测试策略**: 三层 E2E 测试 (Mock → 集成 → Live)
+- **CLI 入口**: 独立的 `discord-cli.ts` 可单独运行和测试
 
 **交付物**:
-- Discord 通道适配器 (`channels/discord/gateway.ts`)
-- 消息处理器 (`channels/discord/handlers.ts`)
-- 输出格式化 (`channels/discord/formatter.ts`)
-
-**MVVM 分层**:
 ```
-apps/api/src/channels/
-├── types.ts                  # Model: Channel 接口定义
-├── discord/
-│   ├── types.ts              # Model: Discord 类型
-│   ├── gateway.ts            # ViewModel: 连接管理
-│   ├── handlers.ts           # ViewModel: 消息处理
-│   └── formatter.ts          # ViewModel: 格式化
+apps/api/src/
+├── channels/discord/
+│   ├── types.ts          # MessageHandler 接口 + Discord 类型
+│   ├── chunk.ts          # 消息分块 (2000 字符限制)
+│   ├── allowlist.ts      # Guild/Channel/User 过滤
+│   ├── session.ts        # Discord Session Key 生成
+│   ├── client.ts         # discord.js 客户端管理
+│   ├── sender.ts         # 消息发送 + 分块
+│   ├── listener.ts       # 消息监听 + 路由
+│   ├── gateway.ts        # 组装层
+│   └── index.ts          # 导出
+├── adapters/
+│   └── discord-agent-adapter.ts  # MessageHandler → Agent 适配器
+├── discord-cli.ts        # CLI 入口
+└── e2e/
+    ├── discord.unit.e2e.test.ts        # Mock 全部
+    ├── discord.integration.e2e.test.ts # Mock Discord, 真实 Agent
+    └── discord.live.e2e.test.ts        # 真实 Discord 连接
 ```
 
-**接口**:
+**核心接口**:
 ```typescript
-// gateway.ts
-export function createDiscordGateway(config: DiscordConfig): DiscordGateway;
+// MessageHandler - Discord 模块唯一的外部依赖点
+export interface MessageHandler {
+  handle(request: MessageRequest): Promise<MessageResponse>;
+}
 
+export interface MessageRequest {
+  sessionKey: string;
+  content: string;
+  sender: { id: string; username: string; displayName?: string };
+  channel: { id: string; type: "dm" | "guild" | "thread"; guildId?: string };
+}
+
+export interface MessageResponse {
+  text: string;
+  success: boolean;
+  error?: string;
+}
+
+// Gateway
 export interface DiscordGateway {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  send(channelId: string, message: string): Promise<void>;
-  onMessage(handler: MessageHandler): void;
+  readonly isConnected: boolean;
+  readonly user: User | null;
 }
 ```
 
+**功能范围**:
+| 功能 | M4 |
+|------|-----|
+| discord.js 连接 | ✅ |
+| 消息接收 (messageCreate) | ✅ |
+| 消息发送 (reply/send) | ✅ |
+| 消息分块 (2000 字符) | ✅ |
+| Bot 消息过滤 | ✅ |
+| Guild/Channel/User Allowlist | ✅ |
+| User Deny List | ✅ |
+| DM 基础支持 | ✅ |
+| Thread 基础支持 | ✅ |
+| Require Mention | ✅ |
+| Session Key 生成 | ✅ |
+| Typing 指示器 | ✅ |
+| MessageHandler 解耦 | ✅ |
+| Agent 适配器 | ✅ |
+| CLI 入口 | ✅ |
+| Slash Commands | ❌ (M5) |
+| Debounce | ❌ (M5) |
+| History Context | ❌ (M5) |
+
+**测试矩阵**:
+| 测试类型 | Discord | Handler | 凭证要求 | CI |
+|---------|---------|---------|---------|-----|
+| 单元测试 | Mock | Mock | 无 | ✅ |
+| 单元 E2E | Mock | Echo | 无 | ✅ |
+| 集成 E2E | Mock | 真实 Agent | Anthropic | ⚠️ |
+| Live E2E | 真实 | 真实 Agent | Discord + Anthropic | ❌ |
+
 **验收标准**:
-- [ ] `pnpm test` 通过 (Mock WebSocket)
-- [ ] `pnpm lint` 通过
-- [ ] 覆盖率 >= 90%
-- [ ] 可以接收消息
-- [ ] 可以发送消息
-- [ ] 重连逻辑正确
+- [ ] `bun test` 通过
+- [ ] `bun run lint` 通过
+- [ ] 覆盖率 >= 95%
+- [ ] ~120 个测试用例
+- [ ] CLI 可独立运行
+- [ ] 凭证从 `~/.deca/credentials/discord.json` 加载
 
 **依赖**: M1 (Storage - credentials)
 
 ---
 
-### Milestone 5: Discord + Agent 集成
+### Milestone 5: Discord 增强
 
-**目标**: 完成 Discord 到 Agent 的完整链路
+**目标**: 增强 Discord 功能，添加 Slash Commands 和上下文支持
 
 **交付物**:
-- Agent 实例管理 (`apps/api/src/agent/instance.ts`)
-- Discord 集成 (`apps/api/src/agent/discord.ts`)
-- 启动脚本更新
-
-**MVVM 分层**:
-```
-apps/api/src/agent/
-├── types.ts                  # Model: 集成类型
-├── instance.ts               # ViewModel: Agent 单例管理
-├── discord.ts                # ViewModel: Discord 集成逻辑
-└── routes.ts                 # View: HTTP 路由
-```
-
-**集成流程**:
-```
-1. 启动时初始化 Agent 实例
-2. 启动 Discord Gateway
-3. Discord 消息 → Agent.run()
-4. Agent 响应 → Discord.send()
-5. Heartbeat 触发 → Agent.run() → Discord.send()
-```
+- Slash Commands (`/ask`, `/reset`, `/status`)
+- 消息去重 (Debounce, 250ms 窗口)
+- History Context (群聊历史 20 条)
+- HTTP API 控制端点 (`/discord/start`, `/discord/stop`, `/discord/status`)
 
 **验收标准**:
-- [ ] `pnpm test` 通过
-- [ ] `pnpm lint` 通过
+- [ ] `bun test` 通过
+- [ ] `bun run lint` 通过
 - [ ] 覆盖率 >= 90%
-- [ ] 端到端消息验证 (手动)
-- [ ] Heartbeat → Discord 验证 (手动)
+- [ ] Slash Commands 可用
+- [ ] 群聊上下文验证
 
-**依赖**: M3 (Heartbeat), M4 (Discord Gateway)
+**依赖**: M4 (Discord Gateway)
 
 ---
 
@@ -511,3 +553,5 @@ M3 (Heartbeat)         │
 - [04-console.md](./04-console.md) - Console MVVM 规范
 - [07-agent-architecture.md](./07-agent-architecture.md) - Agent 架构设计
 - [08-storage-system.md](./08-storage-system.md) - 存储系统设计
+- [10-implementation-status.md](./10-implementation-status.md) - 实现状态
+- [11-discord-gateway-design.md](./11-discord-gateway-design.md) - M4 Discord Gateway 详细设计

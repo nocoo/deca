@@ -423,20 +423,39 @@ git commit -m "test: add e2e tests for agent with real LLM"
 
 ## 下一步任务
 
-### M4: Discord Gateway (建议优先级)
+### M4: Discord Gateway (进行中)
 
-1. 创建 `apps/api/src/channels/discord/gateway.ts`
-2. 实现 Discord WebSocket 连接
-3. 消息收发
-4. 重连逻辑
-5. 单元测试 (Mock WebSocket)
+**详细设计**: [11-discord-gateway-design.md](./11-discord-gateway-design.md)
 
-### M5: Discord + Agent 集成
+**核心设计决策**:
+- 模块位置: `apps/api/src/channels/discord/`
+- 解耦方式: `MessageHandler` 接口，Discord 模块不直接依赖 `@deca/agent`
+- 测试策略: 三层 E2E (Mock → 集成 → Live)
 
-1. 创建 `apps/api/src/agent/instance.ts` (Agent 单例)
-2. Discord 消息 → Agent.run()
-3. Agent 响应 → Discord.send()
-4. Heartbeat → Discord 通知
+**Commit 计划** (16 个原子化提交):
+1. `feat: add discord channel types and MessageHandler interface`
+2. `test: add chunk message unit tests` / `feat: implement discord message chunking`
+3. `test: add allowlist filter unit tests` / `feat: implement discord allowlist filtering`
+4. `test: add discord session key unit tests` / `feat: implement discord session key generation`
+5. `chore: add discord.js dependency to apps/api`
+6. `test: add discord client unit tests with mock` / `feat: implement discord client wrapper`
+7. `test: add discord sender unit tests` / `feat: implement discord message sender`
+8. `test: add discord listener unit tests` / `feat: implement discord message listener`
+9. `test: add discord gateway unit tests` / `feat: implement discord gateway assembly`
+10. `feat: export discord channel module`
+11. `test: add agent adapter unit tests` / `feat: implement discord agent adapter`
+12. `feat: add discord cli entry point`
+13. `test: add discord unit e2e tests`
+14. `test: add discord integration e2e tests`
+15. `test: add discord live e2e tests`
+16. `docs: update implementation status for M4`
+
+### M5: Discord 增强
+
+1. Slash Commands (`/ask`, `/reset`, `/status`)
+2. 消息去重 (Debounce)
+3. History Context (群聊上下文)
+4. HTTP API 控制端点
 
 ---
 
@@ -492,6 +511,13 @@ cat ~/.deca/credentials/anthropic.json | jq
 ---
 
 ## 更新日志
+
+### 2026-02-04 (晚)
+
+- 📝 完成 M4 Discord Gateway 详细设计文档
+- 📝 定义 MessageHandler 接口实现模块解耦
+- 📝 规划 16 个原子化提交
+- 📝 设计三层 E2E 测试策略 (Mock → 集成 → Live)
 
 ### 2026-02-04
 
