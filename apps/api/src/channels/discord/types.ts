@@ -261,11 +261,17 @@ export interface DiscordGateway {
   /** Connect to Discord gateway */
   connect(): Promise<void>;
 
-  /** Disconnect from Discord gateway */
-  disconnect(): Promise<void>;
+  /** Disconnect from Discord gateway (immediate) */
+  disconnect(): void;
+
+  /** Graceful shutdown - wait for pending messages */
+  shutdown(): Promise<void>;
 
   /** Whether currently connected */
   readonly isConnected: boolean;
+
+  /** Number of messages currently being processed */
+  readonly pendingCount: number;
 
   /** Bot user info (null if not connected) */
   readonly user: DiscordUser | null;

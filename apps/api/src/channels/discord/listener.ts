@@ -12,6 +12,10 @@ import {
   type ThreadChannel,
 } from "discord.js";
 import { isAllowed } from "./allowlist";
+import {
+  type GracefulShutdown,
+  createGracefulShutdown,
+} from "./graceful-shutdown";
 import { sendReply, showTyping } from "./sender";
 import { resolveDiscordSessionKey } from "./session";
 import type {
@@ -45,6 +49,21 @@ export interface ListenerConfig {
 
   /** Ignore bot messages (default: true) */
   ignoreBots?: boolean;
+
+  /** Graceful shutdown timeout in milliseconds (default: 30000) */
+  shutdownTimeoutMs?: number;
+}
+
+/**
+ * Listener cleanup interface with graceful shutdown
+ */
+export interface ListenerCleanup {
+  /** Remove listener immediately */
+  (): void;
+  /** Graceful shutdown - wait for pending messages */
+  shutdown(): Promise<void>;
+  /** Number of messages currently being processed */
+  readonly pendingCount: number;
 }
 
 /**
@@ -52,28 +71,50 @@ export interface ListenerConfig {
  *
  * @param client - Discord client
  * @param config - Listener configuration
- * @returns Cleanup function to remove listener
+ * @returns Cleanup function with graceful shutdown support
  */
 export function createMessageListener(
   client: Client,
   config: ListenerConfig,
-): () => void {
+): ListenerCleanup {
   const botUserId = client.user?.id ?? "";
+
+  // Create graceful shutdown manager
+  const shutdown = createGracefulShutdown({
+    timeoutMs: config.shutdownTimeoutMs ?? 30000,
+  });
 
   const onMessage = async (message: Message) => {
     if (!shouldProcessMessage(message, botUserId, config)) {
       return;
     }
 
-    await processMessage(message, botUserId, config);
+    // Wrap message processing with graceful shutdown tracking
+    await shutdown.wrapTask(async () => {
+      await processMessage(message, botUserId, config);
+    });
   };
 
   client.on(Events.MessageCreate, onMessage);
 
-  // Return cleanup function
-  return () => {
+  // Create cleanup function with shutdown support
+  const cleanup = (() => {
     client.off(Events.MessageCreate, onMessage);
+    shutdown.reset();
+  }) as ListenerCleanup;
+
+  cleanup.shutdown = async () => {
+    // Stop accepting new messages
+    client.off(Events.MessageCreate, onMessage);
+    // Wait for pending messages
+    await shutdown.initiateShutdown();
   };
+
+  Object.defineProperty(cleanup, "pendingCount", {
+    get: () => shutdown.pendingCount,
+  });
+
+  return cleanup;
 }
 
 /**

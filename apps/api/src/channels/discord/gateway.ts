@@ -11,7 +11,7 @@ import {
   disconnectDiscord,
   isClientConnected,
 } from "./client";
-import { createMessageListener } from "./listener";
+import { type ListenerCleanup, createMessageListener } from "./listener";
 import { type ReconnectManager, createReconnectManager } from "./reconnect";
 import type {
   DiscordGateway,
@@ -58,7 +58,7 @@ export function createDiscordGateway(
   let client = internalConfig._client ?? createDiscordClient();
 
   // Track listener cleanup
-  let cleanupListener: (() => void) | null = null;
+  let cleanupListener: ListenerCleanup | null = null;
   let reconnectManager: ReconnectManager | null = null;
   let isShuttingDown = false;
 
@@ -176,8 +176,29 @@ export function createDiscordGateway(
       disconnectDiscord(client);
     },
 
+    async shutdown(): Promise<void> {
+      isShuttingDown = true;
+
+      // Stop reconnection attempts
+      if (reconnectManager) {
+        reconnectManager.stop();
+      }
+
+      // Graceful shutdown - wait for pending messages
+      if (cleanupListener?.shutdown) {
+        await cleanupListener.shutdown();
+      }
+
+      // Disconnect client
+      disconnectDiscord(client);
+    },
+
     get isConnected(): boolean {
       return isClientConnected(client);
+    },
+
+    get pendingCount(): number {
+      return cleanupListener?.pendingCount ?? 0;
     },
 
     get user(): DiscordUser | null {

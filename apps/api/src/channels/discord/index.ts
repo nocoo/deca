@@ -45,6 +45,12 @@ export {
   type ReconnectConfig,
   type ReconnectManager,
 } from "./reconnect";
+export {
+  createGracefulShutdown,
+  DEFAULT_SHUTDOWN_CONFIG,
+  type GracefulShutdownConfig,
+  type GracefulShutdown,
+} from "./graceful-shutdown";
 
 // Handlers
 export { createEchoHandler } from "./echo-handler";
