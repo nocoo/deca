@@ -7,12 +7,18 @@
     "dev:api": "bun --filter ./apps/api dev",
     "dev:console": "bun --filter ./apps/console dev",
     "build": "bun --filter ./apps/console build",
-    "test": "bun --filter ./apps/api test && bun --filter ./apps/console test",
-    "lint": "bun --filter ./apps/api lint && bun --filter ./apps/console lint",
-    "format": "biome format ."
+    "test": "bun run test:unit",
+    "test:unit": "bun --filter '@deca/*' test:unit",
+    "test:e2e": "bun --filter '@deca/agent' test:e2e",
+    "test:all": "bun run test:unit && bun run test:e2e",
+    "test:coverage": "bun --filter '@deca/*' test --coverage",
+    "lint": "bun --filter ./apps/api lint && bun --filter ./apps/console lint && bun --filter '@deca/*' lint",
+    "format": "biome format .",
+    "prepare": "husky"
   },
   "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
-    "@biomejs/biome": "1.8.3"
+    "@biomejs/biome": "1.8.3",
+    "husky": "^9.1.7"
   }
 }
