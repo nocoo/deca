@@ -1,0 +1,16 @@
+# Pre-push: Run E2E tests with real LLM
+# Requires ~/.deca/credentials/anthropic.json
+
+echo "🚀 Running E2E tests before push..."
+
+# Check if credentials exist
+if [ ! -f "$HOME/.deca/credentials/anthropic.json" ]; then
+  echo "⚠️  Warning: No credentials found at ~/.deca/credentials/anthropic.json"
+  echo "   E2E tests will be skipped."
+  exit 0
+fi
+
+# Run E2E tests
+bun run test:e2e
+
+echo "✅ E2E tests passed!"

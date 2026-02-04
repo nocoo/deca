@@ -1,0 +1,3 @@
+# Pre-commit: Run lint and unit tests
+bun run lint
+bun run test:unit
