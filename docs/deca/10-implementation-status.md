@@ -38,8 +38,8 @@
 | M3: Heartbeat 机制 | ✅ 完成 | 99.66% | 主动唤醒、任务解析、调度 |
 | E2E 验证 | ✅ 完成 | 33 tests | 真实 LLM API 调用测试 |
 | Husky Hooks | ✅ 完成 | - | Pre-commit (lint+unit), Pre-push (e2e) |
-| M4: Discord Gateway | ✅ 完成 | 129 tests | Discord Bot 连接、消息处理 |
-| M5: Discord 增强 | ⏳ 待开始 | - | Slash Commands, Debounce, History |
+| M4: Discord Gateway | ✅ 完成 | 180+ tests | Discord Bot 连接、消息处理、重连、优雅关闭 |
+| M5: Discord 增强 | ✅ 完成 | 218 tests | Reaction, Debounce, Slash Commands |
 
 ---
 
@@ -64,12 +64,23 @@ apps/api/
 │   │   ├── client.test.ts     # 12 个测试
 │   │   ├── sender.ts          # 消息发送
 │   │   ├── sender.test.ts     # 12 个测试
-│   │   ├── listener.ts        # 消息监听
-│   │   ├── listener.test.ts   # 24 个测试
+│   │   ├── listener.ts        # 消息监听 + Reaction 集成
+│   │   ├── listener.test.ts   # 29 个测试
 │   │   ├── gateway.ts         # 网关组装
 │   │   ├── gateway.test.ts    # 10 个测试
 │   │   ├── echo-handler.ts    # 测试用回显处理器
 │   │   ├── echo-handler.test.ts # 9 个测试
+│   │   ├── reconnect.ts       # 重连管理器
+│   │   ├── reconnect.test.ts  # 19 个测试
+│   │   ├── graceful-shutdown.ts # 优雅关闭
+│   │   ├── graceful-shutdown.test.ts # 16 个测试
+│   │   ├── reaction.ts        # 反应确认 (👀→✅/❌)
+│   │   ├── reaction.test.ts   # 11 个测试
+│   │   ├── debounce.ts        # 消息去重
+│   │   ├── debounce.test.ts   # 10 个测试
+│   │   ├── slash-commands.ts  # Slash Commands
+│   │   ├── slash-commands.test.ts # 12 个测试
+│   │   ├── e2e/               # E2E 测试
 │   │   └── index.ts           # 模块导出
 │   ├── adapters/
 │   │   ├── discord-agent-adapter.ts      # Agent 适配器
@@ -501,12 +512,11 @@ git commit -m "test: add e2e tests for agent with real LLM"
 
 ## 下一步任务
 
-### M5: Discord 增强 (待开始)
+### M6: 基础工具集 (待开始)
 
-1. **Slash Commands** (`/ask`, `/reset`, `/status`)
-2. **消息去重** (Debounce) - 快速连续消息合并
-3. **History Context** - 群聊上下文注入
-4. **HTTP API 控制端点** - 远程管理
+1. **工具注册中心** - 动态工具注册
+2. **更多内置工具** - applescript, 高级 shell
+3. **工具权限控制** - 细粒度工具策略
 
 ---
 
@@ -584,6 +594,11 @@ cat ~/.deca/credentials/anthropic.json | jq
 
 ### 2026-02-05
 
+- ✅ 完成 M5 Discord 增强实现
+- ✅ P0: Reaction Confirmation (👀→✅/❌) - 11 tests
+- ✅ P1: Message Debounce (3s 窗口合并) - 10 tests
+- ✅ P2: Slash Commands (/ask, /clear, /status) - 12 tests
+- ✅ Discord 测试从 206 增加到 218 个
 - ✅ 完成 M4 Discord Gateway 实现
 - ✅ 12 个原子化提交
 - ✅ 129 个 Discord 相关测试
