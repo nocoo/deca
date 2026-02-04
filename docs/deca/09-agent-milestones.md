@@ -1,24 +1,63 @@
 # Agent 系统里程碑计划
 
-## 概述
+## 核心原则
 
-本文档定义 Deca Agent 系统的分阶段实现计划。每个里程碑遵循：
+### 开发规范
 
-- **TDD**: 先写测试再实现
-- **覆盖率**: >= 90%
-- **验证**: 每个里程碑完成后运行 UT + Lint
-- **增量交付**: 每个里程碑可独立验证和使用
+| 原则 | 标准 |
+|------|------|
+| **TDD** | 所有功能先写测试再实现 |
+| **覆盖率** | >= 90% |
+| **Lint** | 每次提交前必须通过 |
+| **MVVM** | 严格分离 Model / ViewModel / View |
+
+### 提交规范
+
+遵循 Conventional Commits，原子化提交：
+
+| 类型 | 说明 |
+|------|------|
+| `fix` | 修复 Bug、处理边缘情况 |
+| `feat` | 新功能或显著改进 |
+| `refactor` | 代码重构，不改变逻辑 |
+| `test` | 增加或修正测试代码 |
+| `docs` | 文档更新 |
+| `chore` | 维护任务、依赖管理 |
+
+**提交触发条件**:
+- 测试通过后立即提交
+- 错误修复后立即提交
+- 文档同步更新时提交
+- 重构前先提交当前进度
+
+### 架构原则
+
+| 层级 | 职责 | 测试策略 |
+|------|------|---------|
+| **Model** | 类型定义、数据结构 | Schema 验证 |
+| **ViewModel** | 业务逻辑、状态管理 | 单元测试 |
+| **View** | 纯 UI 渲染 | 组件测试 |
+
+### 里程碑验收标准
+
+每个里程碑完成必须满足：
+
+- [ ] 单元测试通过 (`pnpm test`)
+- [ ] Lint 检查通过 (`pnpm lint`)
+- [ ] 覆盖率 >= 90%
+- [ ] 文档同步更新
+- [ ] 原子化提交，每个 commit 可独立回滚
 
 ---
 
 ## 里程碑总览
 
-| 阶段 | 里程碑 | 目标 | 预计工时 |
-|------|--------|------|---------|
-| Phase 1 | M1-M3 | Agent 核心可用 | 2-3 天 |
-| Phase 2 | M4-M5 | Discord 集成 | 1-2 天 |
-| Phase 3 | M6-M7 | 工具扩展 + 知识库 | 2-3 天 |
-| Phase 4 | M8 | 生产化 | 1-2 天 |
+| 阶段 | 里程碑 | 目标 |
+|------|--------|------|
+| Phase 1 | M1-M3 | Agent 核心可用 |
+| Phase 2 | M4-M5 | Discord 集成 |
+| Phase 3 | M6-M7 | 工具扩展 + 知识库 |
+| Phase 4 | M8 | 生产化 |
 
 ---
 
@@ -35,6 +74,17 @@
 - 凭证管理 (`credentials.ts`)
 - 完整单元测试
 
+**MVVM 分层**:
+```
+packages/storage/
+├── src/
+│   ├── types.ts           # Model: 类型定义
+│   ├── paths.ts           # ViewModel: 路径解析逻辑
+│   ├── config.ts          # ViewModel: 配置读写逻辑
+│   ├── credentials.ts     # ViewModel: 凭证管理逻辑
+│   └── index.ts           # 导出
+```
+
 **接口**:
 ```typescript
 // paths.ts
@@ -47,9 +97,10 @@ export function createConfigManager(configPath?: string): ConfigManager;
 export function createCredentialManager(credentialsDir?: string): CredentialManager;
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 可以读写 `~/.deca/config.json`
 - [ ] 可以读写 `~/.deca/credentials/*.json`
 - [ ] 环境变量覆盖生效
@@ -68,6 +119,20 @@ export function createCredentialManager(credentialsDir?: string): CredentialMana
 - 会话管理 (`core/session.ts`)
 - 工具接口定义 (`tools/types.ts`)
 - Mock LLM 用于测试
+
+**MVVM 分层**:
+```
+packages/agent/
+├── src/
+│   ├── types.ts              # Model: Agent 类型定义
+│   ├── core/
+│   │   ├── agent.ts          # ViewModel: Agent 核心逻辑
+│   │   └── session.ts        # ViewModel: 会话管理逻辑
+│   ├── tools/
+│   │   ├── types.ts          # Model: Tool 接口定义
+│   │   └── registry.ts       # ViewModel: 工具注册逻辑
+│   └── index.ts
+```
 
 **接口**:
 ```typescript
@@ -94,9 +159,10 @@ export class Agent {
 5. 返回结果
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] Mock LLM 场景测试通过
 - [ ] 工具调用链路验证
 - [ ] 会话持久化验证
@@ -113,6 +179,16 @@ export class Agent {
 - Heartbeat 管理器 (`heartbeat/manager.ts`)
 - HEARTBEAT.md 解析器 (`heartbeat/parser.ts`)
 - 与 Agent 集成
+
+**MVVM 分层**:
+```
+packages/agent/
+├── src/
+│   ├── heartbeat/
+│   │   ├── types.ts          # Model: Heartbeat 类型定义
+│   │   ├── parser.ts         # ViewModel: 解析逻辑
+│   │   └── manager.ts        # ViewModel: 调度逻辑
+```
 
 **接口**:
 ```typescript
@@ -141,9 +217,10 @@ export function markTaskCompleted(content: string, lineNumber: number): string;
 5. 调度下一次检查
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 任务解析正确
 - [ ] 定时触发精确
 - [ ] 与 Agent 集成验证
@@ -163,6 +240,17 @@ export function markTaskCompleted(content: string, lineNumber: number): string;
 - 消息处理器 (`channels/discord/handlers.ts`)
 - 输出格式化 (`channels/discord/formatter.ts`)
 
+**MVVM 分层**:
+```
+apps/api/src/channels/
+├── types.ts                  # Model: Channel 接口定义
+├── discord/
+│   ├── types.ts              # Model: Discord 类型
+│   ├── gateway.ts            # ViewModel: 连接管理
+│   ├── handlers.ts           # ViewModel: 消息处理
+│   └── formatter.ts          # ViewModel: 格式化
+```
+
 **接口**:
 ```typescript
 // gateway.ts
@@ -176,9 +264,10 @@ export interface DiscordGateway {
 }
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过 (Mock WebSocket)
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 可以接收消息
 - [ ] 可以发送消息
 - [ ] 重连逻辑正确
@@ -196,6 +285,15 @@ export interface DiscordGateway {
 - Discord 集成 (`apps/api/src/agent/discord.ts`)
 - 启动脚本更新
 
+**MVVM 分层**:
+```
+apps/api/src/agent/
+├── types.ts                  # Model: 集成类型
+├── instance.ts               # ViewModel: Agent 单例管理
+├── discord.ts                # ViewModel: Discord 集成逻辑
+└── routes.ts                 # View: HTTP 路由
+```
+
 **集成流程**:
 ```
 1. 启动时初始化 Agent 实例
@@ -205,9 +303,10 @@ export interface DiscordGateway {
 5. Heartbeat 触发 → Agent.run() → Discord.send()
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 端到端消息验证 (手动)
 - [ ] Heartbeat → Discord 验证 (手动)
 
@@ -232,6 +331,21 @@ export interface DiscordGateway {
   - `list` - 列出目录
   - `grep` - 搜索内容
 
+**MVVM 分层**:
+```
+packages/agent/src/tools/
+├── types.ts                  # Model: Tool 接口
+├── registry.ts               # ViewModel: 注册逻辑
+├── builtin/
+│   ├── applescript.ts        # ViewModel: AppleScript 工具
+│   ├── shell.ts              # ViewModel: Shell 工具
+│   ├── read.ts               # ViewModel: 读取工具
+│   ├── write.ts              # ViewModel: 写入工具
+│   ├── edit.ts               # ViewModel: 编辑工具
+│   ├── list.ts               # ViewModel: 目录工具
+│   └── grep.ts               # ViewModel: 搜索工具
+```
+
 **接口**:
 ```typescript
 // registry.ts
@@ -241,19 +355,12 @@ export class ToolRegistry {
   list(): Tool[];
   toAnthropicTools(): AnthropicTool[];
 }
-
-// 工具包装示例
-export const applescriptTool: Tool = {
-  name: 'applescript',
-  description: 'Execute AppleScript on macOS',
-  inputSchema: { /* ... */ },
-  execute: async (input, context) => { /* ... */ }
-};
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 每个工具独立测试通过
 - [ ] 工具注册和查找正确
 - [ ] Agent 调用工具验证
@@ -270,6 +377,13 @@ export const applescriptTool: Tool = {
 - 知识库管理 (`packages/storage/src/knowledge.ts`)
 - 上下文注入到 Agent
 - 知识文件模板
+
+**MVVM 分层**:
+```
+packages/storage/src/
+├── knowledge.ts              # ViewModel: 知识库管理逻辑
+├── knowledge.test.ts
+```
 
 **接口**:
 ```typescript
@@ -289,9 +403,10 @@ export interface KnowledgeManager {
 - `IDENTITY.md` - Agent 身份设定
 - `CONTEXT.md` - 项目上下文
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] 知识文件读写正确
 - [ ] 上下文注入到 system prompt
 - [ ] Agent 响应验证
@@ -333,9 +448,10 @@ deca sessions list
 deca sessions clear <id>
 ```
 
-**验证标准**:
+**验收标准**:
 - [ ] `pnpm test` 通过
 - [ ] `pnpm lint` 通过
+- [ ] 覆盖率 >= 90%
 - [ ] CLI 命令可用
 - [ ] 日志输出正确
 - [ ] 错误恢复验证
@@ -378,33 +494,6 @@ M3 (Heartbeat)         │
 
 ---
 
-## 验收检查清单
-
-### 每个 Milestone
-
-- [ ] 单元测试通过 (`pnpm test`)
-- [ ] Lint 检查通过 (`pnpm lint`)
-- [ ] 覆盖率 >= 90%
-- [ ] 文档更新
-- [ ] 代码审查
-
-### Phase 完成
-
-- [ ] 集成测试通过
-- [ ] 手动验证通过
-- [ ] 性能可接受
-- [ ] 无已知严重 Bug
-
-### 最终发布
-
-- [ ] 所有 Milestone 完成
-- [ ] 端到端测试通过
-- [ ] 文档完整
-- [ ] README 更新
-- [ ] 版本号更新
-
----
-
 ## 风险与缓解
 
 | 风险 | 影响 | 缓解措施 |
@@ -418,6 +507,7 @@ M3 (Heartbeat)         │
 
 ## 相关文档
 
+- [02-testing.md](./02-testing.md) - 测试策略
+- [04-console.md](./04-console.md) - Console MVVM 规范
 - [07-agent-architecture.md](./07-agent-architecture.md) - Agent 架构设计
 - [08-storage-system.md](./08-storage-system.md) - 存储系统设计
-- [05-plan.md](./05-plan.md) - 现有里程碑计划
