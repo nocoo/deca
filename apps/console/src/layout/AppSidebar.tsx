@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
 import {
   BoxCubeIcon,
@@ -261,40 +261,28 @@ const AppSidebar: React.FC = () => {
   // const isActive = (path: string) => path === pathname;
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
-  useEffect(() => {
-    let submenuMatched = false;
+  // Compute which submenu should be open based on current pathname
+  const activeSubmenu = useMemo(() => {
     const menuTypes: Array<"main" | "others"> = ["main", "others"];
-
     for (const menuType of menuTypes) {
       const items = menuType === "main" ? navItems : othersItems;
       for (let index = 0; index < items.length; index += 1) {
         const nav = items[index];
-        if (!nav.subItems) {
-          continue;
-        }
+        if (!nav.subItems) continue;
         for (const subItem of nav.subItems) {
-          if (isActive(subItem.path)) {
-            setOpenSubmenu({
-              type: menuType,
-              index,
-            });
-            submenuMatched = true;
-            break;
+          if (subItem.path === pathname) {
+            return { type: menuType, index };
           }
         }
-        if (submenuMatched) {
-          break;
-        }
-      }
-      if (submenuMatched) {
-        break;
       }
     }
+    return null;
+  }, [pathname]);
 
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [isActive]);
+  // Sync openSubmenu with activeSubmenu when pathname changes
+  useEffect(() => {
+    setOpenSubmenu(activeSubmenu);
+  }, [activeSubmenu]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
