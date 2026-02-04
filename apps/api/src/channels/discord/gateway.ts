@@ -77,6 +77,7 @@ export function createDiscordGateway(
       requireMentionByChannel: config.requireMentionByChannel,
       agentId: config.agentId,
       ignoreBots: config.ignoreBots,
+      debounce: config.debounce,
     });
   }
 

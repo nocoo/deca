@@ -117,6 +117,14 @@ export interface DiscordGatewayConfig {
 
   /** Event callbacks */
   events?: GatewayEventCallbacks;
+
+  /** Debounce configuration for merging rapid messages */
+  debounce?: {
+    /** Enable debounce (default: false) */
+    enabled: boolean;
+    /** Debounce window in milliseconds (default: 3000) */
+    windowMs?: number;
+  };
 }
 
 /**

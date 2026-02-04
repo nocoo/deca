@@ -31,6 +31,8 @@ import type { MessageHandler } from "./channels/discord/types";
 const args = process.argv.slice(2);
 const useEcho = args.includes("--echo");
 const requireMention = args.includes("--require-mention");
+const useDebounce = args.includes("--debounce");
+const allowBots = args.includes("--allow-bots");
 const agentIdArg = args.find((a) => a.startsWith("--agent-id="));
 const agentId = agentIdArg ? agentIdArg.split("=")[1] : "deca";
 
@@ -150,7 +152,8 @@ async function main() {
     handler,
     agentId,
     requireMention,
-    ignoreBots: true,
+    ignoreBots: !allowBots,
+    debounce: useDebounce ? { enabled: true, windowMs: 3000 } : undefined,
   });
 
   // Handle shutdown
@@ -174,6 +177,7 @@ async function main() {
     console.log(`   Guilds: ${gateway.guilds.length}`);
     console.log(`   Agent ID: ${agentId}`);
     console.log(`   Require Mention: ${requireMention}`);
+    console.log(`   Debounce: ${useDebounce}`);
     console.log("");
     console.log("📭 Listening for messages... (Ctrl+C to stop)");
     console.log("");
