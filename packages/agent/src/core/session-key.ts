@@ -73,7 +73,9 @@ export function parseAgentSessionKey(
   return { agentId, rest };
 }
 
-export function isSubagentSessionKey(sessionKey: string | undefined | null): boolean {
+export function isSubagentSessionKey(
+  sessionKey: string | undefined | null,
+): boolean {
   const parsed = parseAgentSessionKey(sessionKey);
   if (!parsed?.rest) {
     return false;
@@ -81,7 +83,9 @@ export function isSubagentSessionKey(sessionKey: string | undefined | null): boo
   return parsed.rest.trim().toLowerCase().startsWith("subagent:");
 }
 
-export function resolveAgentIdFromSessionKey(sessionKey: string | undefined | null): string {
+export function resolveAgentIdFromSessionKey(
+  sessionKey: string | undefined | null,
+): string {
   const parsed = parseAgentSessionKey(sessionKey);
   return normalizeAgentId(parsed?.agentId ?? DEFAULT_AGENT_ID);
 }
@@ -93,7 +97,10 @@ export function toAgentStoreSessionKey(params: {
 }): string {
   const raw = (params.requestKey ?? "").trim();
   if (!raw || normalizeToken(raw) === DEFAULT_MAIN_KEY) {
-    return buildAgentMainSessionKey({ agentId: params.agentId, mainKey: params.mainKey });
+    return buildAgentMainSessionKey({
+      agentId: params.agentId,
+      mainKey: params.mainKey,
+    });
   }
   const lowered = raw.toLowerCase();
   if (lowered.startsWith("agent:")) {

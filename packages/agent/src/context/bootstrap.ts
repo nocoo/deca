@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isSubagentSessionKey } from "../session-key.js";
+import { isSubagentSessionKey } from "../core/session-key.js";
 
 export const DEFAULT_AGENTS_FILENAME = "AGENTS.md";
 export const DEFAULT_SOUL_FILENAME = "SOUL.md";
@@ -35,7 +35,10 @@ export type ContextFile = {
   content: string;
 };
 
-const SUBAGENT_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME, DEFAULT_TOOLS_FILENAME]);
+const SUBAGENT_BOOTSTRAP_ALLOWLIST = new Set([
+  DEFAULT_AGENTS_FILENAME,
+  DEFAULT_TOOLS_FILENAME,
+]);
 
 export const DEFAULT_BOOTSTRAP_MAX_CHARS = 20_000;
 const BOOTSTRAP_HEAD_RATIO = 0.7;
@@ -139,7 +142,9 @@ async function resolveMemoryBootstrapEntries(
   return deduped;
 }
 
-export async function loadWorkspaceBootstrapFiles(dir: string): Promise<BootstrapFile[]> {
+export async function loadWorkspaceBootstrapFiles(
+  dir: string,
+): Promise<BootstrapFile[]> {
   const resolvedDir = path.resolve(dir);
   const entries: Array<{
     name: BootstrapFileName;
@@ -218,7 +223,11 @@ export function buildBootstrapContextFiles(
       });
       continue;
     }
-    const trimmed = trimBootstrapContent(file.content ?? "", file.name, maxChars);
+    const trimmed = trimBootstrapContent(
+      file.content ?? "",
+      file.name,
+      maxChars,
+    );
     if (!trimmed.content) {
       continue;
     }

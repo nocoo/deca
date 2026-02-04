@@ -1,11 +1,11 @@
 import {
+  type BootstrapFile,
+  type ContextFile,
+  DEFAULT_HEARTBEAT_FILENAME,
+  DEFAULT_SOUL_FILENAME,
   buildBootstrapContextFiles,
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
-  DEFAULT_HEARTBEAT_FILENAME,
-  DEFAULT_SOUL_FILENAME,
-  type BootstrapFile,
-  type ContextFile,
 } from "./bootstrap.js";
 
 export class ContextLoader {

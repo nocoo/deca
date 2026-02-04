@@ -1,7 +1,6 @@
 // Heartbeat exports
 export {
   HeartbeatManager,
-  parseHeartbeatContent,
   type HeartbeatTask,
   type HeartbeatConfig,
   type HeartbeatResult,

@@ -1,15 +1,15 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import type { Message } from "../session.js";
+import type { Message } from "../core/session.js";
 import {
-  estimateMessageTokens,
-  estimateMessagesTokens,
-  CHARS_PER_TOKEN_ESTIMATE,
-} from "./tokens.js";
-import {
-  pruneContextMessages,
   type ContextPruningSettings,
   type PruneResult,
+  pruneContextMessages,
 } from "./pruning.js";
+import {
+  CHARS_PER_TOKEN_ESTIMATE,
+  estimateMessageTokens,
+  estimateMessagesTokens,
+} from "./tokens.js";
 
 export const BASE_CHUNK_RATIO = 0.4;
 export const MIN_CHUNK_RATIO = 0.15;
@@ -35,7 +35,10 @@ function normalizeParts(parts: number, messageCount: number): number {
   return Math.min(Math.max(1, Math.floor(parts)), Math.max(1, messageCount));
 }
 
-export function computeAdaptiveChunkRatio(messages: Message[], contextWindow: number): number {
+export function computeAdaptiveChunkRatio(
+  messages: Message[],
+  contextWindow: number,
+): number {
   if (messages.length === 0) {
     return BASE_CHUNK_RATIO;
   }
@@ -45,13 +48,19 @@ export function computeAdaptiveChunkRatio(messages: Message[], contextWindow: nu
   const avgRatio = safeAvgTokens / contextWindow;
 
   if (avgRatio > 0.1) {
-    const reduction = Math.min(avgRatio * 2, BASE_CHUNK_RATIO - MIN_CHUNK_RATIO);
+    const reduction = Math.min(
+      avgRatio * 2,
+      BASE_CHUNK_RATIO - MIN_CHUNK_RATIO,
+    );
     return Math.max(MIN_CHUNK_RATIO, BASE_CHUNK_RATIO - reduction);
   }
   return BASE_CHUNK_RATIO;
 }
 
-export function splitMessagesByTokenShare(messages: Message[], parts = DEFAULT_PARTS): Message[][] {
+export function splitMessagesByTokenShare(
+  messages: Message[],
+  parts = DEFAULT_PARTS,
+): Message[][] {
   if (messages.length === 0) {
     return [];
   }
@@ -87,7 +96,10 @@ export function splitMessagesByTokenShare(messages: Message[], parts = DEFAULT_P
   return chunks;
 }
 
-export function chunkMessagesByMaxTokens(messages: Message[], maxTokens: number): Message[][] {
+export function chunkMessagesByMaxTokens(
+  messages: Message[],
+  maxTokens: number,
+): Message[][] {
   if (messages.length === 0) {
     return [];
   }
@@ -170,7 +182,8 @@ async function generateSummary(params: {
   customInstructions?: string;
   previousSummary?: string;
 }): Promise<string> {
-  const baseInstructions = params.customInstructions ?? DEFAULT_SUMMARY_INSTRUCTIONS;
+  const baseInstructions =
+    params.customInstructions ?? DEFAULT_SUMMARY_INSTRUCTIONS;
   const previous = params.previousSummary
     ? `已有摘要：\n${params.previousSummary}\n\n`
     : "";
@@ -211,7 +224,10 @@ async function summarizeChunks(params: {
   if (params.messages.length === 0) {
     return params.previousSummary ?? DEFAULT_SUMMARY_FALLBACK;
   }
-  const chunks = chunkMessagesByMaxTokens(params.messages, params.maxChunkTokens);
+  const chunks = chunkMessagesByMaxTokens(
+    params.messages,
+    params.maxChunkTokens,
+  );
   let summary = params.previousSummary;
   for (const chunk of chunks) {
     summary = await generateSummary({
@@ -251,7 +267,9 @@ async function summarizeWithFallback(params: {
   for (const msg of params.messages) {
     if (isOversizedForSummary(msg, params.contextWindow)) {
       const tokens = estimateMessageTokens(msg);
-      oversizedNotes.push(`[Large ${msg.role} (~${Math.round(tokens / 1000)}K tokens) omitted]`);
+      oversizedNotes.push(
+        `[Large ${msg.role} (~${Math.round(tokens / 1000)}K tokens) omitted]`,
+      );
     } else {
       smallMessages.push(msg);
     }
@@ -263,7 +281,8 @@ async function summarizeWithFallback(params: {
         ...params,
         messages: smallMessages,
       });
-      const notes = oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
+      const notes =
+        oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
       return partial + notes;
     } catch {
       // fall through
@@ -294,11 +313,17 @@ export async function summarizeInStages(params: {
   const parts = normalizeParts(params.parts ?? DEFAULT_PARTS, messages.length);
   const totalTokens = estimateMessagesTokens(messages);
 
-  if (parts <= 1 || messages.length < minMessagesForSplit || totalTokens <= params.maxChunkTokens) {
+  if (
+    parts <= 1 ||
+    messages.length < minMessagesForSplit ||
+    totalTokens <= params.maxChunkTokens
+  ) {
     return summarizeWithFallback(params);
   }
 
-  const splits = splitMessagesByTokenShare(messages, parts).filter((chunk) => chunk.length > 0);
+  const splits = splitMessagesByTokenShare(messages, parts).filter(
+    (chunk) => chunk.length > 0,
+  );
   if (splits.length <= 1) {
     return summarizeWithFallback(params);
   }
@@ -341,7 +366,8 @@ export function shouldTriggerCompaction(params: {
   triggerRatio?: number;
 }): boolean {
   const triggerRatio =
-    typeof params.triggerRatio === "number" && Number.isFinite(params.triggerRatio)
+    typeof params.triggerRatio === "number" &&
+    Number.isFinite(params.triggerRatio)
       ? Math.min(1, Math.max(0, params.triggerRatio))
       : DEFAULT_COMPACTION_TRIGGER_RATIO;
   const totalTokens = estimateMessagesTokens(params.messages);
@@ -359,9 +385,18 @@ export async function buildCompactionSummary(params: {
   if (params.messages.length === 0) {
     return DEFAULT_SUMMARY_FALLBACK;
   }
-  const adaptiveRatio = computeAdaptiveChunkRatio(params.messages, params.contextWindowTokens);
-  const maxChunkTokens = Math.max(1, Math.floor(params.contextWindowTokens * adaptiveRatio));
-  const maxTokens = Math.max(64, Math.floor(params.maxTokens ?? DEFAULT_SUMMARY_MAX_TOKENS));
+  const adaptiveRatio = computeAdaptiveChunkRatio(
+    params.messages,
+    params.contextWindowTokens,
+  );
+  const maxChunkTokens = Math.max(
+    1,
+    Math.floor(params.contextWindowTokens * adaptiveRatio),
+  );
+  const maxTokens = Math.max(
+    64,
+    Math.floor(params.maxTokens ?? DEFAULT_SUMMARY_MAX_TOKENS),
+  );
 
   return summarizeInStages({
     messages: params.messages,

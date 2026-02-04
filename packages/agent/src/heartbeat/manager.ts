@@ -55,11 +55,11 @@ export interface HeartbeatConfig {
 }
 
 export type WakeReason =
-  | "interval"      // 定时器到期
-  | "cron"          // Cron 任务完成
-  | "exec"          // 命令执行完成
-  | "requested"     // 手动请求
-  | "retry";        // 重试
+  | "interval" // 定时器到期
+  | "cron" // Cron 任务完成
+  | "exec" // 命令执行完成
+  | "requested" // 手动请求
+  | "retry"; // 重试
 
 export interface WakeRequest {
   reason: WakeReason;
@@ -181,7 +181,10 @@ class HeartbeatWake {
       const result = await this.handler([], request);
 
       // 如果跳过且原因是队列繁忙，重试
-      if (result.status === "skipped" && result.reason === "requests-in-flight") {
+      if (
+        result.status === "skipped" &&
+        result.reason === "requests-in-flight"
+      ) {
         this.state.pendingReason = "retry";
         this.schedule(this.retryMs);
       }
@@ -551,7 +554,7 @@ export class HeartbeatManager {
       }
 
       const task = `- [ ] ${description}\n`;
-      content = content.trimEnd() + "\n" + task;
+      content = `${content.trimEnd()}\n${task}`;
 
       await fs.writeFile(filePath, content);
     } catch (err) {

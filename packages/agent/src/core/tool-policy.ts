@@ -5,7 +5,7 @@
  * 让“沙箱模式”与“按需开放工具”可演示。
  */
 
-import type { Tool } from "./tools/types.js";
+import type { Tool } from "../tools/types.js";
 
 export type ToolPolicy = {
   allow?: string[];
@@ -62,25 +62,29 @@ export function isToolAllowed(name: string, policy?: ToolPolicy): boolean {
   return allow.some((pattern) => matchesPattern(name, pattern));
 }
 
-export function filterToolsByPolicy(tools: Tool[], policy?: ToolPolicy): Tool[] {
+export function filterToolsByPolicy(
+  tools: Tool[],
+  policy?: ToolPolicy,
+): Tool[] {
   if (!policy) {
     return tools;
   }
   return tools.filter((tool) => isToolAllowed(tool.name, policy));
 }
 
-export function mergeToolPolicies(base?: ToolPolicy, extra?: ToolPolicy): ToolPolicy | undefined {
+export function mergeToolPolicies(
+  base?: ToolPolicy,
+  extra?: ToolPolicy,
+): ToolPolicy | undefined {
   if (!base && !extra) {
     return undefined;
   }
-  const allow = [
-    ...(base?.allow ?? []),
-    ...(extra?.allow ?? []),
-  ].map((v) => v.trim()).filter(Boolean);
-  const deny = [
-    ...(base?.deny ?? []),
-    ...(extra?.deny ?? []),
-  ].map((v) => v.trim()).filter(Boolean);
+  const allow = [...(base?.allow ?? []), ...(extra?.allow ?? [])]
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const deny = [...(base?.deny ?? []), ...(extra?.deny ?? [])]
+    .map((v) => v.trim())
+    .filter(Boolean);
   return {
     allow: allow.length > 0 ? Array.from(new Set(allow)) : undefined,
     deny: deny.length > 0 ? Array.from(new Set(deny)) : undefined,

@@ -73,7 +73,7 @@ export class SessionManager {
    */
   private cache = new Map<string, Message[]>();
 
-  constructor(baseDir: string = "./.openclaw-mini/sessions") {
+  constructor(baseDir = "./.openclaw-mini/sessions") {
     this.baseDir = baseDir;
   }
 
@@ -101,8 +101,9 @@ export class SessionManager {
    */
   async load(sessionKey: string): Promise<Message[]> {
     // 1. 检查缓存
-    if (this.cache.has(sessionKey)) {
-      return this.cache.get(sessionKey)!;
+    const cached = this.cache.get(sessionKey);
+    if (cached) {
+      return cached;
     }
 
     // 2. 从磁盘加载 JSONL 文件
@@ -156,7 +157,7 @@ export class SessionManager {
     // 2. 追加写入磁盘
     const filePath = this.getPath(sessionKey);
     await fs.mkdir(this.baseDir, { recursive: true });
-    await fs.appendFile(filePath, JSON.stringify(message) + "\n");
+    await fs.appendFile(filePath, `${JSON.stringify(message)}\n`);
   }
 
   /**

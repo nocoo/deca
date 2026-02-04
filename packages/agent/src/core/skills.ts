@@ -40,7 +40,7 @@ export class SkillManager {
   private skills: Map<string, Skill> = new Map();
   private loaded = false;
 
-  constructor(workspaceDir: string, userDir: string = "~/.mini-agent") {
+  constructor(workspaceDir: string, userDir = "~/.mini-agent") {
     this.workspaceDir = workspaceDir;
     this.userDir = userDir.replace("~", process.env.HOME || "");
   }
@@ -61,7 +61,10 @@ export class SkillManager {
 
     // 3. 加载工作空间技能 (./skills/ 或 ./.mini-agent/skills/)
     for (const dirName of SKILL_DIR_NAMES) {
-      await this.loadFromDir(path.join(this.workspaceDir, dirName), "workspace");
+      await this.loadFromDir(
+        path.join(this.workspaceDir, dirName),
+        "workspace",
+      );
     }
 
     this.loaded = true;
@@ -140,7 +143,10 @@ export class SkillManager {
   /**
    * 从目录加载技能
    */
-  private async loadFromDir(dir: string, source: Skill["source"]): Promise<void> {
+  private async loadFromDir(
+    dir: string,
+    source: Skill["source"],
+  ): Promise<void> {
     try {
       const files = await fs.readdir(dir);
       for (const file of files) {
@@ -174,7 +180,9 @@ export class SkillManager {
   ): Promise<Skill | null> {
     try {
       const content = await fs.readFile(filePath, "utf-8");
-      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+      const frontmatterMatch = content.match(
+        /^---\n([\s\S]*?)\n---\n([\s\S]*)$/,
+      );
 
       if (!frontmatterMatch) {
         // 无 frontmatter，使用文件名作为 ID
@@ -209,7 +217,8 @@ export class SkillManager {
         }
       }
 
-      const id = (meta.id as string) || path.basename(filePath, ".md").toLowerCase();
+      const id =
+        (meta.id as string) || path.basename(filePath, ".md").toLowerCase();
       return {
         id,
         name: (meta.name as string) || id,

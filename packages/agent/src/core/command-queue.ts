@@ -71,7 +71,10 @@ export function setLaneConcurrency(lane: string, maxConcurrent: number) {
   drainLane(lane);
 }
 
-export function enqueueInLane<T>(lane: string, task: () => Promise<T>): Promise<T> {
+export function enqueueInLane<T>(
+  lane: string,
+  task: () => Promise<T>,
+): Promise<T> {
   const state = getLaneState(lane);
   return new Promise<T>((resolve, reject) => {
     state.queue.push({

@@ -20,10 +20,11 @@
  * 3. 返回字符串: 所有工具都返回字符串，方便 LLM 理解
  */
 
+import { exec as execCallback } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { exec as execCallback } from "node:child_process";
 import { promisify } from "node:util";
+import type { MemorySearchResult } from "../core/memory.js";
 import type { Tool, ToolContext } from "./types.js";
 
 const execAsync = promisify(execCallback);
@@ -355,7 +356,7 @@ export const memorySearchTool: Tool<{ query: string; limit?: number }> = {
       return "未找到相关记忆";
     }
     const lines = results.map(
-      (r, i) =>
+      (r: MemorySearchResult, i: number) =>
         `${i + 1}. [${r.entry.id}] score=${r.score.toFixed(2)} tags=${r.entry.tags.join(",") || "-"}\n   ${r.snippet}`,
     );
     return lines.join("\n");
@@ -411,7 +412,10 @@ export const sessionsSpawnTool: Tool<{
     properties: {
       task: { type: "string", description: "子代理任务描述" },
       label: { type: "string", description: "可选标签" },
-      cleanup: { type: "string", description: "完成后是否清理会话: keep|delete" },
+      cleanup: {
+        type: "string",
+        description: "完成后是否清理会话: keep|delete",
+      },
     },
     required: ["task"],
   },

@@ -31,7 +31,7 @@ export class MemoryManager {
   private entries: MemoryEntry[] = [];
   private loaded = false;
 
-  constructor(baseDir: string = "./.mini-agent/memory") {
+  constructor(baseDir = "./.mini-agent/memory") {
     this.baseDir = baseDir;
   }
 
@@ -64,7 +64,11 @@ export class MemoryManager {
   /**
    * 添加记忆
    */
-  async add(content: string, source: MemoryEntry["source"], tags: string[] = []): Promise<string> {
+  async add(
+    content: string,
+    source: MemoryEntry["source"],
+    tags: string[] = [],
+  ): Promise<string> {
     await this.load();
     const id = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const entry: MemoryEntry = {
@@ -141,8 +145,8 @@ export class MemoryManager {
         if (!file.endsWith(".md")) continue;
         const filePath = path.join(memDir, file);
         const content = await fs.readFile(filePath, "utf-8");
-        const existingIndex = this.entries.findIndex(
-          (e) => e.tags.includes(`file:${file}`),
+        const existingIndex = this.entries.findIndex((e) =>
+          e.tags.includes(`file:${file}`),
         );
 
         if (existingIndex >= 0) {

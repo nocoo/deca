@@ -5,7 +5,12 @@
  * 参考 OpenClaw: src/infra/agent-events.ts
  */
 
-export type AgentEventStream = "lifecycle" | "assistant" | "tool" | "subagent" | "error";
+export type AgentEventStream =
+  | "lifecycle"
+  | "assistant"
+  | "tool"
+  | "subagent"
+  | "error";
 
 export type AgentEventPayload = {
   runId: string;
@@ -37,7 +42,9 @@ export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
   }
 }
 
-export function onAgentEvent(listener: (evt: AgentEventPayload) => void): () => void {
+export function onAgentEvent(
+  listener: (evt: AgentEventPayload) => void,
+): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }

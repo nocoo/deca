@@ -1,4 +1,4 @@
-import type { ContentBlock, Message } from "../session.js";
+import type { ContentBlock, Message } from "../core/session.js";
 import {
   CHARS_PER_TOKEN_ESTIMATE,
   estimateMessageChars,
@@ -49,24 +49,29 @@ export function resolvePruningSettings(
     return DEFAULT_CONTEXT_PRUNING_SETTINGS;
   }
   const settings: ContextPruningSettings = {
-    maxHistoryShare: clampShare(raw.maxHistoryShare ?? DEFAULT_CONTEXT_PRUNING_SETTINGS.maxHistoryShare,
+    maxHistoryShare: clampShare(
+      raw.maxHistoryShare ?? DEFAULT_CONTEXT_PRUNING_SETTINGS.maxHistoryShare,
       DEFAULT_CONTEXT_PRUNING_SETTINGS.maxHistoryShare,
     ),
     keepLastAssistants:
-      typeof raw.keepLastAssistants === "number" && Number.isFinite(raw.keepLastAssistants)
+      typeof raw.keepLastAssistants === "number" &&
+      Number.isFinite(raw.keepLastAssistants)
         ? Math.max(0, Math.floor(raw.keepLastAssistants))
         : DEFAULT_CONTEXT_PRUNING_SETTINGS.keepLastAssistants,
     softTrim: {
       maxChars:
-        typeof raw.softTrim?.maxChars === "number" && Number.isFinite(raw.softTrim.maxChars)
+        typeof raw.softTrim?.maxChars === "number" &&
+        Number.isFinite(raw.softTrim.maxChars)
           ? Math.max(0, Math.floor(raw.softTrim.maxChars))
           : DEFAULT_CONTEXT_PRUNING_SETTINGS.softTrim.maxChars,
       headChars:
-        typeof raw.softTrim?.headChars === "number" && Number.isFinite(raw.softTrim.headChars)
+        typeof raw.softTrim?.headChars === "number" &&
+        Number.isFinite(raw.softTrim.headChars)
           ? Math.max(0, Math.floor(raw.softTrim.headChars))
           : DEFAULT_CONTEXT_PRUNING_SETTINGS.softTrim.headChars,
       tailChars:
-        typeof raw.softTrim?.tailChars === "number" && Number.isFinite(raw.softTrim.tailChars)
+        typeof raw.softTrim?.tailChars === "number" &&
+        Number.isFinite(raw.softTrim.tailChars)
           ? Math.max(0, Math.floor(raw.softTrim.tailChars))
           : DEFAULT_CONTEXT_PRUNING_SETTINGS.softTrim.tailChars,
     },
@@ -138,7 +143,10 @@ function applySoftTrim(
   return { messages: output, trimmedToolResults };
 }
 
-function findAssistantCutoffIndex(messages: Message[], keepLastAssistants: number): number | null {
+function findAssistantCutoffIndex(
+  messages: Message[],
+  keepLastAssistants: number,
+): number | null {
   if (keepLastAssistants <= 0) {
     return messages.length;
   }
@@ -155,7 +163,10 @@ function findAssistantCutoffIndex(messages: Message[], keepLastAssistants: numbe
   return null;
 }
 
-function sliceWithinBudget(messages: Message[], budgetChars: number): Message[] {
+function sliceWithinBudget(
+  messages: Message[],
+  budgetChars: number,
+): Message[] {
   const kept: Message[] = [];
   let used = 0;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -180,7 +191,9 @@ export function pruneContextMessages(params: {
   const contextTokens = Math.max(1, Math.floor(params.contextWindowTokens));
   const budgetChars = Math.max(
     1,
-    Math.floor(contextTokens * CHARS_PER_TOKEN_ESTIMATE * settings.maxHistoryShare),
+    Math.floor(
+      contextTokens * CHARS_PER_TOKEN_ESTIMATE * settings.maxHistoryShare,
+    ),
   );
 
   const trimmed = applySoftTrim(params.messages, settings);
@@ -198,7 +211,10 @@ export function pruneContextMessages(params: {
     };
   }
 
-  const cutoffIndex = findAssistantCutoffIndex(trimmed.messages, settings.keepLastAssistants);
+  const cutoffIndex = findAssistantCutoffIndex(
+    trimmed.messages,
+    settings.keepLastAssistants,
+  );
   const protectedIndex = cutoffIndex ?? 0;
   const protectedMessages = trimmed.messages.slice(protectedIndex);
   const protectedChars = estimateMessagesChars(protectedMessages);

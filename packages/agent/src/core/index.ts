@@ -1,10 +1,5 @@
 // Core exports
-export {
-  Agent,
-  type AgentConfig,
-  type RunOptions,
-  type RunResult,
-} from "./agent.js";
+export { Agent, type AgentConfig, type RunResult } from "./agent.js";
 export {
   SessionManager,
   type Message,
@@ -26,7 +21,13 @@ export {
 export {
   emitAgentEvent,
   onAgentEvent,
-  type AgentEventType,
+  type AgentEventPayload,
+  type AgentEventStream,
 } from "./agent-events.js";
 export { LRUCache } from "./lru-cache.js";
-export { checkToolPolicy, type ToolPolicyResult } from "./tool-policy.js";
+export {
+  type ToolPolicy,
+  isToolAllowed,
+  filterToolsByPolicy,
+  mergeToolPolicies,
+} from "./tool-policy.js";

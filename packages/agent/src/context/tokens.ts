@@ -1,4 +1,4 @@
-import type { ContentBlock, Message } from "../session.js";
+import type { ContentBlock, Message } from "../core/session.js";
 
 export const CHARS_PER_TOKEN_ESTIMATE = 4;
 

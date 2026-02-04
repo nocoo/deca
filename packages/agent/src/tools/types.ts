@@ -29,7 +29,7 @@
  *    ```
  */
 
-import type { MemoryManager, MemorySearchResult } from "../memory.js";
+import type { MemoryManager, MemorySearchResult } from "../core/memory.js";
 
 // ============== 执行上下文 ==============
 
@@ -69,7 +69,7 @@ export interface ToolContext {
  * 泛型 TInput 用于类型安全的参数定义
  * 实际使用时会被擦除，但开发时有类型提示
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Tool input can be any shape
 export interface Tool<TInput = any> {
   /** 工具名称: LLM 用这个名字来调用工具 */
   name: string;

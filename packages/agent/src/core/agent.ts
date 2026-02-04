@@ -20,25 +20,27 @@
 
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
-import { emitAgentEvent } from "./agent-events.js";
-import {
-  enqueueInLane,
-  resolveGlobalLane,
-  resolveSessionLane,
-} from "./command-queue.js";
 import {
   ContextLoader,
   DEFAULT_CONTEXT_WINDOW_TOKENS,
   type PruneResult,
   compactHistoryIfNeeded,
   pruneContextMessages,
-} from "./context/index.js";
+} from "../context/index.js";
 import {
   HeartbeatManager,
   type HeartbeatResult,
   type HeartbeatTask,
   type WakeRequest,
-} from "./heartbeat.js";
+} from "../heartbeat/manager.js";
+import { builtinTools } from "../tools/builtin.js";
+import type { Tool, ToolContext } from "../tools/types.js";
+import { emitAgentEvent } from "./agent-events.js";
+import {
+  enqueueInLane,
+  resolveGlobalLane,
+  resolveSessionLane,
+} from "./command-queue.js";
 import { MemoryManager, type MemorySearchResult } from "./memory.js";
 import {
   isSubagentSessionKey,
@@ -53,8 +55,6 @@ import {
   filterToolsByPolicy,
   mergeToolPolicies,
 } from "./tool-policy.js";
-import { builtinTools } from "./tools/builtin.js";
-import type { Tool, ToolContext } from "./tools/types.js";
 
 // ============== 类型定义 ==============
 
@@ -407,7 +407,8 @@ export class Agent {
       this.enableMemory &&
       (availableTools.has("memory_search") || availableTools.has("memory_get"))
     ) {
-      prompt += `\n\n## 记忆\n在回答涉及历史、偏好、决定、待办时：先用 memory_search 查找，再用 memory_get 拉取必要细节。不要臆测。`;
+      prompt +=
+        "\n\n## 记忆\n在回答涉及历史、偏好、决定、待办时：先用 memory_search 查找，再用 memory_get 拉取必要细节。不要臆测。";
     }
 
     // 注入沙箱约束说明
