@@ -74,3 +74,13 @@ export {
   type DebouncedHandler,
   type DebounceManager,
 } from "./debounce";
+
+// Slash Commands
+export {
+  buildCommands,
+  registerCommands,
+  setupSlashCommands,
+  type SlashCommandHandler,
+  type CommandDefinition,
+  type SlashCommandsConfig,
+} from "./slash-commands";
