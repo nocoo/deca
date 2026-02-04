@@ -9,6 +9,7 @@
     "format": "biome format src"
   },
   "dependencies": {
+    "@deca/agent": "workspace:*",
     "discord.js": "^14.25.1",
     "elysia": "1.1.1"
   },
