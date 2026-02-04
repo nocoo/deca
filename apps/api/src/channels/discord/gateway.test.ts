@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { type Client, Events, GatewayIntentBits } from "discord.js";
+import { type Client, Events } from "discord.js";
 import { createDiscordClient } from "./client";
 import { type DiscordGatewayInstance, createDiscordGateway } from "./gateway";
 import type {
@@ -208,6 +208,80 @@ describe("DiscordGateway", () => {
 
       expect(gateway.guilds).toHaveLength(2);
       expect(gateway.guilds[0].id).toBe("guild1");
+    });
+  });
+
+  describe("reconnect", () => {
+    it("enables reconnect by default", () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+      });
+
+      // Gateway created successfully with reconnect enabled
+      expect(gateway).toBeDefined();
+    });
+
+    it("can disable reconnect", () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        reconnect: { enabled: false },
+      });
+
+      expect(gateway).toBeDefined();
+    });
+
+    it("accepts reconnect configuration", () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        reconnect: {
+          enabled: true,
+          maxRetries: 10,
+          baseDelayMs: 500,
+          maxDelayMs: 30000,
+        },
+      });
+
+      expect(gateway).toBeDefined();
+    });
+
+    it("calls onConnect callback", async () => {
+      const onConnect = mock(() => {});
+
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        events: { onConnect },
+      });
+
+      await gateway.connect();
+
+      expect(onConnect).toHaveBeenCalled();
+    });
+
+    it("calls onError callback on error", async () => {
+      const onError = mock(() => {});
+      const testError = new Error("Test error");
+
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        events: { onError },
+      });
+
+      await gateway.connect();
+
+      // Emit error
+      mockClient.emit(Events.Error, testError);
+
+      expect(onError).toHaveBeenCalledWith(testError);
     });
   });
 });

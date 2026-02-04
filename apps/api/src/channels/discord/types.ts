@@ -111,6 +111,42 @@ export interface DiscordGatewayConfig {
 
   /** Connection timeout in milliseconds (default: 30000) */
   connectionTimeout?: number;
+
+  /** Auto reconnect configuration */
+  reconnect?: ReconnectOptions;
+
+  /** Event callbacks */
+  events?: GatewayEventCallbacks;
+}
+
+/**
+ * Reconnect options
+ */
+export interface ReconnectOptions {
+  /** Enable auto reconnect (default: true) */
+  enabled?: boolean;
+  /** Maximum number of retry attempts (default: 5) */
+  maxRetries?: number;
+  /** Base delay in milliseconds (default: 1000) */
+  baseDelayMs?: number;
+  /** Maximum delay in milliseconds (default: 60000) */
+  maxDelayMs?: number;
+}
+
+/**
+ * Gateway event callbacks
+ */
+export interface GatewayEventCallbacks {
+  /** Called when connection is established */
+  onConnect?: () => void;
+  /** Called when connection is lost */
+  onDisconnect?: (reason: string) => void;
+  /** Called when reconnection succeeds */
+  onReconnect?: (attempts: number) => void;
+  /** Called when max retries exceeded */
+  onReconnectFailed?: (error: Error) => void;
+  /** Called on error */
+  onError?: (error: Error) => void;
 }
 
 /**

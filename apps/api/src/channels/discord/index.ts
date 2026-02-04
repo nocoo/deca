@@ -19,6 +19,8 @@ export type {
   DiscordGateway,
   DiscordUser,
   DiscordGuild,
+  ReconnectOptions,
+  GatewayEventCallbacks,
 } from "./types";
 
 // Constants
@@ -37,6 +39,12 @@ export { createDiscordClient } from "./client";
 export { createMessageSender } from "./sender";
 export { createMessageListener } from "./listener";
 export { createDiscordGateway } from "./gateway";
+export {
+  createReconnectManager,
+  DEFAULT_RECONNECT_CONFIG,
+  type ReconnectConfig,
+  type ReconnectManager,
+} from "./reconnect";
 
 // Handlers
 export { createEchoHandler } from "./echo-handler";
