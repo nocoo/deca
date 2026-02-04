@@ -11,9 +11,7 @@
     "lint": "bun --filter ./apps/api lint && bun --filter ./apps/console lint",
     "format": "biome format ."
   },
-  "workspaces": [
-    "apps/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
     "@biomejs/biome": "1.8.3"
   }
