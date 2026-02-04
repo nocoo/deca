@@ -61,6 +61,8 @@ import {
 export interface AgentConfig {
   /** Anthropic API Key */
   apiKey: string;
+  /** Base URL for Anthropic API (optional, for proxy/custom endpoints) */
+  baseUrl?: string;
   /** 模型 ID */
   model?: string;
   /** Agent ID（默认 main） */
@@ -191,7 +193,7 @@ export class Agent {
   constructor(config: AgentConfig) {
     this.client = new Anthropic({
       apiKey: config.apiKey,
-      baseURL: process.env.ANTHROPIC_BASE_URL,
+      baseURL: config.baseUrl ?? process.env.ANTHROPIC_BASE_URL,
     });
     this.model =
       config.model ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";
