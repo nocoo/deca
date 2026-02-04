@@ -7,3 +7,9 @@ apps/**/dist
 apps/**/.vite
 apps/**/.turbo
 apps/**/coverage
+
+# Deca local state and credentials
+.deca/
+.mini-agent/
+.openclaw-mini/
+*.credentials.json
