@@ -1,17 +1,18 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import {
-  EventInput,
+import { Modal } from "@/components/ui/modal";
+import { useModal } from "@/hooks/useModal";
+import type {
   DateSelectArg,
   EventClickArg,
   EventContentArg,
+  EventInput,
 } from "@fullcalendar/core";
-import { useModal } from "@/hooks/useModal";
-import { Modal } from "@/components/ui/modal";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CalendarEvent extends EventInput {
   extendedProps: {
@@ -21,13 +22,46 @@ interface CalendarEvent extends EventInput {
 
 const Calendar: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-    null
+    null,
   );
   const [eventTitle, setEventTitle] = useState("");
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventLevel, setEventLevel] = useState("");
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>(() => {
+    // Initialize with some events
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date(Date.now() + 86400000)
+      .toISOString()
+      .split("T")[0];
+    const dayAfter = new Date(Date.now() + 172800000)
+      .toISOString()
+      .split("T")[0];
+    const twoDaysAfter = new Date(Date.now() + 259200000)
+      .toISOString()
+      .split("T")[0];
+    return [
+      {
+        id: "1",
+        title: "Event Conf.",
+        start: today,
+        extendedProps: { calendar: "Danger" },
+      },
+      {
+        id: "2",
+        title: "Meeting",
+        start: tomorrow,
+        extendedProps: { calendar: "Success" },
+      },
+      {
+        id: "3",
+        title: "Workshop",
+        start: dayAfter,
+        end: twoDaysAfter,
+        extendedProps: { calendar: "Primary" },
+      },
+    ];
+  });
   const calendarRef = useRef<FullCalendar>(null);
   const { isOpen, openModal, closeModal } = useModal();
 
@@ -37,31 +71,6 @@ const Calendar: React.FC = () => {
     Primary: "primary",
     Warning: "warning",
   };
-
-  useEffect(() => {
-    // Initialize with some events
-    setEvents([
-      {
-        id: "1",
-        title: "Event Conf.",
-        start: new Date().toISOString().split("T")[0],
-        extendedProps: { calendar: "Danger" },
-      },
-      {
-        id: "2",
-        title: "Meeting",
-        start: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        extendedProps: { calendar: "Success" },
-      },
-      {
-        id: "3",
-        title: "Workshop",
-        start: new Date(Date.now() + 172800000).toISOString().split("T")[0],
-        end: new Date(Date.now() + 259200000).toISOString().split("T")[0],
-        extendedProps: { calendar: "Primary" },
-      },
-    ]);
-  }, []);
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     resetModalFields();
@@ -93,13 +102,13 @@ const Calendar: React.FC = () => {
                 end: eventEndDate,
                 extendedProps: { calendar: eventLevel },
               }
-            : event
-        )
+            : event,
+        ),
       );
     } else {
       // Add new event
       const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         title: eventTitle,
         start: eventStartDate,
         end: eventEndDate,
@@ -203,7 +212,7 @@ const Calendar: React.FC = () => {
                             <span
                               className={`h-2 w-2 rounded-full bg-white ${
                                 eventLevel === key ? "block" : "hidden"
-                              }`}  
+                              }`}
                             ></span>
                           </span>
                         </span>
