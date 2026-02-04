@@ -1,7 +1,7 @@
 # Deca Agent 实现状态文档
 
 > 本文档为 AI Agent 接手项目时的参考指南。
-> 最后更新: 2026-02-04
+> 最后更新: 2026-02-05
 
 ## 项目概述
 
@@ -38,12 +38,90 @@
 | M3: Heartbeat 机制 | ✅ 完成 | 99.66% | 主动唤醒、任务解析、调度 |
 | E2E 验证 | ✅ 完成 | 33 tests | 真实 LLM API 调用测试 |
 | Husky Hooks | ✅ 完成 | - | Pre-commit (lint+unit), Pre-push (e2e) |
-| M4: Discord Gateway | ⏳ 待开始 | - | Discord Bot 连接 |
-| M5: Discord + Agent | ⏳ 待开始 | - | 完整集成 |
+| M4: Discord Gateway | ✅ 完成 | 129 tests | Discord Bot 连接、消息处理 |
+| M5: Discord 增强 | ⏳ 待开始 | - | Slash Commands, Debounce, History |
 
 ---
 
 ## 包结构详解
+
+### apps/api/ (Discord Gateway)
+
+**职责**: API 服务和 Discord Gateway
+
+```
+apps/api/
+├── src/
+│   ├── channels/discord/
+│   │   ├── types.ts           # MessageHandler 接口、配置类型
+│   │   ├── chunk.ts           # 消息分块 (2000 字符限制)
+│   │   ├── chunk.test.ts      # 14 个测试
+│   │   ├── allowlist.ts       # 白名单过滤
+│   │   ├── allowlist.test.ts  # 23 个测试
+│   │   ├── session.ts         # 会话 Key 生成
+│   │   ├── session.test.ts    # 18 个测试
+│   │   ├── client.ts          # discord.js 包装器
+│   │   ├── client.test.ts     # 12 个测试
+│   │   ├── sender.ts          # 消息发送
+│   │   ├── sender.test.ts     # 12 个测试
+│   │   ├── listener.ts        # 消息监听
+│   │   ├── listener.test.ts   # 24 个测试
+│   │   ├── gateway.ts         # 网关组装
+│   │   ├── gateway.test.ts    # 10 个测试
+│   │   ├── echo-handler.ts    # 测试用回显处理器
+│   │   ├── echo-handler.test.ts # 9 个测试
+│   │   └── index.ts           # 模块导出
+│   ├── adapters/
+│   │   ├── discord-agent-adapter.ts      # Agent 适配器
+│   │   └── discord-agent-adapter.test.ts # 7 个测试
+│   └── discord-cli.ts         # CLI 入口点
+└── package.json               # 添加 discord.js, @deca/agent, @deca/storage
+```
+
+**核心接口**:
+
+```typescript
+// MessageHandler - 解耦 Discord 和 Agent
+interface MessageHandler {
+  handle(request: MessageRequest): Promise<MessageResponse>;
+}
+
+interface MessageRequest {
+  sessionKey: string;
+  content: string;
+  userId: string;
+  userName: string;
+  channelId: string;
+  guildId?: string;
+}
+
+interface MessageResponse {
+  content: string;
+}
+
+// Discord Gateway 配置
+interface DiscordGatewayConfig {
+  botToken: string;
+  agentId?: string;
+  allowlist?: AllowlistConfig;
+  requireMention?: boolean;
+}
+```
+
+**CLI 使用**:
+
+```bash
+# Echo 模式 (测试)
+bun run discord:echo
+
+# Agent 模式
+bun run discord
+
+# 带选项
+bun run discord -- --require-mention
+```
+
+---
 
 ### packages/storage/
 
@@ -423,39 +501,31 @@ git commit -m "test: add e2e tests for agent with real LLM"
 
 ## 下一步任务
 
-### M4: Discord Gateway (进行中)
+### M5: Discord 增强 (待开始)
 
-**详细设计**: [11-discord-gateway-design.md](./11-discord-gateway-design.md)
+1. **Slash Commands** (`/ask`, `/reset`, `/status`)
+2. **消息去重** (Debounce) - 快速连续消息合并
+3. **History Context** - 群聊上下文注入
+4. **HTTP API 控制端点** - 远程管理
 
-**核心设计决策**:
-- 模块位置: `apps/api/src/channels/discord/`
-- 解耦方式: `MessageHandler` 接口，Discord 模块不直接依赖 `@deca/agent`
-- 测试策略: 三层 E2E (Mock → 集成 → Live)
+---
 
-**Commit 计划** (16 个原子化提交):
-1. `feat: add discord channel types and MessageHandler interface`
-2. `test: add chunk message unit tests` / `feat: implement discord message chunking`
-3. `test: add allowlist filter unit tests` / `feat: implement discord allowlist filtering`
-4. `test: add discord session key unit tests` / `feat: implement discord session key generation`
-5. `chore: add discord.js dependency to apps/api`
-6. `test: add discord client unit tests with mock` / `feat: implement discord client wrapper`
-7. `test: add discord sender unit tests` / `feat: implement discord message sender`
-8. `test: add discord listener unit tests` / `feat: implement discord message listener`
-9. `test: add discord gateway unit tests` / `feat: implement discord gateway assembly`
-10. `feat: export discord channel module`
-11. `test: add agent adapter unit tests` / `feat: implement discord agent adapter`
-12. `feat: add discord cli entry point`
-13. `test: add discord unit e2e tests`
-14. `test: add discord integration e2e tests`
-15. `test: add discord live e2e tests`
-16. `docs: update implementation status for M4`
+## 凭证配置
 
-### M5: Discord 增强
+### Discord Bot
 
-1. Slash Commands (`/ask`, `/reset`, `/status`)
-2. 消息去重 (Debounce)
-3. History Context (群聊上下文)
-4. HTTP API 控制端点
+```bash
+mkdir -p ~/.deca/credentials
+echo '{"botToken":"your-bot-token"}' > ~/.deca/credentials/discord.json
+chmod 600 ~/.deca/credentials/discord.json
+```
+
+### Anthropic API (Agent 模式需要)
+
+```bash
+echo '{"apiKey":"your-api-key"}' > ~/.deca/credentials/anthropic.json
+chmod 600 ~/.deca/credentials/anthropic.json
+```
 
 ---
 
@@ -511,6 +581,15 @@ cat ~/.deca/credentials/anthropic.json | jq
 ---
 
 ## 更新日志
+
+### 2026-02-05
+
+- ✅ 完成 M4 Discord Gateway 实现
+- ✅ 12 个原子化提交
+- ✅ 129 个 Discord 相关测试
+- ✅ 实现 MessageHandler 接口解耦
+- ✅ Discord CLI 入口点 (echo + agent 模式)
+- ✅ Agent 适配器 (discord-agent-adapter.ts)
 
 ### 2026-02-04 (晚)
 
