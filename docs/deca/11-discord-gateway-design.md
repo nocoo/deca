@@ -1,109 +1,91 @@
-# M4: Discord Gateway 详细设计
+# Discord 模块
 
-> 本文档定义 Discord Gateway 模块的完整实现规范，包括 TDD 计划、原子化提交和 E2E 测试策略。
+> Discord Bot 集成模块，支持消息收发、通道过滤、反应确认和消息防抖。
 
 ## 概述
 
-### 目标
+Discord 模块通过 `MessageHandler` 接口与外部系统解耦，可以独立测试和使用。
 
-实现 Discord Bot 连接，支持消息收发、通道过滤，并与 Agent 集成。
-
-### 核心原则
-
-1. **模块独立性**: Discord 模块不直接依赖 `@deca/agent`，通过 `MessageHandler` 接口解耦
-2. **TDD**: 所有功能先写测试再实现
-3. **原子化提交**: 每个 commit 代表单一逻辑变更
-4. **分层测试**: Mock → 集成 → Live 渐进验证
-
-### 规模估算
-
-| 指标 | 数量 |
-|------|------|
-| 新增代码 | ~900 行 |
-| 新增测试 | ~120 个用例 |
-| 预计覆盖率 | >= 95% |
+**核心特性**：
+- 消息收发与自动分块（2000 字符限制）
+- Guild/Channel/User 白名单过滤
+- Mention 要求配置
+- 👀/✅/❌ 反应确认
+- 消息防抖（合并连续消息）
+- Slash Commands（/ask, /clear, /status）
 
 ---
 
-## 架构设计
+## 架构
 
-### 模块独立性
-
-Discord 模块通过 `MessageHandler` 接口与外部系统解耦：
+### 模块依赖关系
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    apps/api                                      │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  channels/discord/  ← 完全独立，不依赖 @deca/agent         │ │
-│  │  - 只依赖 discord.js                                       │ │
-│  │  - 只依赖 MessageHandler 接口                              │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                          │                                       │
-│                          │ implements                            │
-│                          ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  adapters/discord-agent-adapter.ts                         │ │
-│  │  - 实现 MessageHandler                                     │ │
-│  │  - 依赖 @deca/agent                                        │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                          │                                       │
-└──────────────────────────│───────────────────────────────────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │      @deca/agent       │
-              └────────────────────────┘
+apps/api/
+├── channels/discord/          ← 独立模块，不依赖 @deca/agent
+│   ├── types.ts               # 类型定义 + MessageHandler 接口
+│   ├── chunk.ts               # 消息分块
+│   ├── allowlist.ts           # 白名单过滤
+│   ├── session.ts             # Session Key 生成
+│   ├── client.ts              # Discord.js 客户端封装
+│   ├── sender.ts              # 消息发送
+│   ├── listener.ts            # 消息监听
+│   ├── reaction.ts            # 反应管理
+│   ├── debounce.ts            # 消息防抖
+│   ├── slash-commands.ts      # 斜杠命令
+│   ├── graceful-shutdown.ts   # 优雅关闭
+│   ├── gateway.ts             # 组装层
+│   └── e2e/                   # E2E 测试
+│
+├── adapters/
+│   └── discord-agent-adapter.ts  # Agent 适配器（依赖 @deca/agent）
+│
+└── discord-cli.ts             # CLI 入口
 ```
 
-### 消息流程
+### 消息处理流程
 
 ```
-Discord Gateway (WebSocket)
-        │
-        │ MESSAGE_CREATE event
-        ▼
-┌───────────────────┐
-│  discord.js       │
-│  Client           │
-└─────────┬─────────┘
-          │
-          │ 'messageCreate' event
-          ▼
-┌───────────────────┐     ┌───────────────────┐
-│   listener.ts     │────▶│   allowlist.ts    │
-│                   │     │   isAllowed()     │
-│ onMessageCreate() │     └─────────┬─────────┘
-└─────────┬─────────┘               │
-          │                         │ false → ignore
-          │ ◀───────────────────────┘ true  → continue
-          ▼
-┌───────────────────┐
-│ Check mention     │
-│ (if required)     │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐
-│ Build MessageReq  │
-│ + session key     │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐
-│ MessageHandler    │  ← 抽象接口
-│   .handle()       │
-└─────────┬─────────┘
-          │
-          │ MessageResponse
-          ▼
-┌───────────────────┐
-│   sender.ts       │
-│                   │
-│ sendReply()       │
-│ - chunk if needed │
-└───────────────────┘
+Discord Gateway
+     ↓
+discord.js Client
+     ↓
+listener.ts (shouldProcessMessage)
+     ├── 过滤 Bot 消息
+     ├── 检查白名单
+     └── 检查 Mention 要求
+     ↓
+debounce.ts (可选)
+     ↓
+reaction.ts: markReceived (👀)
+     ↓
+MessageHandler.handle()
+     ↓
+sender.ts: sendReply
+     ↓
+reaction.ts: markSuccess (✅) 或 markError (❌)
+```
+
+### 核心接口
+
+```typescript
+// MessageHandler - Discord 模块与外部系统的唯一接口
+interface MessageHandler {
+  handle(request: MessageRequest): Promise<MessageResponse>;
+}
+
+interface MessageRequest {
+  sessionKey: string;
+  content: string;
+  sender: { id: string; username: string; displayName?: string };
+  channel: { id: string; type: "dm" | "guild" | "thread"; guildId?: string };
+}
+
+interface MessageResponse {
+  text: string;
+  success: boolean;
+  error?: string;
+}
 ```
 
 ---
@@ -111,664 +93,227 @@ Discord Gateway (WebSocket)
 ## 文件结构
 
 ```
-apps/api/
-├── src/
-│   ├── channels/
-│   │   ├── types.ts                     # Channel 通用接口
-│   │   └── discord/
-│   │       ├── types.ts                 # Discord 类型 + MessageHandler 接口
-│   │       ├── chunk.ts                 # 消息分块
-│   │       ├── chunk.test.ts
-│   │       ├── allowlist.ts             # 通道过滤
-│   │       ├── allowlist.test.ts
-│   │       ├── session.ts               # Session Key 生成
-│   │       ├── session.test.ts
-│   │       ├── client.ts                # Discord 客户端管理
-│   │       ├── client.test.ts
-│   │       ├── sender.ts                # 消息发送
-│   │       ├── sender.test.ts
-│   │       ├── listener.ts              # 消息监听
-│   │       ├── listener.test.ts
-│   │       ├── gateway.ts               # 组装层
-│   │       ├── gateway.test.ts
-│   │       └── index.ts                 # 导出
-│   │
-│   ├── adapters/
-│   │   └── discord-agent-adapter.ts     # Agent 适配器
-│   │
-│   ├── discord-cli.ts                   # CLI 入口
-│   │
-│   └── e2e/
-│       ├── discord.unit.e2e.test.ts     # Mock 全部
-│       ├── discord.integration.e2e.test.ts  # Mock Discord, 真实 Agent
-│       └── discord.live.e2e.test.ts     # 真实 Discord 连接
-│
-packages/storage/
-└── src/types.ts                         # 已有 Discord 凭证类型 ✅
+apps/api/src/channels/discord/
+├── types.ts                   # 类型定义
+├── chunk.ts                   # 消息分块 (12 tests)
+├── allowlist.ts               # 白名单过滤 (20 tests)
+├── session.ts                 # Session Key (15 tests)
+├── client.ts                  # 客户端封装 (15 tests)
+├── sender.ts                  # 消息发送 (15 tests)
+├── listener.ts                # 消息监听 (25 tests)
+├── reaction.ts                # 反应管理 (8 tests)
+├── debounce.ts                # 消息防抖 (10 tests)
+├── slash-commands.ts          # 斜杠命令 (10 tests)
+├── graceful-shutdown.ts       # 优雅关闭 (8 tests)
+├── gateway.ts                 # 组装层 (10 tests)
+├── index.ts                   # 导出
+└── e2e/
+    ├── webhook.ts             # Webhook 消息发送
+    ├── fetcher.ts             # API 消息获取
+    ├── spawner.ts             # Bot 进程管理
+    └── runner.ts              # E2E 测试运行器
 ```
 
 ---
 
-## 核心接口定义
+## 开发指南
 
-### MessageHandler 接口
+### 环境准备
 
+1. 配置 Discord 凭证：
+   ```bash
+   mkdir -p ~/.deca/credentials
+   chmod 700 ~/.deca/credentials
+   
+   cat > ~/.deca/credentials/discord.json << EOF
+   {
+     "botToken": "your-bot-token",
+     "webhookUrl": "https://discord.com/api/webhooks/...",
+     "testChannelId": "your-test-channel-id"
+   }
+   EOF
+   chmod 600 ~/.deca/credentials/discord.json
+   ```
+
+2. 确保 Bot 权限：
+   - `Send Messages`
+   - `Add Reactions`
+   - `Read Message History`
+   - `Use Slash Commands`（如果使用 Slash Commands）
+
+### 本地运行
+
+```bash
+# Echo 模式（测试用）
+cd apps/api
+bun run src/discord-cli.ts --echo
+
+# 带 Agent 的完整模式
+bun run src/discord-cli.ts
+
+# 启用防抖
+bun run src/discord-cli.ts --debounce
+
+# 要求 @mention
+bun run src/discord-cli.ts --require-mention
+```
+
+---
+
+## 测试要求
+
+### 单元测试
+
+每个模块都有对应的单元测试，使用 Bun 测试框架。
+
+```bash
+# 运行 Discord 模块测试
+cd apps/api && bun test src/channels/discord/
+
+# 运行单个文件测试
+bun test src/channels/discord/chunk.test.ts
+```
+
+**要求**：
+- 所有新功能必须先写测试
+- 测试覆盖率目标 >= 95%
+- 当前状态：218 个测试，全部通过
+
+### Lint 检查
+
+```bash
+# 运行 Lint
+bun run lint
+
+# 自动修复
+bun run lint:fix
+```
+
+**要求**：
+- 所有代码必须通过 Biome lint
+- Pre-commit hook 会自动检查
+
+### E2E 测试
+
+E2E 测试验证真实 Discord API 交互。
+
+```bash
+# 运行 E2E 测试
+cd apps/api && bun run src/channels/discord/e2e/runner.ts
+
+# 带调试输出
+bun run src/channels/discord/e2e/runner.ts --debug
+```
+
+**当前测试用例**：
+
+| 测试 | 描述 |
+|------|------|
+| webhook can send messages | Webhook 发送消息正常 |
+| can fetch channel messages | API 获取消息正常 |
+| bot responds to messages | Bot 回复消息正常 |
+| bot adds 👀 reaction | 收到消息后添加 👀 |
+| bot replaces 👀 with ✅ | 处理完成后替换为 ✅ |
+| bot merges rapid messages | 防抖合并连续消息 |
+
+---
+
+## E2E 测试最佳实践
+
+### 设计原则
+
+1. **隔离性**
+   - 每个测试使用唯一 `testId`
+   - 每个测试套件启动独立的 Bot 进程
+   - 只验证自己发送的消息
+
+2. **等待策略**
+   - 永远使用轮询等待，不用固定 `sleep`
+   - 设置合理超时（网络延迟 × 3）
+   - 轮询间隔 300-500ms
+
+3. **状态验证**
+   - 用业务特征验证，不用技术特征
+   - 验证最终状态，不验证中间状态
+   - 失败时打印完整上下文
+
+4. **调试友好**
+   - 保留 `--debug` 模式
+   - 失败时显示"期望 vs 实际"
+   - 日志包含 testId 方便追踪
+
+### 常见问题与解决方案
+
+#### 问题 1: Reaction Cache Miss
+
+**现象**: `removeReaction` 静默失败
+
+**原因**: discord.js 的 `message.reactions.cache` 在同一请求中不会实时更新
+
+**解决方案**: Cache miss 时降级到 REST API
 ```typescript
-// channels/discord/types.ts
-
-/**
- * 消息处理器接口 - Discord 模块唯一的外部依赖点
- */
-export interface MessageHandler {
-  handle(request: MessageRequest): Promise<MessageResponse>;
-}
-
-export interface MessageRequest {
-  /** 会话标识 */
-  sessionKey: string;
-  /** 消息内容 */
-  content: string;
-  /** 发送者信息 */
-  sender: {
-    id: string;
-    username: string;
-    displayName?: string;
-  };
-  /** 频道信息 */
-  channel: {
-    id: string;
-    name?: string;
-    type: "dm" | "guild" | "thread";
-    guildId?: string;
-    threadId?: string;
-  };
-  /** 可选回调 */
-  callbacks?: {
-    onTextDelta?: (delta: string) => void;
-  };
-}
-
-export interface MessageResponse {
-  text: string;
-  success: boolean;
-  error?: string;
+if (!cached) {
+  await message.client.rest.delete(
+    `/channels/${channelId}/messages/${messageId}/reactions/${emoji}/@me`
+  );
 }
 ```
 
-### Gateway 配置
+#### 问题 2: 时序竞态
 
+**现象**: 测试在 Bot 完成操作前就检查结果
+
+**原因**: 网络延迟导致异步操作未完成
+
+**解决方案**: 使用轮询等待
 ```typescript
-export interface DiscordGatewayConfig {
-  /** Bot Token (如果不注入 client) */
-  token?: string;
-  
-  /** 依赖注入 (用于测试) */
-  client?: Client;
-  handler?: MessageHandler;
-  
-  /** 功能配置 */
-  allowlist?: AllowlistConfig;
-  requireMention?: boolean;
-  requireMentionByGuild?: Record<string, boolean>;
-  requireMentionByChannel?: Record<string, boolean>;
-  ignoreBots?: boolean;
-}
+// 错误：固定等待
+await sleep(1000);
+const reactions = await getReactions(messageId);
 
-export interface DiscordGateway {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  readonly isConnected: boolean;
-  readonly user: User | null;
-  readonly guilds: Collection<string, Guild>;
-}
+// 正确：轮询等待
+const hasCheck = await waitForReaction(messageId, "✅", { timeout: 5000 });
 ```
 
-### Allowlist 配置
+#### 问题 3: Webhook 消息误判
+
+**现象**: Webhook 发送的消息被误认为是 Bot 回复
+
+**原因**: Discord 将 Webhook 消息的 `author.bot` 标记为 `true`
+
+**解决方案**: 用业务特征区分
+```typescript
+// 只计算真正的 Bot 回复（有特定前缀）
+if (!m.content.startsWith("🔊 Echo:")) return false;
+```
+
+### E2E 测试模板
 
 ```typescript
-export interface AllowlistConfig {
-  /** 允许的 Guild IDs (空 = 全部允许) */
-  guilds?: string[];
-  /** 允许的 Channel IDs (空 = 全部允许) */
-  channels?: string[];
-  /** 允许的 User IDs (空 = 全部允许) */
-  users?: string[];
-  /** 拒绝的 User IDs (优先检查) */
-  denyUsers?: string[];
+async function testFeature(ctx: TestContext): Promise<void> {
+  const testId = generateTestId();  // 隔离性
+  
+  // 1. 执行操作
+  await sendMessage(testId, "test input");
+  
+  // 2. 轮询等待结果
+  const result = await waitFor(
+    () => checkCondition(testId),
+    { timeout: 10000, interval: 500 }
+  );
+  
+  // 3. 验证业务特征
+  if (!result || !result.content.startsWith("Expected Prefix")) {
+    throw new Error(`Expected X, got: ${JSON.stringify(result)}`);
+  }
 }
 ```
 
 ---
 
-## Token 存储
+## 已实现功能
 
-### 凭证文件
-
-```
-~/.deca/credentials/discord.json
-```
-
-### 格式 (已定义于 @deca/storage)
-
-```json
-{
-  "botToken": "your-bot-token",
-  "applicationId": "optional-app-id"
-}
-```
-
-### 文件权限
-
-- 目录: `0700`
-- 文件: `0600`
-
-### 加载方式
-
-```typescript
-import { createCredentialManager, resolvePaths } from "@deca/storage";
-
-const paths = resolvePaths();
-const credentials = createCredentialManager(paths.credentialsDir);
-const discord = await credentials.get("discord");
-
-if (!discord?.botToken) {
-  throw new Error("Discord bot token not configured");
-}
-```
-
----
-
-## TDD 计划
-
-### 开发顺序
-
-| 顺序 | 模块 | 测试数 | 依赖 |
-|------|------|--------|------|
-| 1 | `types.ts` | - | 无 |
-| 2 | `chunk.ts` | 12 | 无 |
-| 3 | `allowlist.ts` | 20 | 无 |
-| 4 | `session.ts` | 15 | 无 |
-| 5 | `client.ts` | 15 | discord.js |
-| 6 | `sender.ts` | 15 | discord.js, chunk |
-| 7 | `listener.ts` | 25 | discord.js, allowlist, session, sender |
-| 8 | `gateway.ts` | 10 | 全部 |
-| 9 | `discord-agent-adapter.ts` | 8 | @deca/agent |
-
-### 测试规范
-
-每个模块遵循：
-
-```typescript
-import { describe, it, expect, beforeEach, afterEach, vi } from "bun:test";
-
-describe("ModuleName", () => {
-  describe("functionName", () => {
-    it("should do X when Y", () => {
-      // Arrange
-      // Act  
-      // Assert
-    });
-  });
-});
-```
-
----
-
-## 单元测试详细设计
-
-### chunk.test.ts (12 tests)
-
-```typescript
-describe("chunkMessage", () => {
-  describe("short messages", () => {
-    it("returns single chunk for empty string", () => {});
-    it("returns single chunk for short message", () => {});
-    it("returns single chunk for exactly max length", () => {});
-  });
-  
-  describe("long messages", () => {
-    it("breaks at newlines when possible", () => {});
-    it("breaks at spaces when no newline", () => {});
-    it("hard breaks when no good break point", () => {});
-    it("trims leading whitespace in subsequent chunks", () => {});
-  });
-  
-  describe("edge cases", () => {
-    it("handles unicode characters correctly", () => {});
-    it("handles very long single word", () => {});
-    it("handles multiple consecutive newlines", () => {});
-    it("respects custom max length", () => {});
-    it("handles mixed content", () => {});
-  });
-});
-```
-
-### allowlist.test.ts (20 tests)
-
-```typescript
-describe("isAllowed", () => {
-  describe("empty config", () => {
-    it("allows all messages with empty config", () => {});
-    it("allows all messages with undefined config", () => {});
-  });
-  
-  describe("deny list", () => {
-    it("blocks denied users first", () => {});
-    it("blocks denied users even if in allow list", () => {});
-  });
-  
-  describe("user allowlist", () => {
-    it("allows all when users list empty", () => {});
-    it("allows only listed users", () => {});
-    it("blocks unlisted users", () => {});
-  });
-  
-  describe("guild allowlist", () => {
-    it("allows all when guilds list empty", () => {});
-    it("allows DMs regardless of guild list", () => {});
-    it("allows only listed guilds", () => {});
-    it("blocks unlisted guilds", () => {});
-  });
-  
-  describe("channel allowlist", () => {
-    it("allows all when channels list empty", () => {});
-    it("allows only listed channels", () => {});
-    it("blocks unlisted channels", () => {});
-  });
-  
-  describe("combined rules", () => {
-    it("requires user AND guild AND channel", () => {});
-    it("blocks if any condition fails", () => {});
-    it("allows if all conditions pass", () => {});
-  });
-  
-  describe("thread handling", () => {
-    it("checks thread channel ID", () => {});
-    it("checks parent channel ID for threads", () => {});
-  });
-});
-```
-
-### session.test.ts (15 tests)
-
-```typescript
-describe("resolveDiscordSessionKey", () => {
-  describe("DM mode", () => {
-    it("generates DM session key", () => {});
-    it("uses default agent ID for DM", () => {});
-    it("uses custom agent ID for DM", () => {});
-  });
-  
-  describe("guild mode", () => {
-    it("generates channel session key", () => {});
-    it("includes guild ID in key", () => {});
-    it("includes channel ID in key", () => {});
-    it("includes user ID in key", () => {});
-  });
-  
-  describe("thread mode", () => {
-    it("generates thread session key", () => {});
-    it("uses thread ID instead of channel ID", () => {});
-  });
-  
-  describe("agent ID normalization", () => {
-    it("normalizes agent ID to lowercase", () => {});
-    it("replaces invalid characters", () => {});
-    it("uses default for empty agent ID", () => {});
-  });
-});
-
-describe("parseDiscordSessionKey", () => {
-  it("parses DM session key", () => {});
-  it("parses channel session key", () => {});
-  it("returns null for non-discord keys", () => {});
-});
-```
-
-### client.test.ts (15 tests)
-
-```typescript
-describe("createDiscordClient", () => {
-  it("creates client with default intents", () => {});
-  it("creates client with custom intents", () => {});
-  it("includes required partials for DMs", () => {});
-  it("validates token format", () => {});
-});
-
-describe("connectDiscord", () => {
-  it("resolves when ready event fires", () => {});
-  it("rejects on error event", () => {});
-  it("rejects on timeout", () => {});
-  it("calls login with token", () => {});
-  it("logs connection info on ready", () => {});
-});
-
-describe("disconnectDiscord", () => {
-  it("calls client.destroy()", () => {});
-  it("handles already disconnected client", () => {});
-  it("clears event listeners", () => {});
-});
-
-describe("isConnected", () => {
-  it("returns true when connected", () => {});
-  it("returns false when disconnected", () => {});
-  it("returns false before connect", () => {});
-});
-```
-
-### sender.test.ts (15 tests)
-
-```typescript
-describe("sendReply", () => {
-  describe("short messages", () => {
-    it("sends single message as reply", () => {});
-    it("uses message.reply()", () => {});
-  });
-  
-  describe("long messages", () => {
-    it("chunks long messages", () => {});
-    it("sends first chunk as reply", () => {});
-    it("sends subsequent chunks to channel", () => {});
-  });
-  
-  describe("thread handling", () => {
-    it("sends directly in thread", () => {});
-    it("does not use reply in thread", () => {});
-  });
-  
-  describe("error handling", () => {
-    it("throws on send failure", () => {});
-    it("includes original error message", () => {});
-  });
-});
-
-describe("sendToChannel", () => {
-  it("sends to text channel", () => {});
-  it("sends to thread channel", () => {});
-  it("chunks long messages", () => {});
-  it("returns sent messages", () => {});
-});
-
-describe("showTyping", () => {
-  it("calls sendTyping on channel", () => {});
-  it("handles errors gracefully", () => {});
-});
-```
-
-### listener.test.ts (25 tests)
-
-```typescript
-describe("setupMessageListener", () => {
-  describe("bot filtering", () => {
-    it("ignores bot messages by default", () => {});
-    it("allows bot messages when configured", () => {});
-    it("ignores own messages", () => {});
-  });
-  
-  describe("allowlist", () => {
-    it("respects guild allowlist", () => {});
-    it("respects channel allowlist", () => {});
-    it("respects user allowlist", () => {});
-    it("respects deny list", () => {});
-  });
-  
-  describe("mention requirement", () => {
-    it("requires mention when global config set", () => {});
-    it("requires mention for specific guild", () => {});
-    it("requires mention for specific channel", () => {});
-    it("processes without mention when not required", () => {});
-    it("removes mention from content", () => {});
-    it("handles multiple mentions", () => {});
-  });
-  
-  describe("content processing", () => {
-    it("trims whitespace", () => {});
-    it("ignores empty content after processing", () => {});
-  });
-  
-  describe("handler invocation", () => {
-    it("calls handler with correct MessageRequest", () => {});
-    it("includes sender info", () => {});
-    it("includes channel info", () => {});
-    it("generates correct session key", () => {});
-  });
-  
-  describe("response handling", () => {
-    it("sends reply on success", () => {});
-    it("sends error message on failure", () => {});
-    it("handles handler exceptions", () => {});
-  });
-  
-  describe("typing indicator", () => {
-    it("shows typing before handler call", () => {});
-  });
-});
-```
-
-### gateway.test.ts (10 tests)
-
-```typescript
-describe("createDiscordGateway", () => {
-  it("creates gateway with token", () => {});
-  it("creates gateway with injected client", () => {});
-  it("creates gateway with injected handler", () => {});
-});
-
-describe("DiscordGateway", () => {
-  describe("connect", () => {
-    it("connects client with token", () => {});
-    it("sets up message listener", () => {});
-    it("updates isConnected", () => {});
-  });
-  
-  describe("disconnect", () => {
-    it("disconnects client", () => {});
-    it("updates isConnected", () => {});
-  });
-  
-  describe("properties", () => {
-    it("exposes user info", () => {});
-    it("exposes guild list", () => {});
-  });
-});
-```
-
----
-
-## E2E 测试设计
-
-### 测试层次
-
-| 测试类型 | 文件 | Discord | Handler | 凭证要求 | CI 运行 |
-|---------|------|---------|---------|---------|--------|
-| 单元 E2E | `discord.unit.e2e.test.ts` | Mock | Mock/Echo | 无 | ✅ |
-| 集成 E2E | `discord.integration.e2e.test.ts` | Mock | 真实 Agent | Anthropic | ⚠️ 可选 |
-| Live E2E | `discord.live.e2e.test.ts` | 真实 | 真实 Agent | Discord + Anthropic | ❌ 手动 |
-
-### discord.unit.e2e.test.ts
-
-```typescript
-describe("Discord Unit E2E", () => {
-  describe("Echo Handler", () => {
-    it("should process message through full pipeline", async () => {});
-    it("should chunk long echo responses", async () => {});
-    it("should respect allowlist", async () => {});
-    it("should require mention when configured", async () => {});
-  });
-  
-  describe("Error Handling", () => {
-    it("should handle handler errors gracefully", async () => {});
-    it("should send error message on failure", async () => {});
-  });
-  
-  describe("Session Key", () => {
-    it("should generate unique keys per user/channel", async () => {});
-    it("should generate DM session key", async () => {});
-    it("should generate thread session key", async () => {});
-  });
-});
-```
-
-### discord.integration.e2e.test.ts
-
-```typescript
-describe("Discord Integration E2E", () => {
-  beforeAll(() => {
-    // 检查 Anthropic 凭证
-    credentials = loadAnthropicCredentials();
-  });
-  
-  describe("Real Agent Response", () => {
-    it("should get LLM response for simple question", async () => {});
-    it("should handle multi-turn conversation", async () => {});
-    it("should chunk long LLM responses", async () => {});
-  });
-  
-  describe("Tool Usage", () => {
-    it("should execute tools and return result", async () => {});
-  });
-});
-```
-
-### discord.live.e2e.test.ts
-
-```typescript
-const LIVE_TEST = process.env.DISCORD_LIVE_TEST === "true";
-
-describe("Discord Live E2E", () => {
-  it.skipIf(!LIVE_TEST)("should connect to real Discord", async () => {});
-  it.skipIf(!LIVE_TEST)("should list guilds", async () => {});
-  it.skipIf(!LIVE_TEST)("should respond to test message", async () => {});
-});
-```
-
----
-
-## 原子化 Commit 计划
-
-### Phase 1: 基础模块 (无 discord.js 依赖)
-
-```
-1. feat: add discord channel types and MessageHandler interface
-   - channels/discord/types.ts
-
-2. test: add chunk message unit tests
-   feat: implement discord message chunking
-   - channels/discord/chunk.ts
-   - channels/discord/chunk.test.ts
-
-3. test: add allowlist filter unit tests
-   feat: implement discord allowlist filtering
-   - channels/discord/allowlist.ts
-   - channels/discord/allowlist.test.ts
-
-4. test: add discord session key unit tests
-   feat: implement discord session key generation
-   - channels/discord/session.ts
-   - channels/discord/session.test.ts
-```
-
-### Phase 2: Discord.js 模块
-
-```
-5. chore: add discord.js dependency to apps/api
-   - apps/api/package.json
-
-6. test: add discord client unit tests with mock
-   feat: implement discord client wrapper
-   - channels/discord/client.ts
-   - channels/discord/client.test.ts
-
-7. test: add discord sender unit tests
-   feat: implement discord message sender
-   - channels/discord/sender.ts
-   - channels/discord/sender.test.ts
-
-8. test: add discord listener unit tests
-   feat: implement discord message listener
-   - channels/discord/listener.ts
-   - channels/discord/listener.test.ts
-```
-
-### Phase 3: 集成层
-
-```
-9. test: add discord gateway unit tests
-   feat: implement discord gateway assembly
-   - channels/discord/gateway.ts
-   - channels/discord/gateway.test.ts
-
-10. feat: export discord channel module
-    - channels/discord/index.ts
-
-11. test: add agent adapter unit tests
-    feat: implement discord agent adapter
-    - adapters/discord-agent-adapter.ts
-    - adapters/discord-agent-adapter.test.ts
-
-12. feat: add discord cli entry point
-    - discord-cli.ts
-```
-
-### Phase 4: E2E 测试
-
-```
-13. test: add discord unit e2e tests
-    - e2e/discord.unit.e2e.test.ts
-
-14. test: add discord integration e2e tests
-    - e2e/discord.integration.e2e.test.ts
-
-15. test: add discord live e2e tests
-    - e2e/discord.live.e2e.test.ts
-```
-
-### Phase 5: 文档
-
-```
-16. docs: update implementation status for M4
-    - docs/deca/10-implementation-status.md
-```
-
----
-
-## 验收标准
-
-### 功能验收
-
-- [x] Discord Bot 可以连接
-- [x] 可以接收消息
-- [x] 可以发送回复
-- [x] 长消息正确分块
-- [x] Allowlist 过滤生效
-- [x] Require Mention 生效
-- [x] Session Key 正确生成
-- [x] 凭证从 ~/.deca/credentials/discord.json 加载
-
-### 质量验收
-
-- [x] `bun test` 通过
-- [x] `bun run lint` 通过
-- [x] 覆盖率 >= 95% (实际: 180 单元测试)
-- [x] 所有 E2E 测试通过 (3 个真实 Discord 测试)
-
-### 文档验收
-
-- [x] 本设计文档完成
-- [x] 凭证配置说明
-
-### 额外交付 (超出原计划)
-
-- [x] 断线重连 (Exponential Backoff)
-- [x] 优雅关闭 (Graceful Shutdown)
-- [x] E2E 测试框架 (Webhook + Fetcher)
-- [x] 测试流水线集成 (Pre-commit + Pre-push)
-
----
-
-## M4 功能范围
-
-### 包含
+### M4: Discord Gateway（已完成）
 
 | 功能 | 状态 |
 |------|------|
@@ -777,10 +322,10 @@ describe("Discord Live E2E", () => {
 | 消息发送 (reply/send) | ✅ |
 | 消息分块 (2000 字符) | ✅ |
 | Bot 消息过滤 | ✅ |
-| Guild/Channel/User Allowlist | ✅ |
-| User Deny List | ✅ |
-| DM 基础支持 | ✅ |
-| Thread 基础支持 | ✅ |
+| Guild/Channel/User 白名单 | ✅ |
+| User 黑名单 | ✅ |
+| DM 支持 | ✅ |
+| Thread 支持 | ✅ |
 | Session Key 生成 | ✅ |
 | Typing 指示器 | ✅ |
 | Require Mention | ✅ |
@@ -788,30 +333,34 @@ describe("Discord Live E2E", () => {
 | Agent 适配器 | ✅ |
 | CLI 入口 | ✅ |
 | 凭证存储 | ✅ |
+| 断线重连 (Exponential Backoff) | ✅ |
+| 优雅关闭 | ✅ |
 
-### 不包含 (后续里程碑)
+### M5: 体验增强（已完成）
 
-| 功能 | 计划里程碑 | 备注 |
-|------|-----------|------|
-| Reaction Confirmation | M5 | 收到消息👀，回复后✅ |
-| Message Debounce | M5 | 合并 3 秒内连续消息 |
-| Slash Commands | M5 | /ask, /clear 等基础命令 |
+| 功能 | 状态 |
+|------|------|
+| Reaction Confirmation (👀→✅/❌) | ✅ |
+| Message Debounce (3s 窗口) | ✅ |
+| Slash Commands (/ask, /clear, /status) | ✅ |
+| E2E 测试基础设施 | ✅ |
 
-### 已取消 (不需要)
+---
 
-| 功能 | 原计划 | 取消原因 |
-|------|--------|---------|
-| History Context | M5.1 | Agent 已内置 session 持久化 |
-| Media/Attachments | M5.2 | 1v1 场景不需要 |
-| Code Fence 保持 | M5.2 | 1v1 场景不需要 |
-| Auto-Thread | M6 | 1v1 场景不需要 |
-| Reply Context | M6 | 1v1 场景不需要 |
+## 未来计划
+
+以下功能已取消或推迟（1v1 场景不需要）：
+
+| 功能 | 原计划 | 状态 |
+|------|--------|------|
+| History Context | M5.1 | 取消 - Agent 已内置 session 持久化 |
+| Media/Attachments | M5.2 | 取消 - 1v1 场景不需要 |
+| Auto-Thread | M6 | 取消 - 1v1 场景不需要 |
+| Reply Context | M6 | 取消 - 1v1 场景不需要 |
 
 ---
 
 ## 依赖
-
-### 新增依赖
 
 ```json
 {
@@ -821,136 +370,9 @@ describe("Discord Live E2E", () => {
 }
 ```
 
-### 现有依赖
-
-- `@deca/storage` - 凭证管理
-- `@deca/agent` - Agent 核心 (仅适配器依赖)
-
----
-
-## 风险与缓解
-
-| 风险 | 影响 | 缓解措施 |
-|------|------|---------|
-| Discord API 变更 | 功能失效 | 使用稳定版 discord.js，关注更新 |
-| Rate Limiting | 消息丢失 | 添加重试逻辑，监控告警 |
-| 凭证泄露 | 安全风险 | 文件权限 0600，不打印日志 |
-| 重连失败 | 服务中断 | 指数退避重连，健康检查 |
-
 ---
 
 ## 参考
 
 - [Discord.js 文档](https://discord.js.org/)
-- [OpenClaw Discord 实现](../references/discord-integration-design.md)
-- [Agent 架构设计](./07-agent-architecture.md)
-- [里程碑计划](./09-agent-milestones.md)
-
----
-
-## M5: 体验增强 (精简版)
-
-> M4 完成日期: 2026-02-05
-> M5 状态: 规划中
-
-### 概述
-
-M5 专注于用户体验增强，保持简洁，仅实现 1v1 对话场景必需的功能。
-
-### P0: Reaction Confirmation
-
-**目标**: 让用户知道消息已被接收和处理
-
-**交互流程**:
-```
-用户发送消息
-    ↓
-Bot 添加 👀 反应 (收到)
-    ↓
-Bot 处理消息...
-    ↓
-Bot 回复消息
-    ↓
-Bot 移除 👀，添加 ✅ (完成)
-```
-
-**实现要点**:
-- `message.react("👀")` - 收到时
-- `message.reactions.cache.get("👀")?.users.remove(botId)` - 处理完成
-- `message.react("✅")` - 成功回复
-- `message.react("❌")` - 处理失败
-
-**测试用例** (~8 个):
-- 收到消息后添加 👀
-- 成功回复后移除 👀 添加 ✅
-- 失败时添加 ❌
-- reaction 失败时不影响主流程
-
-### P1: Message Debounce
-
-**目标**: 合并用户快速连续发送的消息
-
-**场景**:
-```
-用户: hello
-用户: how are you      <- 3秒内连续
-用户: doing today?     <- 3秒内连续
-
-合并为: "hello\nhow are you\ndoing today?"
-```
-
-**实现要点**:
-- 用户维度的 debounce (每个 user+channel 独立)
-- 默认 3 秒窗口，可配置
-- 窗口内消息合并，窗口结束后触发处理
-- 只对第一条消息添加 👀 反应
-
-**测试用例** (~10 个):
-- 单条消息正常处理
-- 连续消息合并
-- 超时后触发处理
-- 不同用户独立 debounce
-- 不同频道独立 debounce
-
-### P2: Slash Commands
-
-**目标**: 提供常用操作的快捷命令
-
-**命令列表**:
-
-| 命令 | 描述 | 参数 |
-|------|------|------|
-| `/ask <question>` | 向 Agent 提问 | question: string |
-| `/clear` | 清除当前会话历史 | 无 |
-| `/status` | 查看 Bot 状态 | 无 |
-
-**实现要点**:
-- 使用 discord.js SlashCommandBuilder
-- 需要 OAuth2 scope: applications.commands
-- 命令注册到 Guild 或 Global
-
-**测试用例** (~10 个):
-- /ask 正常执行
-- /clear 清除会话
-- /status 返回状态
-- 命令注册成功
-- 权限不足处理
-
-### M5 预计工作量
-
-| 功能 | 新增代码 | 新增测试 |
-|------|---------|---------|
-| Reaction Confirmation | ~50 行 | ~8 个 |
-| Message Debounce | ~100 行 | ~10 个 |
-| Slash Commands | ~150 行 | ~10 个 |
-| **合计** | ~300 行 | ~28 个 |
-
-### M5 开发顺序
-
-```
-1. feat: add reaction confirmation to message listener
-2. test: add message debounce unit tests
-   feat: implement message debounce
-3. feat: add slash commands support
-4. docs: update M5 completion status
-```
+- [Discord API 文档](https://discord.com/developers/docs)
