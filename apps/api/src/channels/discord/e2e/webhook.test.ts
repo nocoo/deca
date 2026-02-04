@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  createTestMessage,
-  extractTestId,
-  generateTestId,
-} from "./webhook";
+import { createTestMessage, extractTestId, generateTestId } from "./webhook";
 
 describe("webhook", () => {
   describe("generateTestId", () => {

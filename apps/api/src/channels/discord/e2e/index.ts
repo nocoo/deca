@@ -17,9 +17,20 @@ export {
 export {
   fetchChannelMessages,
   findBotResponse,
+  getMessageReactions,
   waitForBotResponse,
+  waitForReaction,
   type DiscordMessageData,
+  type DiscordReaction,
   type FetcherConfig,
   type FetchResult,
+  type ReactionWaitOptions,
   type WaitOptions,
 } from "./fetcher";
+
+export {
+  getApiDir,
+  spawnBot,
+  type BotProcess,
+  type SpawnerConfig,
+} from "./spawner";

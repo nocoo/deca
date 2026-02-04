@@ -24,6 +24,20 @@ export interface DiscordMessageData {
   };
   /** ISO timestamp */
   timestamp: string;
+  /** Reactions on this message */
+  reactions?: DiscordReaction[];
+}
+
+export interface DiscordReaction {
+  /** Reaction count */
+  count: number;
+  /** Whether current user reacted */
+  me: boolean;
+  /** Emoji info */
+  emoji: {
+    id: string | null;
+    name: string;
+  };
 }
 
 export interface FetchResult {
@@ -153,4 +167,76 @@ export async function waitForBotResponse(
   }
 
   return null;
+}
+
+export interface ReactionWaitOptions {
+  /** Maximum time to wait in ms (default: 10000) */
+  timeout?: number;
+  /** Poll interval in ms (default: 500) */
+  interval?: number;
+  /** Expected emoji (e.g., "👀", "✅", "❌") */
+  emoji: string;
+}
+
+/**
+ * Wait for a specific reaction on a message.
+ *
+ * @param config - Fetcher configuration
+ * @param messageId - Message ID to check
+ * @param options - Wait options
+ * @returns True if reaction found, false if timeout
+ */
+export async function waitForReaction(
+  config: FetcherConfig,
+  messageId: string,
+  options: ReactionWaitOptions,
+): Promise<boolean> {
+  const timeout = options.timeout ?? 10000;
+  const interval = options.interval ?? 500;
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const result = await fetchChannelMessages(config, 20);
+
+    if (result.success) {
+      const message = result.messages.find((m) => m.id === messageId);
+      if (message?.reactions) {
+        const hasReaction = message.reactions.some(
+          (r) => r.emoji.name === options.emoji,
+        );
+        if (hasReaction) {
+          return true;
+        }
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+
+  return false;
+}
+
+/**
+ * Get reactions on a specific message.
+ *
+ * @param config - Fetcher configuration
+ * @param messageId - Message ID to check
+ * @returns Array of emoji names, or empty if not found
+ */
+export async function getMessageReactions(
+  config: FetcherConfig,
+  messageId: string,
+): Promise<string[]> {
+  const result = await fetchChannelMessages(config, 20);
+
+  if (!result.success) {
+    return [];
+  }
+
+  const message = result.messages.find((m) => m.id === messageId);
+  if (!message?.reactions) {
+    return [];
+  }
+
+  return message.reactions.map((r) => r.emoji.name);
 }
