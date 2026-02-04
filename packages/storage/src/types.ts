@@ -83,10 +83,26 @@ export interface ConfigManager {
 
 // ============== Credential Types ==============
 
+/** Model configuration for AI providers */
+export interface ModelConfig {
+  /** Default model to use */
+  default?: string;
+  /** Model for fast/cheap operations */
+  haiku?: string;
+  /** Model for balanced operations */
+  sonnet?: string;
+  /** Model for complex operations */
+  opus?: string;
+  /** Model for reasoning/chain-of-thought */
+  reasoning?: string;
+}
+
 export interface CredentialStore {
   anthropic?: {
     apiKey: string;
     baseUrl?: string;
+    /** Model overrides for this provider */
+    models?: ModelConfig;
   };
   discord?: {
     botToken: string;
@@ -98,6 +114,8 @@ export interface CredentialStore {
   openai?: {
     apiKey: string;
     baseUrl?: string;
+    /** Model overrides for this provider */
+    models?: ModelConfig;
   };
 }
 
