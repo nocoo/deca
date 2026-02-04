@@ -1,0 +1,6 @@
+[submodule "references/openclaw-mini"]
+	path = references/openclaw-mini
+	url = https://github.com/voocel/openclaw-mini.git
+[submodule "references/openclaw"]
+	path = references/openclaw
+	url = https://github.com/openclaw/openclaw.git
