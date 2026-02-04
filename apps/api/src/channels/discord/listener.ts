@@ -12,10 +12,7 @@ import {
   type ThreadChannel,
 } from "discord.js";
 import { isAllowed } from "./allowlist";
-import {
-  type DebounceManager,
-  createDebounceManager,
-} from "./debounce";
+import { type DebounceManager, createDebounceManager } from "./debounce";
 import {
   type GracefulShutdown,
   createGracefulShutdown,

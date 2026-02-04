@@ -104,10 +104,9 @@ export async function registerCommands(
 
   if (guildId) {
     // Guild-specific registration (instant)
-    await rest.put(
-      Routes.applicationGuildCommands(config.clientId, guildId),
-      { body: commands },
-    );
+    await rest.put(Routes.applicationGuildCommands(config.clientId, guildId), {
+      body: commands,
+    });
   } else {
     // Global registration (can take up to 1 hour to propagate)
     await rest.put(Routes.applicationCommands(config.clientId), {
