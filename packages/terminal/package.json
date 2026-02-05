@@ -1,0 +1,20 @@
+{
+  "name": "@deca/terminal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "standalone": "bun run cli.ts",
+    "test": "bun test",
+    "test:unit": "bun test src/",
+    "test:e2e": "bun run src/e2e/runner.ts",
+    "lint": "biome lint src",
+    "format": "biome format src"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
