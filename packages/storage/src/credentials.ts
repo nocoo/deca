@@ -8,9 +8,14 @@ import type { CredentialManager, CredentialStore } from "./types";
 
 const VALID_CREDENTIALS: (keyof CredentialStore)[] = [
   "anthropic",
+  "openrouter",
+  "minimax",
+  "bedrock",
+  "azure",
+  "openai",
+  "custom",
   "discord",
   "github",
-  "openai",
 ];
 
 /**
