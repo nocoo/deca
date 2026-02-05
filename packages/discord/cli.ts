@@ -7,12 +7,21 @@
  *
  * Usage:
  *   DISCORD_TOKEN=your-token bun run packages/discord/cli.ts
+ *   DISCORD_TOKEN=your-token bun run packages/discord/cli.ts --echo --allow-bots --debounce
  *
- * Or with bun run:
- *   DISCORD_TOKEN=your-token bun run standalone
+ * Options:
+ *   --echo        Use echo handler (default, responds with message content)
+ *   --allow-bots  Process messages from bots/webhooks (for E2E testing)
+ *   --debounce    Enable message debouncing (merge rapid consecutive messages)
  */
 
 import { createDiscordGateway, createEchoHandler } from "./src";
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const allowBots = args.includes("--allow-bots");
+const debounceEnabled = args.includes("--debounce");
+// --echo is currently the only mode, but kept for future extensibility
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -21,14 +30,33 @@ if (!token) {
   console.error("");
   console.error("Usage:");
   console.error("  DISCORD_TOKEN=your-token bun run packages/discord/cli.ts");
+  console.error("");
+  console.error("Options:");
+  console.error("  --echo        Use echo handler (default)");
+  console.error("  --allow-bots  Process messages from bots/webhooks");
+  console.error("  --debounce    Enable message debouncing");
   process.exit(1);
 }
 
-console.log("🤖 Starting Discord standalone mode (echo handler)...\n");
+console.log("🤖 Starting Discord standalone mode (echo handler)...");
+if (allowBots) {
+  console.log("   📡 Bot messages: allowed");
+}
+if (debounceEnabled) {
+  console.log("   ⏱️  Debounce: enabled");
+}
+console.log("");
 
 const gateway = createDiscordGateway({
   token,
   handler: createEchoHandler(),
+  ignoreBots: !allowBots,
+  debounce: debounceEnabled
+    ? {
+        enabled: true,
+        windowMs: 3000,
+      }
+    : undefined,
   events: {
     onConnect: () => {
       console.log(`✅ Connected as ${gateway.user?.tag}`);

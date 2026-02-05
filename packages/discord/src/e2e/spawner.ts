@@ -4,6 +4,7 @@
  * Automatically starts and stops the bot process for E2E tests.
  */
 
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { type Subprocess, spawn } from "bun";
 
@@ -42,8 +43,8 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   const startupTimeout = config.startupTimeout ?? 10000;
   const debug = config.debug ?? false;
 
-  // Build command based on mode
-  const script = "src/discord-cli.ts";
+  // Build command - use cli.ts at package root
+  const script = "cli.ts";
   const args: string[] = [];
 
   if (mode === "echo") {
@@ -54,6 +55,21 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   }
   if (config.allowBots) {
     args.push("--allow-bots");
+  }
+
+  // Load Discord token from credentials
+  const credPath = join(homedir(), ".deca", "credentials", "discord.json");
+  let discordToken: string | undefined;
+  try {
+    const content = await Bun.file(credPath).text();
+    const creds = JSON.parse(content);
+    discordToken = creds.botToken;
+  } catch {
+    throw new Error(`Failed to load Discord token from ${credPath}`);
+  }
+
+  if (!discordToken) {
+    throw new Error("Missing botToken in discord.json");
   }
 
   if (debug) {
@@ -71,6 +87,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     stderr: debug ? "inherit" : "pipe",
     env: {
       ...process.env,
+      DISCORD_TOKEN: discordToken,
       // Prevent bot from requiring interactive input
       FORCE_COLOR: "0",
     },
@@ -146,7 +163,8 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
           // Check for ready message
           if (
             output.includes("Connected to Discord") ||
-            output.includes("✅ Connected to Discord")
+            output.includes("✅ Connected to Discord") ||
+            output.includes("✅ Connected as")
           ) {
             clearTimeout(timeout);
             reader.releaseLock();
@@ -219,10 +237,10 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
 }
 
 /**
- * Get the apps/api directory path.
+ * Get the packages/discord directory path.
  */
 export function getApiDir(): string {
-  // This file is at apps/api/src/channels/discord/e2e/spawner.ts
-  // So apps/api is 4 levels up: e2e -> discord -> channels -> src -> (api)
-  return join(import.meta.dir, "..", "..", "..", "..");
+  // This file is at packages/discord/src/e2e/spawner.ts
+  // So packages/discord is 2 levels up: e2e -> src -> (discord)
+  return join(import.meta.dir, "..", "..");
 }
