@@ -83,8 +83,10 @@ export interface AgentConfig {
   maxTurns?: number;
   /** 会话存储目录 */
   sessionDir?: string;
-  /** 工作目录 */
+  /** 工作目录（Agent 可以读写文件的目录） */
   workspaceDir?: string;
+  /** Prompt 目录（存放 AGENTS.md, SOUL.md 等人格文件） */
+  promptDir?: string;
   /** 记忆存储目录 */
   memoryDir?: string;
   /** 是否启用记忆 */
@@ -169,6 +171,7 @@ export class Agent {
   private tools: Tool[];
   private maxTurns: number;
   private workspaceDir: string;
+  private promptDir: string;
   private toolPolicy?: ToolPolicy;
   private contextTokens: number;
   private sandbox?: {
@@ -202,6 +205,7 @@ export class Agent {
     this.tools = config.tools ?? builtinTools;
     this.maxTurns = config.maxTurns ?? 20;
     this.workspaceDir = config.workspaceDir ?? process.cwd();
+    this.promptDir = config.promptDir ?? this.workspaceDir;
     this.toolPolicy = config.toolPolicy;
     this.contextTokens = Math.max(
       1,
@@ -214,11 +218,13 @@ export class Agent {
     };
 
     // 初始化子系统
+    // - ContextLoader/SkillManager/HeartbeatManager use promptDir (personality files)
+    // - Tools use workspaceDir (file operations)
     this.sessions = new SessionManager(config.sessionDir);
     this.memory = new MemoryManager(config.memoryDir ?? "./.mini-agent/memory");
-    this.context = new ContextLoader(this.workspaceDir);
-    this.skills = new SkillManager(this.workspaceDir);
-    this.heartbeat = new HeartbeatManager(this.workspaceDir, {
+    this.context = new ContextLoader(this.promptDir);
+    this.skills = new SkillManager(this.promptDir);
+    this.heartbeat = new HeartbeatManager(this.promptDir, {
       intervalMs: config.heartbeatInterval,
     });
 

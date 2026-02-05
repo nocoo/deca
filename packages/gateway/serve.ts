@@ -26,9 +26,10 @@ import {
   loadDiscordCredentials,
 } from "./src/e2e/credentials";
 
-// Resolve prompts directory (relative to this file)
+// Resolve directories (relative to this file)
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const promptsDir = join(__dirname, "..", "..", "prompts");
+const workspaceDir = join(__dirname, "..", "..", "workspace");
 
 // Load credentials
 const anthropic = loadAnthropicCredentials();
@@ -64,7 +65,8 @@ const gateway = createGateway({
     baseUrl: anthropic.baseUrl,
     model: anthropic.models?.default,
     agentId: "tomato",
-    workspaceDir: promptsDir,
+    promptDir: promptsDir,
+    workspaceDir: workspaceDir,
   },
   discord: discord
     ? {

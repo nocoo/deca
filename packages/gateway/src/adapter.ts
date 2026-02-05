@@ -25,6 +25,7 @@ export function createAgentAdapter(config: AgentAdapterConfig): MessageHandler {
     systemPrompt: config.systemPrompt,
     sessionDir: config.sessionDir,
     workspaceDir: config.workspaceDir,
+    promptDir: config.promptDir,
     enableMemory: config.enableMemory ?? false,
     enableContext: true,
     enableSkills: true,
