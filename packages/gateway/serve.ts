@@ -29,7 +29,7 @@ const anthropic = loadAnthropicCredentials();
 const discord = loadDiscordCredentials();
 
 // Environment overrides
-const httpPort = Number(process.env.HTTP_PORT) || 3000;
+const httpPort = Number(process.env.HTTP_PORT) || 7014;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
 const requireMention = process.env.REQUIRE_MENTION !== "false"; // default: true
