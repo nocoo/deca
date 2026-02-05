@@ -6,7 +6,7 @@
     "dev": "bun --filter '@deca/gateway' start",
     "test": "bun run test:unit",
     "test:unit": "bun --filter '@deca/*' test:unit",
-    "test:e2e": "bun --filter '@deca/agent' test:e2e",
+    "test:e2e": "bun --filter '@deca/*' test:e2e",
     "test:all": "bun run test:unit && bun run test:e2e",
     "test:coverage": "bun --filter '@deca/*' test --coverage",
     "lint": "bun --filter '@deca/*' lint",
