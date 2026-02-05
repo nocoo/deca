@@ -63,6 +63,8 @@ export interface AgentConfig {
   apiKey: string;
   /** Base URL for Anthropic API (optional, for proxy/custom endpoints) */
   baseUrl?: string;
+  /** Default HTTP headers (for OpenRouter, custom proxies, etc.) */
+  defaultHeaders?: Record<string, string>;
   /** 模型 ID */
   model?: string;
   /** Agent ID（默认 main） */
@@ -197,6 +199,7 @@ export class Agent {
     this.client = new Anthropic({
       apiKey: config.apiKey,
       baseURL: config.baseUrl ?? process.env.ANTHROPIC_BASE_URL,
+      defaultHeaders: config.defaultHeaders,
     });
     this.model =
       config.model ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";

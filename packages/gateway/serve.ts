@@ -6,7 +6,13 @@
  *
  * Credentials files:
  *   ~/.deca/credentials/anthropic.json - { "apiKey": "..." }
+ *   ~/.deca/credentials/minimax.json   - { "apiKey": "...", "baseUrl": "...", "headers": {...} }
  *   ~/.deca/credentials/discord.json   - { "botToken": "..." }
+ *
+ * Provider selection (in priority order):
+ *   1. DECA_PROVIDER env var (e.g., DECA_PROVIDER=minimax)
+ *   2. config.activeProvider in ~/.deca/config.json
+ *   3. First available provider credential
  *
  * Environment overrides:
  *   HTTP_PORT         - HTTP server port (default: 7014)
@@ -20,19 +26,29 @@
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createGateway } from "./src";
 import {
-  loadAnthropicCredentials,
-  loadDiscordCredentials,
-} from "./src/e2e/credentials";
+  createConfigManager,
+  createCredentialManager,
+  createProviderResolver,
+  resolvePaths,
+} from "@deca/storage";
+import { createGateway } from "./src";
+import { loadDiscordCredentials } from "./src/e2e/credentials";
 
 // Resolve directories (relative to this file)
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const promptsDir = join(__dirname, "..", "..", "prompts");
 const workspaceDir = join(__dirname, "..", "..", "workspace");
 
-// Load credentials
-const anthropic = loadAnthropicCredentials();
+const paths = resolvePaths();
+const configManager = createConfigManager(paths.configPath);
+const credentialManager = createCredentialManager(paths.credentialsDir);
+const providerResolver = createProviderResolver(
+  configManager,
+  credentialManager,
+);
+
+const provider = await providerResolver.resolve();
 const discord = loadDiscordCredentials();
 
 // Environment overrides
@@ -43,15 +59,17 @@ const requireMention = process.env.REQUIRE_MENTION === "true"; // default: false
 
 console.log("🚀 Starting Deca Gateway...\n");
 
-// Validate credentials
-if (!anthropic) {
-  console.error("❌ Anthropic credentials not found.");
-  console.error("   Create ~/.deca/credentials/anthropic.json with:");
-  console.error('   { "apiKey": "sk-ant-..." }\n');
+if (!provider) {
+  console.error("❌ No LLM provider credentials found.");
+  console.error("   Create ~/.deca/credentials/<provider>.json with:");
+  console.error('   { "apiKey": "sk-..." }\n');
+  console.error(
+    "   Supported providers: anthropic, openrouter, minimax, bedrock, azure, openai, custom\n",
+  );
   process.exit(1);
 }
 
-console.log("✅ Anthropic credentials loaded");
+console.log(`✅ Provider loaded: ${provider.id} (model: ${provider.model})`);
 
 if (!discord) {
   console.log("⚠️  Discord credentials not found (Discord channel disabled)");
@@ -61,9 +79,10 @@ if (!discord) {
 // Build gateway config
 const gateway = createGateway({
   agent: {
-    apiKey: anthropic.apiKey,
-    baseUrl: anthropic.baseUrl,
-    model: anthropic.models?.default,
+    apiKey: provider.apiKey,
+    baseUrl: provider.baseUrl,
+    headers: provider.headers,
+    model: provider.model,
     agentId: "tomato",
     promptDir: promptsDir,
     workspaceDir: workspaceDir,
@@ -109,7 +128,9 @@ try {
   for (const channel of gateway.channels) {
     if (channel === "discord") {
       const guildInfo = discord?.guildId ? ` guildId: ${discord.guildId}` : "";
-      console.log(`  - discord (requireMention: ${requireMention}${guildInfo})`);
+      console.log(
+        `  - discord (requireMention: ${requireMention}${guildInfo})`,
+      );
     } else {
       console.log(`  - ${channel}`);
     }

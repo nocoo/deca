@@ -79,6 +79,9 @@ export interface AgentAdapterConfig {
   /** Base URL for Anthropic API (optional) */
   baseUrl?: string;
 
+  /** Default HTTP headers (for OpenRouter, custom proxies, etc.) */
+  headers?: Record<string, string>;
+
   /** Model ID (optional) */
   model?: string;
 
