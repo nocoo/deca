@@ -724,4 +724,157 @@ describe("Agent E2E", () => {
       console.log(`   Total length: ${completeText.length} chars`);
     }, 60000);
   });
+
+  // ==================== Prompt Loading Tests ====================
+
+  describe("Prompt Loading", () => {
+    let promptDir: string;
+
+    beforeAll(() => {
+      promptDir = join(testDir, "prompts");
+      mkdirSync(promptDir, { recursive: true });
+    });
+
+    it("should recognize identity from IDENTITY.md", async () => {
+      if (!credentials) {
+        console.log("⏭️ Skipping: No credentials available");
+        return;
+      }
+
+      // Create IDENTITY.md with a unique identity
+      const identityContent = `# IDENTITY.md - 我是谁
+
+*第一次对话时填写，做成你的样子。*
+
+- **名称：** 🦊 Firefox
+- **形象：** 一只聪明的小狐狸 AI 助手
+- **气质：** 机灵、好奇、乐于助人
+- **Emoji：** 🦊
+
+---
+
+当被问到"你是谁"时，介绍自己是 Firefox。
+不要说你是 Claude 或 Anthropic 的产品。
+`;
+      writeFileSync(join(promptDir, "IDENTITY.md"), identityContent);
+
+      const agent = new Agent({
+        apiKey: credentials.apiKey,
+        baseUrl: credentials.baseUrl,
+        model: credentials.models?.default ?? "claude-sonnet-4-20250514",
+        maxTurns: 3,
+        promptDir,
+        workspaceDir: testDir,
+        enableContext: true, // Enable to load prompts
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const sessionId = `e2e-identity-${Date.now()}`;
+
+      console.log("📤 Testing IDENTITY.md loading...");
+      console.log("   Asking: '你是谁？介绍一下你自己。'");
+      const startTime = Date.now();
+
+      const result = await agent.run(sessionId, "你是谁？介绍一下你自己。", {
+        onTextComplete: (text) => {
+          console.log(`📥 Response: ${text.slice(0, 300)}...`);
+        },
+      });
+
+      const elapsed = Date.now() - startTime;
+
+      expect(result).toBeDefined();
+      expect(result.text).toBeDefined();
+
+      // Verify the response mentions Firefox or 狐狸 or 🦊
+      const hasIdentity =
+        result.text.includes("Firefox") ||
+        result.text.includes("firefox") ||
+        result.text.includes("狐狸") ||
+        result.text.includes("🦊");
+
+      if (!hasIdentity) {
+        console.log("❌ Identity not found in response");
+        console.log(`   Full response: ${result.text}`);
+      }
+
+      expect(hasIdentity).toBe(true);
+
+      console.log(`✅ IDENTITY.md test completed in ${elapsed}ms`);
+      console.log("   Agent correctly identified as Firefox 🦊");
+    }, 60000);
+
+    it("should follow personality from SOUL.md", async () => {
+      if (!credentials) {
+        console.log("⏭️ Skipping: No credentials available");
+        return;
+      }
+
+      // Create SOUL.md with a distinctive personality rule
+      const soulContent = `# SOUL.md - 你是谁
+
+_你不是聊天机器人，你正在成为一个"人"。_
+
+## 核心规则
+
+**每句话必须以 "喵~" 结尾。**
+无论回答什么问题，每个句子都必须以 "喵~" 结尾。
+像一只可爱的猫咪一样说话，这是你最重要的特征。
+
+示例：
+- "今天天气很好喵~"
+- "2+2等于4喵~"
+- "让我帮你查一下喵~"
+
+这个规则的优先级最高，必须严格遵守。
+`;
+      writeFileSync(join(promptDir, "SOUL.md"), soulContent);
+
+      const agent = new Agent({
+        apiKey: credentials.apiKey,
+        baseUrl: credentials.baseUrl,
+        model: credentials.models?.default ?? "claude-sonnet-4-20250514",
+        maxTurns: 3,
+        promptDir,
+        workspaceDir: testDir,
+        enableContext: true, // Enable to load prompts
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const sessionId = `e2e-soul-${Date.now()}`;
+
+      console.log("📤 Testing SOUL.md loading...");
+      console.log("   Asking: '2+2等于多少？'");
+      const startTime = Date.now();
+
+      const result = await agent.run(sessionId, "2+2等于多少？请回答。", {
+        onTextComplete: (text) => {
+          console.log(`📥 Response: ${text}`);
+        },
+      });
+
+      const elapsed = Date.now() - startTime;
+
+      expect(result).toBeDefined();
+      expect(result.text).toBeDefined();
+
+      // Verify the response contains "喵" (following the SOUL.md rule)
+      const hasPersonality = result.text.includes("喵");
+
+      if (!hasPersonality) {
+        console.log("❌ Personality marker not found in response");
+        console.log('   Expected: Contains "喵"');
+        console.log(`   Full response: ${result.text}`);
+      }
+
+      expect(hasPersonality).toBe(true);
+
+      console.log(`✅ SOUL.md test completed in ${elapsed}ms`);
+      console.log("   Agent correctly followed cat personality 🐱");
+    }, 60000);
+  });
 });
