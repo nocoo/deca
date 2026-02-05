@@ -9,20 +9,26 @@
  *   ~/.deca/credentials/discord.json   - { "botToken": "..." }
  *
  * Environment overrides:
- *   HTTP_PORT         - HTTP server port (default: 3000)
+ *   HTTP_PORT         - HTTP server port (default: 7014)
  *   HTTP_API_KEY      - HTTP API key (optional)
  *   TERMINAL          - Enable terminal REPL (default: false)
- *   REQUIRE_MENTION   - Require @mention for Discord (default: true)
+ *   REQUIRE_MENTION   - Require @mention for Discord (default: false)
  *
  * Usage:
  *   bun run packages/gateway/serve.ts
  */
 
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createGateway } from "./src";
 import {
   loadAnthropicCredentials,
   loadDiscordCredentials,
 } from "./src/e2e/credentials";
+
+// Resolve prompts directory (relative to this file)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const promptsDir = join(__dirname, "..", "..", "prompts");
 
 // Load credentials
 const anthropic = loadAnthropicCredentials();
@@ -57,7 +63,8 @@ const gateway = createGateway({
     apiKey: anthropic.apiKey,
     baseUrl: anthropic.baseUrl,
     model: anthropic.models?.default,
-    agentId: "deca",
+    agentId: "tomato",
+    workspaceDir: promptsDir,
   },
   discord: discord
     ? {
