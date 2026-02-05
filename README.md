@@ -1,87 +1,134 @@
-# Deca
+# 🤖 Deca
 
-Local-first macOS control gateway for AI agents.
+> 本地优先的 macOS AI Agent 控制网关
 
-## Principles
+Deca 是一个本地运行的 AI Agent 系统，允许 AI 通过多种通道（Discord、Terminal、HTTP）与用户交互，并通过工具层控制本地 macOS 机器。
 
-- Bun runtime, TDD first
-- Unit tests + lint required from day one
-- Coverage target: 95%+
-- Architecture favors testability and isolation
-- Documentation updated alongside code changes
-- Gateway is the single assembly point for agent + channels
-- Channels are independent and don't depend on each other
-- Local only: bind to 127.0.0.1 and require API key auth
+## ✨ 主要功能
 
-## Structure
+- **🧠 AI Agent 核心** - 基于 Claude API 的对话管理和工具调用
+- **💬 多通道支持** - Discord 机器人、终端 REPL、HTTP API
+- **🔧 工具系统** - AppleScript、Shell 命令、文件操作等
+- **💾 持久化存储** - SQLite 会话存储和凭证管理
+- **⏰ 心跳机制** - 定时任务和主动唤醒
+
+## 📁 目录结构
 
 ```
 packages/
-  agent/      - AI Agent core (tool execution, conversation management)
-  storage/    - Persistence layer (SQLite)
-  discord/    - Discord bot channel
-  terminal/   - Terminal REPL channel
-  http/       - HTTP API channel (Hono)
-  gateway/    - Assembly layer (combines agent + channels)
+├── agent/      # AI Agent 核心（对话管理、工具执行）
+├── storage/    # 持久化层（SQLite）
+├── discord/    # Discord 机器人通道
+├── terminal/   # 终端 REPL 通道
+├── http/       # HTTP API 通道（Hono）
+└── gateway/    # 组装层（组合 agent + channels）
 
-docs/
-  deca/       - Architecture and design documents
+docs/           # 项目文档
 ```
 
-## Module Dependencies
+## 🚀 快速开始
+
+```bash
+# 安装依赖
+bun install
+
+# 启动开发服务器（Echo 模式，无需 API Key）
+bun run dev
+
+# 启动开发服务器（Agent 模式，需要 API Key）
+ANTHROPIC_API_KEY=xxx bun run dev
+```
+
+## 🧪 测试
+
+```bash
+# 运行所有单元测试
+bun run test:unit
+
+# 运行代码检查
+bun run lint
+
+# 运行特定模块测试
+bun --filter @deca/agent test:unit
+```
+
+## 📊 测试覆盖率
+
+| 模块 | 测试数 | 覆盖率目标 |
+|------|--------|-----------|
+| @deca/agent | 319 | 90%+ |
+| @deca/discord | 218 | 90%+ |
+| @deca/terminal | 36 | 90%+ |
+| @deca/http | 35 | 90%+ |
+| @deca/storage | 29 | 90%+ |
+| @deca/gateway | 14 | 90%+ |
+| **总计** | **651** | **90%+** |
+
+## 📚 文档
+
+| 文档 | 说明 |
+|------|------|
+| [系统架构](docs/01-architecture.md) | 整体架构设计和模块依赖关系 |
+| [模块详解](docs/02-modules.md) | 各模块功能和接口说明 |
+| [开发指南](docs/03-development.md) | 本地开发环境配置和常用命令 |
+| [测试规范](docs/04-testing.md) | 测试策略、覆盖率要求和 Mock 方案 |
+| [贡献指南](docs/05-contributing.md) | Git 规范、代码风格和提交要求 |
+
+---
+
+## 🤖 AI Agent 须知
+
+> 以下内容供 AI 编程助手阅读
+
+### 核心原则
+
+1. **TDD 优先** - 先写测试，后写实现
+2. **90% 覆盖率** - 所有模块必须达到 90%+ 测试覆盖率
+3. **原子化提交** - 每个 commit 代表一个单一且逻辑完整的变更
+4. **文档同步** - 修改代码必须同步更新相关文档
+
+### 模块边界规则
 
 ```
-gateway → discord, terminal, http, agent, storage  (single assembly point)
-discord, terminal, http → (no dependencies, each is independent)
+gateway → discord, terminal, http, agent, storage  (唯一组装点)
+discord, terminal, http → (无依赖，各自独立)
 agent → storage
 ```
 
-**Key rules:**
-- Gateway is the only place that can combine agent + channels
-- Channels cannot depend on @deca/agent
-- Channels cannot depend on each other
-- Each channel defines its own MessageHandler interface
+**严格规则：**
+- Gateway 是唯一可以组装 agent + channels 的地方
+- Channels 不能依赖 @deca/agent
+- Channels 不能相互依赖
+- 每个 channel 定义自己的 MessageHandler 接口
 
-## Quick Start
+### 开发流程
 
-```bash
-# Install dependencies
-bun install
+1. 理解需求，规划任务
+2. 编写测试用例
+3. 实现功能代码
+4. 确保测试通过和 lint 通过
+5. 更新相关文档
+6. 原子化提交
 
-# Run gateway with echo mode (no API key required)
-bun run dev
-
-# Run gateway with agent (requires API key)
-ANTHROPIC_API_KEY=xxx bun run dev
-
-# Run individual channel standalone
-cd packages/discord && DISCORD_TOKEN=xxx bun run standalone
-cd packages/terminal && bun run standalone
-cd packages/http && bun run standalone
-```
-
-## Development
+### 常用命令
 
 ```bash
-# Run all tests
-bun run test:unit
-
-# Run lint
-bun run lint
-
-# Run specific package tests
-bun --filter @deca/agent test:unit
-bun --filter @deca/gateway test:unit
+bun install              # 安装依赖
+bun run dev              # 启动开发服务器
+bun run test:unit        # 运行单元测试
+bun run lint             # 运行代码检查
 ```
 
-## Test Stats
+### Git 规范
 
-| Package | Tests |
-|---------|-------|
-| @deca/agent | 319 |
-| @deca/discord | 218 |
-| @deca/terminal | 36 |
-| @deca/http | 35 |
-| @deca/storage | 29 |
-| @deca/gateway | 14 |
-| **Total** | **651** |
+遵循 Conventional Commits：
+- `fix:` - Bug 修复
+- `feat:` - 新功能
+- `refactor:` - 代码重构
+- `docs:` - 文档更新
+- `test:` - 测试相关
+- `chore:` - 维护任务
+
+## 📄 许可证
+
+MIT
