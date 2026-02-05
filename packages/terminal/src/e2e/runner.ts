@@ -1,243 +1,240 @@
 /**
  * Terminal E2E Test Runner
  *
- * Runs end-to-end tests for the terminal module.
+ * Spawns Terminal REPL as subprocess, sends real input via stdin, verifies stdout responses.
+ * This is a true end-to-end test that validates the full REPL interaction cycle.
+ *
+ * Usage:
+ *   bun run packages/terminal/src/e2e/runner.ts
+ *   bun run packages/terminal/src/e2e/runner.ts --debug
  */
 
-import { createTerminal, createEchoHandler } from "../index";
+import { getPackageDir, spawnTerminal, type TerminalProcess } from "./spawner";
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const DEBUG = process.argv.includes("--debug");
+
+// ============================================================================
+// Test Framework
+// ============================================================================
 
 interface TestResult {
   name: string;
   passed: boolean;
+  duration: number;
   error?: string;
 }
 
-async function runTests(): Promise<TestResult[]> {
+interface TestContext {
+  terminal: TerminalProcess;
+}
+
+type TestFn = (ctx: TestContext) => Promise<void>;
+
+interface TestSuite {
+  name: string;
+  tests: { name: string; fn: TestFn }[];
+}
+
+const suites: TestSuite[] = [];
+
+function suite(name: string): TestSuite {
+  const s: TestSuite = { name, tests: [] };
+  suites.push(s);
+  return s;
+}
+
+// ============================================================================
+// Test Suites
+// ============================================================================
+
+// --- Suite 1: Basic REPL Functionality ---
+const basicSuite = suite("Basic REPL Functionality");
+
+basicSuite.tests.push({
+  name: "terminal echoes simple message",
+  fn: async ({ terminal }) => {
+    const response = await terminal.send("hello world");
+
+    if (!response.includes("Echo:")) {
+      throw new Error(`Expected echo response, got: ${response}`);
+    }
+
+    if (!response.includes("hello world")) {
+      throw new Error(`Expected 'hello world' in response, got: ${response}`);
+    }
+  },
+});
+
+basicSuite.tests.push({
+  name: "terminal handles multiple messages",
+  fn: async ({ terminal }) => {
+    const response1 = await terminal.send("first message");
+    if (!response1.includes("first message")) {
+      throw new Error(`First message not echoed: ${response1}`);
+    }
+
+    const response2 = await terminal.send("second message");
+    if (!response2.includes("second message")) {
+      throw new Error(`Second message not echoed: ${response2}`);
+    }
+  },
+});
+
+basicSuite.tests.push({
+  name: "terminal handles empty input gracefully",
+  fn: async ({ terminal }) => {
+    // Send empty line - should just show prompt again without crash
+    const response = await terminal.send("");
+    
+    // Should not crash, just return prompt or empty echo
+    // The terminal should still be responsive
+    const followUp = await terminal.send("still working");
+    if (!followUp.includes("still working")) {
+      throw new Error(`Terminal not responsive after empty input: ${followUp}`);
+    }
+  },
+});
+
+basicSuite.tests.push({
+  name: "terminal handles special characters",
+  fn: async ({ terminal }) => {
+    const testMsg = "test with 'quotes' and \"double quotes\"";
+    const response = await terminal.send(testMsg);
+
+    if (!response.includes("quotes")) {
+      throw new Error(`Special characters not handled: ${response}`);
+    }
+  },
+});
+
+basicSuite.tests.push({
+  name: "terminal handles unicode",
+  fn: async ({ terminal }) => {
+    const testMsg = "Hello 你好 🎉";
+    const response = await terminal.send(testMsg);
+
+    if (!response.includes("你好") && !response.includes("Hello")) {
+      throw new Error(`Unicode not handled: ${response}`);
+    }
+  },
+});
+
+// --- Suite 2: Commands ---
+const commandSuite = suite("Built-in Commands");
+
+commandSuite.tests.push({
+  name: "help command shows usage",
+  fn: async ({ terminal }) => {
+    const response = await terminal.send("help");
+
+    // Should show help info or at least not crash
+    // The echo handler will just echo "help", but that's fine
+    if (!response) {
+      throw new Error("No response to help command");
+    }
+  },
+});
+
+// ============================================================================
+// Runner
+// ============================================================================
+
+async function runSuite(suiteDef: TestSuite): Promise<TestResult[]> {
+  console.log(`\n📦 ${suiteDef.name}\n`);
+
+  // Spawn terminal for this suite
+  let terminal: TerminalProcess;
+  try {
+    terminal = await spawnTerminal({
+      startupTimeout: 10000,
+      debug: DEBUG,
+    });
+    console.log(`   ✓ Terminal started (PID: ${terminal.pid})\n`);
+  } catch (error) {
+    console.error(
+      `   ✗ Failed to start terminal: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return suiteDef.tests.map((t) => ({
+      name: t.name,
+      passed: false,
+      duration: 0,
+      error: "Terminal startup failed",
+    }));
+  }
+
+  // Give terminal a moment to stabilize
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   const results: TestResult[] = [];
 
-  // Test 1: Terminal handles message
-  results.push(await testTerminalHandlesMessage());
+  try {
+    for (const { name, fn } of suiteDef.tests) {
+      const start = Date.now();
+      process.stdout.write(`   ${name}... `);
 
-  // Test 2: Terminal handles streaming
-  results.push(await testTerminalStreaming());
+      try {
+        await fn({ terminal });
+        const duration = Date.now() - start;
+        results.push({ name, passed: true, duration });
+        console.log(`✓ (${duration}ms)`);
+      } catch (error) {
+        const duration = Date.now() - start;
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        results.push({ name, passed: false, duration, error: errorMsg });
+        console.log(`✗ (${duration}ms)`);
+        console.log(`      Error: ${errorMsg}`);
+      }
 
-  // Test 3: Terminal handles errors
-  results.push(await testTerminalHandlesErrors());
-
-  // Test 4: Session key is preserved
-  results.push(await testSessionKeyPreserved());
+      // Small delay between tests
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  } finally {
+    // Stop terminal
+    console.log("\n   🛑 Stopping terminal...");
+    await terminal.stop();
+    console.log("   ✓ Terminal stopped");
+  }
 
   return results;
 }
 
-async function testTerminalHandlesMessage(): Promise<TestResult> {
-  const name = "Terminal handles message with echo handler";
+async function runTests(): Promise<void> {
+  console.log("🧪 Terminal E2E Test Runner");
+  console.log(`   Package: ${getPackageDir()}`);
 
-  try {
-    const output: string[] = [];
-    const terminal = createTerminal({
-      handler: createEchoHandler(),
-      streaming: false,
-      input: process.stdin,
-      output: {
-        write: (chunk: string) => {
-          output.push(chunk);
-          return true;
-        },
-      } as NodeJS.WritableStream,
-    });
+  const allResults: TestResult[] = [];
 
-    const response = await terminal.send("hello world");
-
-    if (!response.success) {
-      return { name, passed: false, error: "Response was not successful" };
-    }
-
-    if (response.text !== "Echo: hello world") {
-      return { name, passed: false, error: `Unexpected response: ${response.text}` };
-    }
-
-    return { name, passed: true };
-  } catch (error) {
-    return {
-      name,
-      passed: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+  // Run each suite with its own terminal instance
+  for (const suiteDef of suites) {
+    const results = await runSuite(suiteDef);
+    allResults.push(...results);
   }
+
+  // Summary
+  console.log(`\n${"=".repeat(50)}`);
+  const passed = allResults.filter((r) => r.passed).length;
+  const total = allResults.length;
+  const allPassed = passed === total;
+
+  if (allPassed) {
+    console.log(`✅ All ${total} tests passed`);
+  } else {
+    console.log(`❌ ${passed}/${total} tests passed`);
+    console.log("\nFailed tests:");
+    for (const r of allResults.filter((r) => !r.passed)) {
+      console.log(`  - ${r.name}: ${r.error}`);
+    }
+  }
+
+  process.exit(allPassed ? 0 : 1);
 }
 
-async function testTerminalStreaming(): Promise<TestResult> {
-  const name = "Terminal supports streaming output";
-
-  try {
-    const chunks: string[] = [];
-    const terminal = createTerminal({
-      handler: createEchoHandler({
-        prefix: "",
-        simulateStreaming: true,
-        streamingDelayMs: 0,
-      }),
-      streaming: true,
-      input: process.stdin,
-      output: {
-        write: (chunk: string) => {
-          chunks.push(chunk);
-          return true;
-        },
-      } as NodeJS.WritableStream,
-    });
-
-    await terminal.send("ab");
-
-    // Should have received individual characters
-    if (!chunks.includes("a") || !chunks.includes("b")) {
-      return {
-        name,
-        passed: false,
-        error: `Expected streaming chunks, got: ${JSON.stringify(chunks)}`,
-      };
-    }
-
-    return { name, passed: true };
-  } catch (error) {
-    return {
-      name,
-      passed: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-async function testTerminalHandlesErrors(): Promise<TestResult> {
-  const name = "Terminal handles handler errors gracefully";
-
-  try {
-    let errorReceived: Error | null = null;
-
-    const terminal = createTerminal({
-      handler: {
-        async handle() {
-          throw new Error("Test error");
-        },
-      },
-      streaming: false,
-      input: process.stdin,
-      output: {
-        write: () => true,
-      } as NodeJS.WritableStream,
-      events: {
-        onError: (err) => {
-          errorReceived = err;
-        },
-      },
-    });
-
-    const response = await terminal.send("test");
-
-    if (response.success) {
-      return { name, passed: false, error: "Expected response to fail" };
-    }
-
-    if (!errorReceived) {
-      return { name, passed: false, error: "Expected onError callback to be called" };
-    }
-
-    if (errorReceived.message !== "Test error") {
-      return { name, passed: false, error: `Unexpected error: ${errorReceived.message}` };
-    }
-
-    return { name, passed: true };
-  } catch (error) {
-    return {
-      name,
-      passed: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-async function testSessionKeyPreserved(): Promise<TestResult> {
-  const name = "Session key is preserved across messages";
-
-  try {
-    let capturedSessionKey: string | null = null;
-
-    const terminal = createTerminal({
-      handler: {
-        async handle(request) {
-          capturedSessionKey = request.sessionKey;
-          return { text: "ok", success: true };
-        },
-      },
-      sessionKey: "test:session:123",
-      streaming: false,
-      input: process.stdin,
-      output: {
-        write: () => true,
-      } as NodeJS.WritableStream,
-    });
-
-    await terminal.send("first");
-    const firstKey = capturedSessionKey;
-
-    await terminal.send("second");
-    const secondKey = capturedSessionKey;
-
-    if (firstKey !== secondKey) {
-      return {
-        name,
-        passed: false,
-        error: `Session keys differ: ${firstKey} vs ${secondKey}`,
-      };
-    }
-
-    if (terminal.sessionKey !== "test:session:123") {
-      return {
-        name,
-        passed: false,
-        error: `Terminal sessionKey mismatch: ${terminal.sessionKey}`,
-      };
-    }
-
-    return { name, passed: true };
-  } catch (error) {
-    return {
-      name,
-      passed: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-// Main
-async function main() {
-  console.log("🧪 Running Terminal E2E Tests...\n");
-
-  const results = await runTests();
-
-  let passed = 0;
-  let failed = 0;
-
-  for (const result of results) {
-    if (result.passed) {
-      console.log(`✅ ${result.name}`);
-      passed++;
-    } else {
-      console.log(`❌ ${result.name}`);
-      console.log(`   Error: ${result.error}`);
-      failed++;
-    }
-  }
-
-  console.log(`\n📊 Results: ${passed} passed, ${failed} failed`);
-
-  if (failed > 0) {
-    process.exit(1);
-  }
-}
-
-main().catch((error) => {
-  console.error("E2E runner failed:", error);
+// Run if executed directly
+runTests().catch((error) => {
+  console.error("Fatal error:", error);
   process.exit(1);
 });

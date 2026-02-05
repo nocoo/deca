@@ -17,7 +17,7 @@ import { createTerminal, createEchoHandler } from "./src";
 console.log("🖥️  Starting Terminal standalone mode (echo handler)...\n");
 
 const terminal = createTerminal({
-  handler: createEchoHandler(),
+  handler: createEchoHandler({ simulateStreaming: true }),
   streaming: true,
   events: {
     onStart: () => {
