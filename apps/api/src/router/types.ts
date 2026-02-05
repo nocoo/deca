@@ -1,11 +1,11 @@
-export type IsolationLevel = 'none' | 'process' | 'container' | 'vm';
+export type IsolationLevel = "none" | "process" | "container" | "vm";
 
 export type ProviderType =
-  | 'applescript'
-  | 'codex'
-  | 'claude'
-  | 'opencode'
-  | 'native';
+  | "applescript"
+  | "codex"
+  | "claude"
+  | "opencode"
+  | "native";
 
 export type ProviderCapabilities = {
   isolation: IsolationLevel;

@@ -26,7 +26,7 @@ export const runClaude = (command: string, timeoutMs: number) =>
           NODE_NO_WARNINGS: "1",
         },
         stdio: ["pipe", "pipe", "pipe"],
-      }
+      },
     );
 
     const stdoutChunks: Buffer[] = [];

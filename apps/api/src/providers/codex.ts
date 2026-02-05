@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import type { Provider } from "../router/provider";
 import { createCodexExecutor } from "../executors/codex";
+import type { Provider } from "../router/provider";
 
 const execFileAsync = promisify(execFile);
 

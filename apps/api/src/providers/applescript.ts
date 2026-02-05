@@ -1,12 +1,12 @@
-import type { Provider } from '../router/provider';
+import type { Provider } from "../router/provider";
 
-import { createAppleScriptExecutor } from '../executors/applescript';
+import { createAppleScriptExecutor } from "../executors/applescript";
 
 export const createAppleScriptProvider = (): Provider => ({
-  type: 'applescript',
-  isAvailable: async () => process.platform === 'darwin',
+  type: "applescript",
+  isAvailable: async () => process.platform === "darwin",
   capabilities: {
-    isolation: 'process',
+    isolation: "process",
     networking: false,
     workspace: false,
   },

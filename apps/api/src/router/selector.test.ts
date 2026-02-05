@@ -1,17 +1,17 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from "bun:test";
 
-import type { Provider } from './provider';
-import type { ExecRequest } from './types';
-import { selectProviders } from './selector';
+import type { Provider } from "./provider";
+import { selectProviders } from "./selector";
+import type { ExecRequest } from "./types";
 
 const createProvider = (
-  type: Provider['type'],
-  overrides?: Partial<Provider>
+  type: Provider["type"],
+  overrides?: Partial<Provider>,
 ): Provider => ({
   type,
   isAvailable: async () => true,
   capabilities: {
-    isolation: 'process',
+    isolation: "process",
     networking: true,
     workspace: true,
   },
@@ -19,54 +19,51 @@ const createProvider = (
     exec: async () => ({
       success: true,
       exitCode: 0,
-      stdout: '',
-      stderr: '',
+      stdout: "",
+      stderr: "",
       elapsedMs: 1,
     }),
   },
   ...overrides,
 });
 
-describe('selectProviders', () => {
-  it('respects forced provider', () => {
-    const providers = [
-      createProvider('native'),
-      createProvider('codex'),
-    ];
-    const request: ExecRequest = { command: 'echo', provider: 'native' };
+describe("selectProviders", () => {
+  it("respects forced provider", () => {
+    const providers = [createProvider("native"), createProvider("codex")];
+    const request: ExecRequest = { command: "echo", provider: "native" };
     const selected = selectProviders(providers, request);
-    expect(selected.map((p) => p.type)).toEqual(['native']);
+    expect(selected.map((p) => p.type)).toEqual(["native"]);
   });
 
-  it('filters by network needs', () => {
+  it("filters by network needs", () => {
     const providers = [
-      createProvider('codex', {
+      createProvider("codex", {
         capabilities: {
-          isolation: 'process',
+          isolation: "process",
           networking: false,
           workspace: true,
         },
       }),
-      createProvider('native'),
+      createProvider("native"),
     ];
-    const request: ExecRequest = { command: 'curl', needsNetwork: true };
+    const request: ExecRequest = { command: "curl", needsNetwork: true };
     const selected = selectProviders(providers, request);
-    expect(selected.map((p) => p.type)).toEqual(['native']);
+    expect(selected.map((p) => p.type)).toEqual(["native"]);
   });
 
-  it('filters by isolation needs', () => {
+  it("filters by isolation needs", () => {
     const providers = [
-      createProvider('native', {
+      createProvider("native", {
         capabilities: {
-          isolation: 'none',
+          isolation: "none",
           networking: true,
           workspace: true,
         },
       }),
-      createProvider('codex'),
+      createProvider("codex"),
     ];
-    const request: ExecRequest = { command: 'ls', needsIsolation: true };
+    const request: ExecRequest = { command: "ls", needsIsolation: true };
     const selected = selectProviders(providers, request);
-    expect(selected.map((p) => p.type)).toEqual(['codex']);
+    expect(selected.map((p) => p.type)).toEqual(["codex"]);
   });
 });

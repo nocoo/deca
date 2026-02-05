@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from "bun:test";
 
-import { createAppleScriptProvider } from './applescript';
+import { createAppleScriptProvider } from "./applescript";
 
-describe('appleScript provider', () => {
-  it('reports capabilities', () => {
+describe("appleScript provider", () => {
+  it("reports capabilities", () => {
     const provider = createAppleScriptProvider();
     expect(provider.capabilities.networking).toBe(false);
     expect(provider.capabilities.workspace).toBe(false);

@@ -1,13 +1,13 @@
-import type { Provider } from './provider';
-import type { ExecRequest, ExecResult } from './types';
-import { selectProviders } from './selector';
+import type { Provider } from "./provider";
+import { selectProviders } from "./selector";
+import type { ExecRequest, ExecResult } from "./types";
 
 export const runWithFallback = async (
   providers: Provider[],
-  request: ExecRequest
+  request: ExecRequest,
 ): Promise<ExecResult> => {
   const candidates = selectProviders(providers, request);
-  const attempted: ExecResult['fallback']['attempted'] = [];
+  const attempted: ExecResult["fallback"]["attempted"] = [];
   const start = performance.now();
 
   for (const provider of candidates) {
@@ -21,7 +21,7 @@ export const runWithFallback = async (
       provider: provider.type,
       fallback: {
         used: attempted.length > 1,
-        reason: attempted.length > 1 ? 'fallback_used' : '',
+        reason: attempted.length > 1 ? "fallback_used" : "",
         attempted,
       },
     };
@@ -31,13 +31,13 @@ export const runWithFallback = async (
   return {
     success: false,
     exitCode: 1,
-    stdout: '',
-    stderr: 'no_provider_available',
+    stdout: "",
+    stderr: "no_provider_available",
     elapsedMs,
-    provider: attempted[0] ?? 'native',
+    provider: attempted[0] ?? "native",
     fallback: {
       used: false,
-      reason: 'no_provider_available',
+      reason: "no_provider_available",
       attempted,
     },
   };

@@ -1,8 +1,8 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
-import type { ExecRequest } from '../router/types';
-import type { Executor } from '../router/provider';
+import type { Executor } from "../router/provider";
+import type { ExecRequest } from "../router/types";
 
 const execFileAsync = promisify(execFile);
 
@@ -12,16 +12,16 @@ export const createAppleScriptExecutor = (): Executor => ({
       return {
         success: false,
         exitCode: 1,
-        stdout: '',
-        stderr: 'missing_script',
+        stdout: "",
+        stderr: "missing_script",
         elapsedMs: 0,
       };
     }
 
     const start = performance.now();
     try {
-      const { stdout, stderr } = await execFileAsync('osascript', [
-        '-e',
+      const { stdout, stderr } = await execFileAsync("osascript", [
+        "-e",
         request.command,
       ]);
       const elapsedMs = performance.now() - start;
@@ -38,8 +38,8 @@ export const createAppleScriptExecutor = (): Executor => ({
       return {
         success: false,
         exitCode: 1,
-        stdout: '',
-        stderr: err.stderr?.trim() ?? err.message ?? 'applescript_failed',
+        stdout: "",
+        stderr: err.stderr?.trim() ?? err.message ?? "applescript_failed",
         elapsedMs,
       };
     }

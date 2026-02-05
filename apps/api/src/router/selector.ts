@@ -1,19 +1,19 @@
-import type { ExecRequest, ProviderType } from './types';
-import type { Provider } from './provider';
+import type { Provider } from "./provider";
+import type { ExecRequest, ProviderType } from "./types";
 
 const defaultPriority: ProviderType[] = [
-  'codex',
-  'claude',
-  'opencode',
-  'native',
-  'applescript',
+  "codex",
+  "claude",
+  "opencode",
+  "native",
+  "applescript",
 ];
 
 const meetsConstraints = (provider: Provider, request: ExecRequest) => {
   if (request.needsNetwork && !provider.capabilities.networking) {
     return false;
   }
-  if (request.needsIsolation && provider.capabilities.isolation === 'none') {
+  if (request.needsIsolation && provider.capabilities.isolation === "none") {
     return false;
   }
   if (request.needsWorkspace && !provider.capabilities.workspace) {
@@ -24,7 +24,7 @@ const meetsConstraints = (provider: Provider, request: ExecRequest) => {
 
 export const selectProviders = (
   providers: Provider[],
-  request: ExecRequest
+  request: ExecRequest,
 ): Provider[] => {
   if (request.provider) {
     const forced = providers.find((p) => p.type === request.provider);

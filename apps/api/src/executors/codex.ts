@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import type { ExecRequest } from "../router/types";
 import type { Executor } from "../router/provider";
+import type { ExecRequest } from "../router/types";
 
 const execFileAsync = promisify(execFile);
 
@@ -25,7 +25,7 @@ export const createCodexExecutor = (): Executor => ({
       const { stdout, stderr } = await execFileAsync(
         "codex",
         ["sandbox", "macos", "--full-auto", "--", "sh", "-c", request.command],
-        { timeout: DEFAULT_TIMEOUT_MS }
+        { timeout: DEFAULT_TIMEOUT_MS },
       );
       const elapsedMs = performance.now() - start;
       return {

@@ -1,5 +1,5 @@
-import type { ExecRequest } from "../router/types";
 import type { Executor } from "../router/provider";
+import type { ExecRequest } from "../router/types";
 import { runClaude } from "./claude-runner";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -21,7 +21,7 @@ export const createClaudeExecutor = (): Executor => ({
       const prompt = `Run this shell command and return only stdout.\n${request.command}`;
       const { stdout, stderr } = await runClaude(
         request.command,
-        DEFAULT_TIMEOUT_MS
+        DEFAULT_TIMEOUT_MS,
       );
       const elapsedMs = performance.now() - start;
       return {

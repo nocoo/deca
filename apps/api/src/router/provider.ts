@@ -3,10 +3,12 @@ import type {
   ExecResult,
   ProviderCapabilities,
   ProviderType,
-} from './types';
+} from "./types";
 
 export type Executor = {
-  exec: (request: ExecRequest) => Promise<Omit<ExecResult, 'provider' | 'fallback'>>;
+  exec: (
+    request: ExecRequest,
+  ) => Promise<Omit<ExecResult, "provider" | "fallback">>;
 };
 
 export type Provider = {

@@ -3,16 +3,14 @@
   "private": true,
   "packageManager": "bun@1.1.34",
   "scripts": {
-    "dev": "bun --filter ./apps/api dev & bun --filter ./apps/console dev",
+    "dev": "bun --filter ./apps/api dev",
     "dev:api": "bun --filter ./apps/api dev",
-    "dev:console": "bun --filter ./apps/console dev",
-    "build": "bun --filter ./apps/console build",
     "test": "bun run test:unit",
     "test:unit": "bun --filter '@deca/*' test:unit && bun --filter ./apps/api test:unit",
     "test:e2e": "bun --filter '@deca/agent' test:e2e && bun --filter ./apps/api test:e2e",
     "test:all": "bun run test:unit && bun run test:e2e",
     "test:coverage": "bun --filter '@deca/*' test --coverage",
-    "lint": "bun --filter ./apps/api lint && bun --filter ./apps/console lint && bun --filter '@deca/*' lint",
+    "lint": "bun --filter ./apps/api lint && bun --filter '@deca/*' lint",
     "format": "biome format .",
     "prepare": "husky"
   },
