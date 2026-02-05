@@ -36,6 +36,9 @@ export interface PathResolverOptions {
 // ============== Config Types ==============
 
 export interface DecaConfig {
+  /** Active LLM provider to use */
+  activeProvider?: ProviderId;
+
   /** Model configuration */
   models?: {
     default?: string;
@@ -83,7 +86,28 @@ export interface ConfigManager {
   set<K extends keyof DecaConfig>(key: K, value: DecaConfig[K]): Promise<void>;
 }
 
-// ============== Credential Types ==============
+// ============== Provider Types ==============
+
+/** Supported AI provider identifiers */
+export type ProviderId =
+  | "anthropic"
+  | "openrouter"
+  | "minimax"
+  | "bedrock"
+  | "azure"
+  | "openai"
+  | "custom";
+
+/** Provider IDs that are actual LLM providers (not discord/github) */
+export const LLM_PROVIDER_IDS: ProviderId[] = [
+  "anthropic",
+  "openrouter",
+  "minimax",
+  "bedrock",
+  "azure",
+  "openai",
+  "custom",
+];
 
 /** Model configuration for AI providers */
 export interface ModelConfig {
@@ -99,25 +123,51 @@ export interface ModelConfig {
   reasoning?: string;
 }
 
+/** Credential configuration for an LLM provider */
+export interface ProviderCredential {
+  /** API key for authentication */
+  apiKey: string;
+  /** Base URL for API requests (optional, uses provider default) */
+  baseUrl?: string;
+  /** Model configuration */
+  models?: ModelConfig;
+  /** Additional HTTP headers (e.g., OpenRouter requires HTTP-Referer) */
+  headers?: Record<string, string>;
+}
+
+/** Resolved provider configuration ready for use */
+export interface ResolvedProvider {
+  /** Provider identifier */
+  id: ProviderId;
+  /** API key */
+  apiKey: string;
+  /** Base URL (resolved, may be default) */
+  baseUrl?: string;
+  /** Model to use */
+  model: string;
+  /** Additional HTTP headers */
+  headers?: Record<string, string>;
+}
+
+// ============== Credential Types ==============
+
 export interface CredentialStore {
-  anthropic?: {
-    apiKey: string;
-    baseUrl?: string;
-    /** Model overrides for this provider */
-    models?: ModelConfig;
-  };
+  // LLM Providers
+  anthropic?: ProviderCredential;
+  openrouter?: ProviderCredential;
+  minimax?: ProviderCredential;
+  bedrock?: ProviderCredential;
+  azure?: ProviderCredential;
+  openai?: ProviderCredential;
+  custom?: ProviderCredential;
+
+  // Non-LLM credentials
   discord?: {
     botToken: string;
     applicationId?: string;
   };
   github?: {
     token: string;
-  };
-  openai?: {
-    apiKey: string;
-    baseUrl?: string;
-    /** Model overrides for this provider */
-    models?: ModelConfig;
   };
 }
 
