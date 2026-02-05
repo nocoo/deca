@@ -283,5 +283,130 @@ describe("DiscordGateway", () => {
 
       expect(onError).toHaveBeenCalledWith(testError);
     });
+
+    it("calls onDisconnect callback on shard disconnect", async () => {
+      const onDisconnect = mock(() => {});
+
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        events: { onDisconnect },
+      });
+
+      await gateway.connect();
+
+      // Emit shard disconnect (not during shutdown)
+      mockClient.emit(Events.ShardDisconnect, {} as never, 0);
+
+      expect(onDisconnect).toHaveBeenCalledWith("Connection lost");
+    });
+
+    it("does not call onDisconnect during shutdown", async () => {
+      const onDisconnect = mock(() => {});
+
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        events: { onDisconnect },
+      });
+
+      await gateway.connect();
+
+      // Disconnect first (sets isShuttingDown = true)
+      gateway.disconnect();
+
+      // Emit shard disconnect after shutdown started
+      mockClient.emit(Events.ShardDisconnect, {} as never, 0);
+
+      // onDisconnect should not be called during shutdown
+      expect(onDisconnect).not.toHaveBeenCalled();
+    });
+
+    it("calls onDisconnect with no handler when events.onDisconnect is undefined", async () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        // No events callbacks
+      });
+
+      await gateway.connect();
+
+      // Should not throw when onDisconnect is not defined
+      mockClient.emit(Events.ShardDisconnect, {} as never, 0);
+
+      expect(gateway).toBeDefined();
+    });
+  });
+
+  describe("shutdown", () => {
+    it("performs graceful shutdown", async () => {
+      const destroySpy = mock(() => {});
+      mockClient.destroy = destroySpy;
+
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+      });
+
+      await gateway.connect();
+      await gateway.shutdown();
+
+      expect(destroySpy).toHaveBeenCalled();
+    });
+
+    it("stops reconnect manager on shutdown", async () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+        reconnect: { enabled: true },
+      });
+
+      await gateway.connect();
+      await gateway.shutdown();
+
+      // Should complete without error
+      expect(gateway.isConnected).toBe(false);
+    });
+  });
+
+  describe("pendingCount", () => {
+    it("returns 0 before connect", () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+      });
+
+      expect(gateway.pendingCount).toBe(0);
+    });
+
+    it("returns 0 after connect with no pending messages", async () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+      });
+
+      await gateway.connect();
+
+      expect(gateway.pendingCount).toBe(0);
+    });
+  });
+
+  describe("client getter", () => {
+    it("exposes underlying client", () => {
+      gateway = createDiscordGateway({
+        token: "test-token",
+        handler: createMockHandler(),
+        _client: mockClient,
+      });
+
+      expect(gateway.client).toBe(mockClient);
+    });
   });
 });
