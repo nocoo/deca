@@ -42,6 +42,16 @@
         "@types/bun": "latest",
       },
     },
+    "packages/http": {
+      "name": "@deca/http",
+      "version": "0.1.0",
+      "dependencies": {
+        "hono": "^4.7.10",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+    },
     "packages/storage": {
       "name": "@deca/storage",
       "version": "0.1.0",
@@ -84,6 +94,8 @@
     "@deca/api": ["@deca/api@workspace:apps/api"],
 
     "@deca/discord": ["@deca/discord@workspace:packages/discord"],
+
+    "@deca/http": ["@deca/http@workspace:packages/http"],
 
     "@deca/storage": ["@deca/storage@workspace:packages/storage"],
 
@@ -176,6 +188,8 @@
     "has-tostringtag": ["has-tostringtag@1.0.2", "", { "dependencies": { "has-symbols": "^1.0.3" } }, "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw=="],
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
+
+    "hono": ["hono@4.11.7", "", {}, "sha512-l7qMiNee7t82bH3SeyUCt9UF15EVmaBvsppY2zQtrbIhl/yzBTny+YUxsVjSjQ6gaqaeVtZmGocom8TzBlA4Yw=="],
 
     "humanize-ms": ["humanize-ms@1.2.1", "", { "dependencies": { "ms": "^2.0.0" } }, "sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ=="],
 
