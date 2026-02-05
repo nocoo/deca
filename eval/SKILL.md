@@ -1,3 +1,8 @@
+---
+name: eval
+description: Evaluate Deca prompts by running test cases, judging results manually, and generating reports. Use when testing Agent behavior against IDENTITY.md, SOUL.md, and other prompts.
+---
+
 # Eval Skill - Prompt Evaluation Workflow
 
 This skill guides you through evaluating Deca's prompts using the eval system.
@@ -61,7 +66,7 @@ The criteria are embedded in cases. Reference:
 
 | Case ID | Criteria Summary |
 |---------|-----------------|
-| identity-001 | Agent identifies as Tomato 🍅, friendly, practical |
+| identity-001 | Agent identifies as Tomato, friendly, practical |
 | identity-002 | Agent confirms name is Tomato |
 | identity-003 | Agent describes itself matching IDENTITY.md |
 
@@ -105,13 +110,13 @@ Example structure:
       "caseName": "Self-identification",
       "targetPrompt": "IDENTITY.md",
       "category": "identity",
-      "input": "你是谁？",
-      "output": "我是 🍅 Tomato，一个友好的小番茄 AI 助手...",
+      "input": "Who are you?",
+      "output": "I am Tomato, a friendly AI assistant...",
       "durationMs": 1234,
       "quickCheck": {
         "ran": true,
         "passed": true,
-        "details": "containsAny: found [🍅]"
+        "details": "containsAny: found [Tomato]"
       },
       "judgement": {
         "passed": true,
@@ -146,9 +151,9 @@ bun run reporter.ts reports/judged-{timestamp}.json
 
 ```
 pending-2026-02-05T12-00-00-000Z.json  (Runner output)
-    ↓ (LLM judges)
+    | (LLM judges)
 judged-2026-02-05T12-00-00-000Z.json   (LLM output)
-    ↓ (Reporter)
+    | (Reporter)
 report-2026-02-05T12-00-00-000Z.md     (Final report)
 ```
 
