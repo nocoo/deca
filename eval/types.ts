@@ -278,3 +278,138 @@ export interface JudgedResults {
   /** Judge model (who did the judging) */
   judgedBy: string;
 }
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
+/**
+ * Default pass threshold
+ */
+export const DEFAULT_PASS_THRESHOLD = 70;
+
+/**
+ * Result of running a quick check
+ */
+export interface QuickCheckExecutionResult {
+  passed: boolean;
+  details: string;
+}
+
+/**
+ * Execute quick check rules against output
+ * This is pure code execution, no LLM involved
+ */
+export function runQuickCheck(
+  output: string,
+  check: QuickCheck,
+): QuickCheckExecutionResult {
+  const failures: string[] = [];
+  const successes: string[] = [];
+
+  // containsAny: at least one must be present (OR)
+  if (check.containsAny && check.containsAny.length > 0) {
+    const found = check.containsAny.filter((s) => output.includes(s));
+    if (found.length === 0) {
+      failures.push(
+        `containsAny: none of [${check.containsAny.join(", ")}] found`,
+      );
+    } else {
+      successes.push(`containsAny: found [${found.join(", ")}]`);
+    }
+  }
+
+  // containsAll: all must be present (AND)
+  if (check.containsAll && check.containsAll.length > 0) {
+    const missing = check.containsAll.filter((s) => !output.includes(s));
+    if (missing.length > 0) {
+      failures.push(`containsAll: missing [${missing.join(", ")}]`);
+    } else {
+      successes.push("containsAll: all found");
+    }
+  }
+
+  // notContains: none must be present
+  if (check.notContains && check.notContains.length > 0) {
+    const found = check.notContains.filter((s) => output.includes(s));
+    if (found.length > 0) {
+      failures.push(`notContains: found forbidden [${found.join(", ")}]`);
+    } else {
+      successes.push("notContains: none found");
+    }
+  }
+
+  // matchPattern: regex must match
+  if (check.matchPattern) {
+    try {
+      const regex = new RegExp(check.matchPattern);
+      if (!regex.test(output)) {
+        failures.push(`matchPattern: /${check.matchPattern}/ not matched`);
+      } else {
+        successes.push("matchPattern: matched");
+      }
+    } catch {
+      failures.push(`matchPattern: invalid regex /${check.matchPattern}/`);
+    }
+  }
+
+  // minLength: output must be at least this long
+  if (check.minLength !== undefined) {
+    if (output.length < check.minLength) {
+      failures.push(`minLength: ${output.length} < ${check.minLength}`);
+    } else {
+      successes.push(`minLength: ${output.length} >= ${check.minLength}`);
+    }
+  }
+
+  // maxLength: output must be at most this long
+  if (check.maxLength !== undefined) {
+    if (output.length > check.maxLength) {
+      failures.push(`maxLength: ${output.length} > ${check.maxLength}`);
+    } else {
+      successes.push(`maxLength: ${output.length} <= ${check.maxLength}`);
+    }
+  }
+
+  const passed = failures.length === 0;
+  const details = passed ? successes.join("; ") : failures.join("; ");
+
+  return { passed, details };
+}
+
+/**
+ * Get pass threshold for a case, using default if not specified
+ */
+export function getPassThreshold(evalCase: EvalCase): number {
+  return evalCase.passThreshold ?? DEFAULT_PASS_THRESHOLD;
+}
+
+/**
+ * Check if a judgement passes based on case threshold
+ */
+export function isJudgementPassing(
+  judgement: Judgement,
+  evalCase: EvalCase,
+): boolean {
+  const threshold = getPassThreshold(evalCase);
+  return judgement.score >= threshold;
+}
+
+/**
+ * Create a QuickCheckResult from execution
+ */
+export function createQuickCheckResult(
+  check: QuickCheck | undefined,
+  output: string,
+): QuickCheckResult {
+  if (!check) {
+    return { ran: false, passed: null };
+  }
+
+  const result = runQuickCheck(output, check);
+  return {
+    ran: true,
+    passed: result.passed,
+    details: result.details,
+  };
+}
