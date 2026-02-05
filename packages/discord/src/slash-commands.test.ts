@@ -256,5 +256,157 @@ describe("slash-commands", () => {
       // Should use followUp since deferReply was called
       expect(interaction.followUp).toHaveBeenCalled();
     });
+
+    test("uses reply for errors when not deferred", async () => {
+      const client = createMockClient();
+      const handler = createMockHandler();
+      const onClearSession = mock(() =>
+        Promise.reject(new Error("Clear error")),
+      );
+
+      setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+        onClearSession,
+      });
+
+      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const interactionHandler = onCall[1];
+
+      const interaction = createMockInteraction("clear");
+      await interactionHandler(interaction);
+
+      // Should use reply since not deferred
+      expect(interaction.reply).toHaveBeenCalled();
+      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
+        .calls[0];
+      expect(replyCall[0].content).toContain("Error");
+    });
+
+    test("handles unknown commands", async () => {
+      const client = createMockClient();
+      const handler = createMockHandler();
+
+      setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+      });
+
+      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const interactionHandler = onCall[1];
+
+      const interaction = createMockInteraction("unknown-command");
+      await interactionHandler(interaction);
+
+      expect(interaction.reply).toHaveBeenCalled();
+      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
+        .calls[0];
+      expect(replyCall[0].content).toContain("Unknown command");
+    });
+
+    test("handles non-Error exceptions", async () => {
+      const client = createMockClient();
+      const handler: MessageHandler = {
+        handle: mock(() => Promise.reject("string error")),
+      };
+
+      setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+      });
+
+      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const interactionHandler = onCall[1];
+
+      const interaction = createMockInteraction("ask", {
+        question: "test",
+      });
+      await interactionHandler(interaction);
+
+      expect(interaction.followUp).toHaveBeenCalled();
+      const followUpCall = (interaction.followUp as ReturnType<typeof mock>)
+        .mock.calls[0];
+      expect(followUpCall[0].content).toContain("An error occurred");
+    });
+  });
+
+  describe("cleanup", () => {
+    test("cleanup removes event listener", () => {
+      const client = createMockClient();
+      const handler = createMockHandler();
+
+      const cleanup = setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+      });
+
+      cleanup();
+
+      expect(client.off).toHaveBeenCalled();
+    });
+  });
+
+  describe("DM session key", () => {
+    test("creates DM session key without guild", async () => {
+      const client = createMockClient();
+      const handler = createMockHandler();
+
+      setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+        agentId: "myagent",
+      });
+
+      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const interactionHandler = onCall[1];
+
+      // Create interaction without guildId (DM)
+      const interaction = createMockInteraction("ask", {
+        question: "Hello",
+      });
+      // Remove guildId to simulate DM
+      (interaction as { guildId: string | null }).guildId = null;
+
+      await interactionHandler(interaction);
+
+      expect(handler.handle).toHaveBeenCalled();
+      const handleCall = (handler.handle as ReturnType<typeof mock>).mock
+        .calls[0];
+      const request = handleCall[0];
+      expect(request.sessionKey).toContain("dm:");
+      expect(request.sessionKey).toContain("myagent");
+    });
+  });
+
+  describe("ignores non-command interactions", () => {
+    test("ignores non-chat-input interactions", async () => {
+      const client = createMockClient();
+      const handler = createMockHandler();
+
+      setupSlashCommands(client, {
+        clientId: "client123",
+        token: "token123",
+        messageHandler: handler,
+      });
+
+      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const interactionHandler = onCall[1];
+
+      // Create non-command interaction
+      const interaction = {
+        isChatInputCommand: () => false,
+        reply: mock(() => Promise.resolve()),
+      };
+
+      await interactionHandler(interaction);
+
+      // Should not process
+      expect(interaction.reply).not.toHaveBeenCalled();
+    });
   });
 });
