@@ -6,7 +6,7 @@
  *
  * Credentials files:
  *   ~/.deca/credentials/anthropic.json - { "apiKey": "..." }
- *   ~/.deca/credentials/minimax.json   - { "apiKey": "...", "baseUrl": "...", "headers": {...} }
+ *   ~/.deca/credentials/minimax.json   - { "apiKey": "...", "baseUrl": "..." }
  *   ~/.deca/credentials/discord.json   - { "botToken": "..." }
  *
  * Provider selection (in priority order):
@@ -63,9 +63,7 @@ if (!provider) {
   console.error("❌ No LLM provider credentials found.");
   console.error("   Create ~/.deca/credentials/<provider>.json with:");
   console.error('   { "apiKey": "sk-..." }\n');
-  console.error(
-    "   Supported providers: anthropic, openrouter, minimax, bedrock, azure, openai, custom\n",
-  );
+  console.error("   Supported providers: anthropic, minimax\n");
   process.exit(1);
 }
 
@@ -81,7 +79,6 @@ const gateway = createGateway({
   agent: {
     apiKey: provider.apiKey,
     baseUrl: provider.baseUrl,
-    headers: provider.headers,
     model: provider.model,
     agentId: "tomato",
     promptDir: promptsDir,

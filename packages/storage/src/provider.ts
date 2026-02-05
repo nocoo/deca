@@ -70,7 +70,6 @@ export function createProviderResolver(
       apiKey: credential.apiKey,
       baseUrl: credential.baseUrl,
       model: credential.models?.default ?? DEFAULT_MODEL,
-      headers: credential.headers,
     };
   }
 

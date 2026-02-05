@@ -89,25 +89,10 @@ export interface ConfigManager {
 // ============== Provider Types ==============
 
 /** Supported AI provider identifiers */
-export type ProviderId =
-  | "anthropic"
-  | "openrouter"
-  | "minimax"
-  | "bedrock"
-  | "azure"
-  | "openai"
-  | "custom";
+export type ProviderId = "anthropic" | "minimax";
 
 /** Provider IDs that are actual LLM providers (not discord/github) */
-export const LLM_PROVIDER_IDS: ProviderId[] = [
-  "anthropic",
-  "openrouter",
-  "minimax",
-  "bedrock",
-  "azure",
-  "openai",
-  "custom",
-];
+export const LLM_PROVIDER_IDS: ProviderId[] = ["anthropic", "minimax"];
 
 /** Model configuration for AI providers */
 export interface ModelConfig {
@@ -131,8 +116,6 @@ export interface ProviderCredential {
   baseUrl?: string;
   /** Model configuration */
   models?: ModelConfig;
-  /** Additional HTTP headers (e.g., OpenRouter requires HTTP-Referer) */
-  headers?: Record<string, string>;
 }
 
 /** Resolved provider configuration ready for use */
@@ -145,8 +128,6 @@ export interface ResolvedProvider {
   baseUrl?: string;
   /** Model to use */
   model: string;
-  /** Additional HTTP headers */
-  headers?: Record<string, string>;
 }
 
 // ============== Credential Types ==============
@@ -154,12 +135,7 @@ export interface ResolvedProvider {
 export interface CredentialStore {
   // LLM Providers
   anthropic?: ProviderCredential;
-  openrouter?: ProviderCredential;
   minimax?: ProviderCredential;
-  bedrock?: ProviderCredential;
-  azure?: ProviderCredential;
-  openai?: ProviderCredential;
-  custom?: ProviderCredential;
 
   // Non-LLM credentials
   discord?: {

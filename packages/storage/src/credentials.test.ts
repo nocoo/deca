@@ -69,14 +69,14 @@ describe("createCredentialManager", () => {
 
   test("delete removes credential file", async () => {
     const manager = createCredentialManager(tempDir);
-    await manager.set("openai", { apiKey: "sk-test" });
+    await manager.set("minimax", { apiKey: "sk-test" });
 
-    expect(await manager.has("openai")).toBe(true);
+    expect(await manager.has("minimax")).toBe(true);
 
-    await manager.delete("openai");
+    await manager.delete("minimax");
 
-    expect(await manager.has("openai")).toBe(false);
-    expect(await manager.get("openai")).toBeNull();
+    expect(await manager.has("minimax")).toBe(false);
+    expect(await manager.get("minimax")).toBeNull();
   });
 
   test("delete does not throw for non-existent credential", async () => {
@@ -126,70 +126,38 @@ describe("createCredentialManager", () => {
       applicationId: "app-id",
     });
     await manager.set("github", { token: "gh-token" });
-    await manager.set("openai", {
-      apiKey: "openai-key",
-      baseUrl: "https://api.openai.com",
+    await manager.set("minimax", {
+      apiKey: "minimax-key",
+      baseUrl: "https://api.minimax.chat/v1",
     });
 
     expect((await manager.get("anthropic"))?.apiKey).toBe("ant-key");
     expect((await manager.get("discord"))?.botToken).toBe("discord-token");
     expect((await manager.get("github"))?.token).toBe("gh-token");
-    expect((await manager.get("openai"))?.apiKey).toBe("openai-key");
+    expect((await manager.get("minimax"))?.apiKey).toBe("minimax-key");
   });
 
-  test("handles minimax credential with baseUrl and headers", async () => {
+  test("handles minimax credential with baseUrl", async () => {
     const manager = createCredentialManager(tempDir);
     await manager.set("minimax", {
       apiKey: "mm-test-key",
       baseUrl: "https://api.minimax.chat/v1",
       models: { default: "abab6.5s-chat" },
-      headers: { "X-Custom-Header": "test" },
     });
 
     const result = await manager.get("minimax");
     expect(result?.apiKey).toBe("mm-test-key");
     expect(result?.baseUrl).toBe("https://api.minimax.chat/v1");
     expect(result?.models?.default).toBe("abab6.5s-chat");
-    expect(result?.headers?.["X-Custom-Header"]).toBe("test");
-  });
-
-  test("handles openrouter credential with headers", async () => {
-    const manager = createCredentialManager(tempDir);
-    await manager.set("openrouter", {
-      apiKey: "sk-or-test",
-      baseUrl: "https://openrouter.ai/api/v1",
-      headers: { "HTTP-Referer": "https://deca.local" },
-    });
-
-    const result = await manager.get("openrouter");
-    expect(result?.apiKey).toBe("sk-or-test");
-    expect(result?.headers?.["HTTP-Referer"]).toBe("https://deca.local");
-  });
-
-  test("handles custom provider credential", async () => {
-    const manager = createCredentialManager(tempDir);
-    await manager.set("custom", {
-      apiKey: "custom-key",
-      baseUrl: "http://localhost:8080/v1",
-      models: { default: "local-llama" },
-    });
-
-    const result = await manager.get("custom");
-    expect(result?.baseUrl).toBe("http://localhost:8080/v1");
-    expect(result?.models?.default).toBe("local-llama");
   });
 
   test("list includes all provider types", async () => {
     const manager = createCredentialManager(tempDir);
     await manager.set("anthropic", { apiKey: "k1" });
-    await manager.set("openrouter", { apiKey: "k2" });
-    await manager.set("minimax", { apiKey: "k3" });
-    await manager.set("custom", { apiKey: "k4" });
+    await manager.set("minimax", { apiKey: "k2" });
 
     const result = await manager.list();
     expect(result).toContain("anthropic");
-    expect(result).toContain("openrouter");
     expect(result).toContain("minimax");
-    expect(result).toContain("custom");
   });
 });

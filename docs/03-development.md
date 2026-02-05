@@ -135,7 +135,7 @@ git commit -m "feat: add agent core"
 
 | 变量 | 说明 | 必需 |
 |------|------|------|
-| `DECA_PROVIDER` | 指定使用的 LLM Provider (anthropic/minimax/openrouter/...) | 可选 |
+| `DECA_PROVIDER` | 指定使用的 LLM Provider (anthropic/minimax) | 可选 |
 | `DISCORD_TOKEN` | Discord Bot Token | Discord 通道必需 |
 | `DECA_API_KEY` | HTTP API 认证 Key | HTTP 通道可选 |
 
@@ -154,12 +154,7 @@ Deca 支持多 Provider 切换，通过 `~/.deca/credentials/` 目录下的 JSON
 | Provider | 文件名 | 说明 |
 |----------|--------|------|
 | `anthropic` | `anthropic.json` | Anthropic Claude API |
-| `openrouter` | `openrouter.json` | OpenRouter (多模型网关) |
 | `minimax` | `minimax.json` | MiniMax API |
-| `bedrock` | `bedrock.json` | AWS Bedrock |
-| `azure` | `azure.json` | Azure OpenAI |
-| `openai` | `openai.json` | OpenAI API |
-| `custom` | `custom.json` | 自定义 Provider |
 
 ### Credential 文件示例
 
@@ -180,21 +175,6 @@ Deca 支持多 Provider 切换，通过 `~/.deca/credentials/` 目录下的 JSON
   "baseUrl": "https://api.minimax.chat/v1",
   "models": {
     "default": "MiniMax-Text-01"
-  }
-}
-```
-
-```json
-// ~/.deca/credentials/openrouter.json
-{
-  "apiKey": "sk-or-...",
-  "baseUrl": "https://openrouter.ai/api/v1",
-  "headers": {
-    "HTTP-Referer": "https://your-site.com",
-    "X-Title": "Deca Agent"
-  },
-  "models": {
-    "default": "anthropic/claude-sonnet-4-20250514"
   }
 }
 ```

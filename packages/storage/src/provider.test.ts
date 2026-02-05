@@ -69,33 +69,33 @@ describe("createProviderResolver", () => {
 
     test("respects activeProvider in config", async () => {
       await credentialManager.set("anthropic", { apiKey: "ant-key" });
-      await credentialManager.set("openrouter", {
-        apiKey: "or-key",
-        baseUrl: "https://openrouter.ai/api/v1",
+      await credentialManager.set("minimax", {
+        apiKey: "mm-key",
+        baseUrl: "https://api.minimax.chat/v1",
       });
-      await configManager.save({ activeProvider: "openrouter" });
+      await configManager.save({ activeProvider: "minimax" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.resolve();
 
-      expect(result?.id).toBe("openrouter");
-      expect(result?.apiKey).toBe("or-key");
-      expect(result?.baseUrl).toBe("https://openrouter.ai/api/v1");
+      expect(result?.id).toBe("minimax");
+      expect(result?.apiKey).toBe("mm-key");
+      expect(result?.baseUrl).toBe("https://api.minimax.chat/v1");
     });
 
     test("DECA_PROVIDER env takes highest priority", async () => {
       await credentialManager.set("anthropic", { apiKey: "ant-key" });
-      await credentialManager.set("openrouter", { apiKey: "or-key" });
+      await credentialManager.set("minimax", { apiKey: "mm-key" });
       await configManager.save({ activeProvider: "anthropic" });
 
       const resolver = createProviderResolver(
         configManager,
         credentialManager,
-        { DECA_PROVIDER: "openrouter" },
+        { DECA_PROVIDER: "minimax" },
       );
       const result = await resolver.resolve();
 
-      expect(result?.id).toBe("openrouter");
+      expect(result?.id).toBe("minimax");
     });
 
     test("falls back to default model when not specified", async () => {
@@ -107,21 +107,8 @@ describe("createProviderResolver", () => {
       expect(result?.model).toBe("claude-sonnet-4-20250514");
     });
 
-    test("includes headers when provider specifies them", async () => {
-      await credentialManager.set("openrouter", {
-        apiKey: "or-key",
-        headers: { "HTTP-Referer": "https://deca.local" },
-      });
-      await configManager.save({ activeProvider: "openrouter" });
-
-      const resolver = createProviderResolver(configManager, credentialManager);
-      const result = await resolver.resolve();
-
-      expect(result?.headers).toEqual({ "HTTP-Referer": "https://deca.local" });
-    });
-
     test("returns null when activeProvider has no credentials", async () => {
-      await configManager.save({ activeProvider: "openrouter" });
+      await configManager.save({ activeProvider: "minimax" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.resolve();
@@ -171,13 +158,13 @@ describe("createProviderResolver", () => {
 
     test("returns all configured provider IDs", async () => {
       await credentialManager.set("anthropic", { apiKey: "key1" });
-      await credentialManager.set("openrouter", { apiKey: "key2" });
+      await credentialManager.set("minimax", { apiKey: "key2" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.list();
 
       expect(result).toContain("anthropic");
-      expect(result).toContain("openrouter");
+      expect(result).toContain("minimax");
       expect(result.length).toBe(2);
     });
 

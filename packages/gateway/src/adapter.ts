@@ -20,7 +20,6 @@ export function createAgentAdapter(config: AgentAdapterConfig): MessageHandler {
   const agentConfig: AgentConfig = {
     apiKey: config.apiKey,
     baseUrl: config.baseUrl,
-    defaultHeaders: config.headers,
     model: config.model,
     agentId: config.agentId ?? "deca",
     systemPrompt: config.systemPrompt,
