@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { CredentialManager, CredentialStore } from "./types";
 
 const VALID_CREDENTIALS: (keyof CredentialStore)[] = [
-  "anthropic",
+  "glm",
   "minimax",
   "discord",
   "github",

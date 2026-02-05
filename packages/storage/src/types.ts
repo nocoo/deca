@@ -89,10 +89,10 @@ export interface ConfigManager {
 // ============== Provider Types ==============
 
 /** Supported AI provider identifiers */
-export type ProviderId = "anthropic" | "minimax";
+export type ProviderId = "glm" | "minimax";
 
 /** Provider IDs that are actual LLM providers (not discord/github) */
-export const LLM_PROVIDER_IDS: ProviderId[] = ["anthropic", "minimax"];
+export const LLM_PROVIDER_IDS: ProviderId[] = ["glm", "minimax"];
 
 /** Model configuration for AI providers */
 export interface ModelConfig {
@@ -134,7 +134,7 @@ export interface ResolvedProvider {
 
 export interface CredentialStore {
   // LLM Providers
-  anthropic?: ProviderCredential;
+  glm?: ProviderCredential;
   minimax?: ProviderCredential;
 
   // Non-LLM credentials

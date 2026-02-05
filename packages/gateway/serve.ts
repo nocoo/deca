@@ -63,7 +63,7 @@ if (!provider) {
   console.error("❌ No LLM provider credentials found.");
   console.error("   Create ~/.deca/credentials/<provider>.json with:");
   console.error('   { "apiKey": "sk-..." }\n');
-  console.error("   Supported providers: anthropic, minimax\n");
+  console.error("   Supported providers: glm, minimax\n");
   process.exit(1);
 }
 

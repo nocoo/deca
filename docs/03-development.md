@@ -135,7 +135,7 @@ git commit -m "feat: add agent core"
 
 | 变量 | 说明 | 必需 |
 |------|------|------|
-| `DECA_PROVIDER` | 指定使用的 LLM Provider (anthropic/minimax) | 可选 |
+| `DECA_PROVIDER` | 指定使用的 LLM Provider (glm/minimax) | 可选 |
 | `DISCORD_TOKEN` | Discord Bot Token | Discord 通道必需 |
 | `DECA_API_KEY` | HTTP API 认证 Key | HTTP 通道可选 |
 
@@ -153,17 +153,18 @@ Deca 支持多 Provider 切换，通过 `~/.deca/credentials/` 目录下的 JSON
 
 | Provider | 文件名 | 说明 |
 |----------|--------|------|
-| `anthropic` | `anthropic.json` | Anthropic Claude API |
+| `glm` | `glm.json` | GLM (ZhiPu) API - Anthropic 兼容 |
 | `minimax` | `minimax.json` | MiniMax API |
 
 ### Credential 文件示例
 
 ```json
-// ~/.deca/credentials/anthropic.json
+// ~/.deca/credentials/glm.json
 {
-  "apiKey": "sk-ant-...",
+  "apiKey": "your-glm-api-key",
+  "baseUrl": "https://open.bigmodel.cn/api/anthropic",
   "models": {
-    "default": "claude-sonnet-4-20250514"
+    "default": "glm-4.7"
   }
 }
 ```

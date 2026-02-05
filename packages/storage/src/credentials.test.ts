@@ -27,21 +27,21 @@ describe("createCredentialManager", () => {
 
   test("get returns null for non-existent credential", async () => {
     const manager = createCredentialManager(tempDir);
-    const result = await manager.get("anthropic");
+    const result = await manager.get("glm");
     expect(result).toBeNull();
   });
 
   test("set creates credential file", async () => {
     const manager = createCredentialManager(tempDir);
-    await manager.set("anthropic", {
-      apiKey: "sk-ant-test-key",
-      baseUrl: "https://api.anthropic.com",
+    await manager.set("glm", {
+      apiKey: "glm-test-key",
+      baseUrl: "https://open.bigmodel.cn/api/anthropic",
     });
 
-    const result = await manager.get("anthropic");
+    const result = await manager.get("glm");
     expect(result).toEqual({
-      apiKey: "sk-ant-test-key",
-      baseUrl: "https://api.anthropic.com",
+      apiKey: "glm-test-key",
+      baseUrl: "https://open.bigmodel.cn/api/anthropic",
     });
   });
 
@@ -81,7 +81,7 @@ describe("createCredentialManager", () => {
 
   test("delete does not throw for non-existent credential", async () => {
     const manager = createCredentialManager(tempDir);
-    await expect(manager.delete("anthropic")).resolves.toBeUndefined();
+    await expect(manager.delete("glm")).resolves.toBeUndefined();
   });
 
   test("list returns empty array when no credentials", async () => {
@@ -92,12 +92,12 @@ describe("createCredentialManager", () => {
 
   test("list returns all configured credentials", async () => {
     const manager = createCredentialManager(tempDir);
-    await manager.set("anthropic", { apiKey: "key1" });
+    await manager.set("glm", { apiKey: "key1" });
     await manager.set("discord", { botToken: "token1" });
     await manager.set("github", { token: "token2" });
 
     const result = await manager.list();
-    expect(result).toContain("anthropic");
+    expect(result).toContain("glm");
     expect(result).toContain("discord");
     expect(result).toContain("github");
     expect(result.length).toBe(3);
@@ -105,21 +105,21 @@ describe("createCredentialManager", () => {
 
   test("has returns false for non-existent credential", async () => {
     const manager = createCredentialManager(tempDir);
-    expect(await manager.has("anthropic")).toBe(false);
+    expect(await manager.has("glm")).toBe(false);
   });
 
   test("has returns true for existing credential", async () => {
     const manager = createCredentialManager(tempDir);
-    await manager.set("anthropic", { apiKey: "key" });
-    expect(await manager.has("anthropic")).toBe(true);
+    await manager.set("glm", { apiKey: "key" });
+    expect(await manager.has("glm")).toBe(true);
   });
 
   test("handles all credential types", async () => {
     const manager = createCredentialManager(tempDir);
 
-    await manager.set("anthropic", {
-      apiKey: "ant-key",
-      baseUrl: "https://api.anthropic.com",
+    await manager.set("glm", {
+      apiKey: "glm-key",
+      baseUrl: "https://open.bigmodel.cn/api/anthropic",
     });
     await manager.set("discord", {
       botToken: "discord-token",
@@ -131,7 +131,7 @@ describe("createCredentialManager", () => {
       baseUrl: "https://api.minimax.chat/v1",
     });
 
-    expect((await manager.get("anthropic"))?.apiKey).toBe("ant-key");
+    expect((await manager.get("glm"))?.apiKey).toBe("glm-key");
     expect((await manager.get("discord"))?.botToken).toBe("discord-token");
     expect((await manager.get("github"))?.token).toBe("gh-token");
     expect((await manager.get("minimax"))?.apiKey).toBe("minimax-key");
@@ -153,11 +153,11 @@ describe("createCredentialManager", () => {
 
   test("list includes all provider types", async () => {
     const manager = createCredentialManager(tempDir);
-    await manager.set("anthropic", { apiKey: "k1" });
+    await manager.set("glm", { apiKey: "k1" });
     await manager.set("minimax", { apiKey: "k2" });
 
     const result = await manager.list();
-    expect(result).toContain("anthropic");
+    expect(result).toContain("glm");
     expect(result).toContain("minimax");
   });
 });

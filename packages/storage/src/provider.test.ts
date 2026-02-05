@@ -37,18 +37,19 @@ describe("createProviderResolver", () => {
       expect(result).toBeNull();
     });
 
-    test("returns anthropic when only anthropic.json exists", async () => {
-      await credentialManager.set("anthropic", {
-        apiKey: "sk-ant-test",
-        models: { default: "claude-sonnet" },
+    test("returns glm when only glm.json exists", async () => {
+      await credentialManager.set("glm", {
+        apiKey: "glm-test-key",
+        baseUrl: "https://open.bigmodel.cn/api/anthropic",
+        models: { default: "glm-4.7" },
       });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.resolve();
 
-      expect(result?.id).toBe("anthropic");
-      expect(result?.apiKey).toBe("sk-ant-test");
-      expect(result?.model).toBe("claude-sonnet");
+      expect(result?.id).toBe("glm");
+      expect(result?.apiKey).toBe("glm-test-key");
+      expect(result?.model).toBe("glm-4.7");
     });
 
     test("returns minimax when only minimax.json exists", async () => {
@@ -68,7 +69,7 @@ describe("createProviderResolver", () => {
     });
 
     test("respects activeProvider in config", async () => {
-      await credentialManager.set("anthropic", { apiKey: "ant-key" });
+      await credentialManager.set("glm", { apiKey: "glm-key" });
       await credentialManager.set("minimax", {
         apiKey: "mm-key",
         baseUrl: "https://api.minimax.chat/v1",
@@ -84,9 +85,9 @@ describe("createProviderResolver", () => {
     });
 
     test("DECA_PROVIDER env takes highest priority", async () => {
-      await credentialManager.set("anthropic", { apiKey: "ant-key" });
+      await credentialManager.set("glm", { apiKey: "glm-key" });
       await credentialManager.set("minimax", { apiKey: "mm-key" });
-      await configManager.save({ activeProvider: "anthropic" });
+      await configManager.save({ activeProvider: "glm" });
 
       const resolver = createProviderResolver(
         configManager,
@@ -99,7 +100,7 @@ describe("createProviderResolver", () => {
     });
 
     test("falls back to default model when not specified", async () => {
-      await credentialManager.set("anthropic", { apiKey: "key" });
+      await credentialManager.set("glm", { apiKey: "key" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.resolve();
@@ -117,7 +118,7 @@ describe("createProviderResolver", () => {
     });
 
     test("ignores invalid DECA_PROVIDER value", async () => {
-      await credentialManager.set("anthropic", { apiKey: "ant-key" });
+      await credentialManager.set("glm", { apiKey: "glm-key" });
 
       const resolver = createProviderResolver(
         configManager,
@@ -126,7 +127,7 @@ describe("createProviderResolver", () => {
       );
       const result = await resolver.resolve();
 
-      expect(result?.id).toBe("anthropic");
+      expect(result?.id).toBe("glm");
     });
   });
 
@@ -140,12 +141,12 @@ describe("createProviderResolver", () => {
     });
 
     test("returns provider when available", async () => {
-      await credentialManager.set("anthropic", { apiKey: "key" });
+      await credentialManager.set("glm", { apiKey: "key" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.resolveOrThrow();
 
-      expect(result.id).toBe("anthropic");
+      expect(result.id).toBe("glm");
     });
   });
 
@@ -157,26 +158,26 @@ describe("createProviderResolver", () => {
     });
 
     test("returns all configured provider IDs", async () => {
-      await credentialManager.set("anthropic", { apiKey: "key1" });
+      await credentialManager.set("glm", { apiKey: "key1" });
       await credentialManager.set("minimax", { apiKey: "key2" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.list();
 
-      expect(result).toContain("anthropic");
+      expect(result).toContain("glm");
       expect(result).toContain("minimax");
       expect(result.length).toBe(2);
     });
 
     test("excludes non-provider credentials (discord, github)", async () => {
-      await credentialManager.set("anthropic", { apiKey: "key" });
+      await credentialManager.set("glm", { apiKey: "key" });
       await credentialManager.set("discord", { botToken: "token" });
       await credentialManager.set("github", { token: "gh-token" });
 
       const resolver = createProviderResolver(configManager, credentialManager);
       const result = await resolver.list();
 
-      expect(result).toEqual(["anthropic"]);
+      expect(result).toEqual(["glm"]);
     });
   });
 });
