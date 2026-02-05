@@ -120,4 +120,25 @@ describe("createConfigManager", () => {
 
     expect(loaded).toEqual(complexConfig);
   });
+
+  test("get/set activeProvider", async () => {
+    const manager = createConfigManager(configPath);
+
+    await manager.save({ activeProvider: "openrouter" });
+
+    const config = await manager.load();
+    expect(config.activeProvider).toBe("openrouter");
+  });
+
+  test("activeProvider persists with other config", async () => {
+    const manager = createConfigManager(configPath);
+    await manager.save({
+      activeProvider: "minimax",
+      models: { default: "claude-sonnet" },
+    });
+
+    const config = await manager.load();
+    expect(config.activeProvider).toBe("minimax");
+    expect(config.models?.default).toBe("claude-sonnet");
+  });
 });
