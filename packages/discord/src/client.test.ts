@@ -5,6 +5,7 @@ import {
   connectDiscord,
   createDiscordClient,
   disconnectDiscord,
+  getClientIntents,
   isClientConnected,
 } from "./client";
 
@@ -153,5 +154,92 @@ describe("isClientConnected", () => {
     const client = createDiscordClient();
 
     expect(isClientConnected(client)).toBe(false);
+  });
+});
+
+describe("getClientIntents", () => {
+  it("returns array of intent names", () => {
+    const client = createDiscordClient();
+
+    const intents = getClientIntents(client);
+
+    expect(Array.isArray(intents)).toBe(true);
+    expect(intents.length).toBeGreaterThan(0);
+    expect(intents).toContain("Guilds");
+    expect(intents).toContain("GuildMessages");
+    expect(intents).toContain("DirectMessages");
+    expect(intents).toContain("MessageContent");
+  });
+
+  it("returns only requested intents for custom config", () => {
+    const client = createDiscordClient({
+      intents: [GatewayIntentBits.Guilds],
+    });
+
+    const intents = getClientIntents(client);
+
+    expect(intents).toContain("Guilds");
+    expect(intents).not.toContain("DirectMessages");
+    expect(intents).not.toContain("MessageContent");
+  });
+
+  it("returns empty array when no intents", () => {
+    const client = createDiscordClient({
+      intents: [],
+    });
+
+    const intents = getClientIntents(client);
+
+    expect(intents).toEqual([]);
+  });
+});
+
+describe("connectDiscord login error handling", () => {
+  let mockClient: Client;
+
+  beforeEach(() => {
+    mockClient = createDiscordClient();
+  });
+
+  afterEach(() => {
+    try {
+      mockClient.destroy();
+    } catch {
+      // Ignore
+    }
+  });
+
+  it("rejects when login throws error", async () => {
+    // Mock login to reject immediately
+    mockClient.login = mock(() =>
+      Promise.reject(new Error("Invalid token")),
+    );
+
+    await expect(
+      connectDiscord(mockClient, "bad-token", { timeout: 1000 }),
+    ).rejects.toThrow("Invalid token");
+  });
+
+  it("rejects only once when multiple errors occur", async () => {
+    // Add an error handler to prevent unhandled error
+    mockClient.on(Events.Error, () => {
+      // Swallow error to prevent unhandled error
+    });
+
+    // Mock login to reject AND emit error
+    mockClient.login = mock(() => {
+      setTimeout(() => {
+        mockClient.emit(Events.Error, new Error("Second error"));
+      }, 5);
+      return Promise.reject(new Error("First error"));
+    });
+
+    // Should only reject once with first error
+    await expect(
+      connectDiscord(mockClient, "bad-token", { timeout: 1000 }),
+    ).rejects.toThrow("First error");
+
+    // Wait for the setTimeout to complete
+    await new Promise((resolve) => setTimeout(resolve, 20));
   });
 });

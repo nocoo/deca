@@ -475,4 +475,175 @@ describe("createMessageListener", () => {
 
     expect(typeof cleanup).toBe("function");
   });
+
+  it("has shutdown method on cleanup function", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = { handler: createMockHandler() };
+
+    const cleanup = createMessageListener(client, config);
+
+    expect(typeof cleanup.shutdown).toBe("function");
+  });
+
+  it("has pendingCount property on cleanup function", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = { handler: createMockHandler() };
+
+    const cleanup = createMessageListener(client, config);
+
+    expect(cleanup.pendingCount).toBe(0);
+  });
+
+  it("creates with debounce enabled", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = {
+      handler: createMockHandler(),
+      debounce: { enabled: true, windowMs: 1000 },
+    };
+
+    const cleanup = createMessageListener(client, config);
+
+    expect(typeof cleanup).toBe("function");
+    cleanup();
+  });
+
+  it("creates with debounce disabled", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = {
+      handler: createMockHandler(),
+      debounce: { enabled: false },
+    };
+
+    const cleanup = createMessageListener(client, config);
+
+    expect(typeof cleanup).toBe("function");
+  });
+
+  it("cleanup removes event listener", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = { handler: createMockHandler() };
+
+    const cleanup = createMessageListener(client, config);
+    cleanup();
+
+    expect(client.off).toHaveBeenCalled();
+  });
+
+  it("shutdown waits for pending tasks and removes listener", async () => {
+    const client = createMockClient();
+    const config: ListenerConfig = { handler: createMockHandler() };
+
+    const cleanup = createMessageListener(client, config);
+    await cleanup.shutdown?.();
+
+    expect(client.off).toHaveBeenCalled();
+  });
+});
+
+describe("processMessage edge cases", () => {
+  it("skips empty content after extraction", async () => {
+    const handler = createMockHandler();
+    // Message with only bot mention = empty after extraction
+    const message = createMockMessage({
+      content: "<@bot123>",
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    // Handler should not be called for empty content
+    expect(handler.handle).not.toHaveBeenCalled();
+  });
+
+  it("skips whitespace-only content", async () => {
+    const handler = createMockHandler();
+    const message = createMockMessage({
+      content: "   ",
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(handler.handle).not.toHaveBeenCalled();
+  });
+
+  it("handles DM messages (no guild)", async () => {
+    const handler = createMockHandler();
+    const message = createMockMessage({
+      content: "Hello!",
+      guild: null as unknown as Guild,
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(handler.handle).toHaveBeenCalled();
+    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const request = call[0];
+    expect(request.channel.type).toBe("dm");
+  });
+
+  it("handles thread messages", async () => {
+    const handler = createMockHandler();
+    const threadChannel = createMockChannel({
+      id: "thread123",
+      name: "thread-name",
+      type: DJSChannelType.PublicThread,
+    });
+    // Add parentId for thread
+    (threadChannel as unknown as { parentId: string }).parentId =
+      "parent-channel-id";
+
+    const message = createMockMessage({
+      content: "Hello from thread!",
+      channel: threadChannel,
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(handler.handle).toHaveBeenCalled();
+    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const request = call[0];
+    expect(request.channel.type).toBe("thread");
+    expect(request.channel.threadId).toBe("thread123");
+  });
+
+  it("handles private thread messages", async () => {
+    const handler = createMockHandler();
+    const threadChannel = createMockChannel({
+      id: "private-thread123",
+      type: DJSChannelType.PrivateThread,
+    });
+    (threadChannel as unknown as { parentId: string | null }).parentId = null;
+
+    const message = createMockMessage({
+      content: "Hello from private thread!",
+      channel: threadChannel,
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(handler.handle).toHaveBeenCalled();
+    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const request = call[0];
+    expect(request.channel.type).toBe("thread");
+  });
+
+  it("handles channel without name property", async () => {
+    const handler = createMockHandler();
+    const channelWithoutName = {
+      id: "channel789",
+      type: DJSChannelType.GuildText,
+      send: mock(() => Promise.resolve({ id: "sent-id" })),
+      sendTyping: mock(() => Promise.resolve()),
+      isTextBased: () => true,
+      // No 'name' property
+    } as unknown as TextChannel;
+
+    const message = createMockMessage({
+      content: "Hello!",
+      channel: channelWithoutName,
+    });
+
+    await processMessage(message, "bot123", { handler });
+
+    expect(handler.handle).toHaveBeenCalled();
+  });
 });
