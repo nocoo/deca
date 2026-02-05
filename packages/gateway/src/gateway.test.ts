@@ -1,6 +1,64 @@
-import { describe, expect, it, afterEach } from "bun:test";
-import { createEchoGateway } from "./gateway";
+import { describe, expect, it, afterEach, mock, beforeEach } from "bun:test";
 import type { Gateway } from "./types";
+
+// ============================================================================
+// Mocks
+// ============================================================================
+
+// Mock Agent
+const mockAgentRun = mock(() =>
+  Promise.resolve({ text: "Agent response", turns: 1, toolCalls: 0 }),
+);
+
+mock.module("@deca/agent", () => ({
+  Agent: class MockAgent {
+    constructor(public config: unknown) {}
+    run = mockAgentRun;
+  },
+}));
+
+// Mock Discord
+const mockDiscordConnect = mock(() => Promise.resolve());
+const mockDiscordShutdown = mock(() => Promise.resolve());
+
+mock.module("@deca/discord", () => ({
+  createDiscordGateway: mock((config: unknown) => ({
+    connect: mockDiscordConnect,
+    shutdown: mockDiscordShutdown,
+    config,
+  })),
+}));
+
+// Mock Terminal
+const mockTerminalStart = mock(() => Promise.resolve());
+const mockTerminalStop = mock(() => {});
+
+mock.module("@deca/terminal", () => ({
+  createTerminal: mock((config: unknown) => ({
+    start: mockTerminalStart,
+    stop: mockTerminalStop,
+    config,
+  })),
+}));
+
+// Mock HTTP
+const mockHttpStart = mock(() => Promise.resolve());
+const mockHttpStop = mock(() => {});
+
+mock.module("@deca/http", () => ({
+  createHttpServer: mock((config: unknown) => ({
+    start: mockHttpStart,
+    stop: mockHttpStop,
+    config,
+  })),
+}));
+
+// Import after mocks are set up
+import { createGateway, createEchoGateway } from "./gateway";
+
+// ============================================================================
+// Test Utilities
+// ============================================================================
 
 // Track gateways to clean up
 const gateways: Gateway[] = [];
@@ -13,6 +71,247 @@ afterEach(async () => {
   }
   gateways.length = 0;
 });
+
+beforeEach(() => {
+  // Reset mocks
+  mockAgentRun.mockClear();
+  mockDiscordConnect.mockClear();
+  mockDiscordShutdown.mockClear();
+  mockTerminalStart.mockClear();
+  mockTerminalStop.mockClear();
+  mockHttpStart.mockClear();
+  mockHttpStop.mockClear();
+});
+
+// ============================================================================
+// createGateway Tests
+// ============================================================================
+
+describe("createGateway", () => {
+  describe("lifecycle", () => {
+    it("starts and stops correctly with HTTP channel", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      expect(gateway.isRunning).toBe(false);
+      expect(gateway.channels).toEqual([]);
+
+      await gateway.start();
+      expect(gateway.isRunning).toBe(true);
+      expect(gateway.channels).toContain("http");
+      expect(mockHttpStart).toHaveBeenCalledTimes(1);
+
+      await gateway.stop();
+      expect(gateway.isRunning).toBe(false);
+      expect(gateway.channels).toEqual([]);
+      expect(mockHttpStop).toHaveBeenCalledTimes(1);
+    });
+
+    it("starts and stops correctly with Discord channel", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      expect(gateway.channels).toContain("discord");
+      expect(mockDiscordConnect).toHaveBeenCalledTimes(1);
+
+      await gateway.stop();
+      expect(mockDiscordShutdown).toHaveBeenCalledTimes(1);
+    });
+
+    it("starts and stops correctly with Terminal channel", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        terminal: { enabled: true, userId: "user1" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      expect(gateway.channels).toContain("terminal");
+
+      // Terminal start is called asynchronously
+      await new Promise((r) => setTimeout(r, 10));
+
+      await gateway.stop();
+      expect(mockTerminalStop).toHaveBeenCalledTimes(1);
+    });
+
+    it("starts all channels when configured", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token" },
+        http: { port: 3000 },
+        terminal: { enabled: true },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(gateway.channels).toContain("discord");
+      expect(gateway.channels).toContain("http");
+      expect(gateway.channels).toContain("terminal");
+    });
+
+    it("ignores multiple start calls", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.start();
+
+      expect(mockHttpStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores multiple stop calls", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.stop();
+      await gateway.stop();
+
+      expect(mockHttpStop).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("event callbacks", () => {
+    it("calls onStart when gateway starts", async () => {
+      let started = false;
+
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+        events: {
+          onStart: () => {
+            started = true;
+          },
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      expect(started).toBe(true);
+    });
+
+    it("calls onStop when gateway stops", async () => {
+      let stopped = false;
+
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+        events: {
+          onStop: () => {
+            stopped = true;
+          },
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.stop();
+      expect(stopped).toBe(true);
+    });
+  });
+
+  describe("handler", () => {
+    it("returns agent adapter as handler", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      expect(gateway.handler).toBeDefined();
+      expect(typeof gateway.handler.handle).toBe("function");
+    });
+
+    it("handler calls agent.run", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      await gateway.handler.handle({
+        sessionKey: "test:session:123",
+        content: "hello",
+        sender: { id: "user1" },
+      });
+
+      expect(mockAgentRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("terminal error handling", () => {
+    it("catches terminal start errors", async () => {
+      let capturedError: Error | null = null;
+
+      mockTerminalStart.mockImplementation(() =>
+        Promise.reject(new Error("Terminal failed")),
+      );
+
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        terminal: { enabled: true },
+        events: {
+          onError: (error) => {
+            capturedError = error;
+          },
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      // Wait for async error
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(capturedError).not.toBeNull();
+      expect(capturedError?.message).toBe("Terminal failed");
+    });
+
+    it("catches terminal start errors (non-Error)", async () => {
+      let capturedError: Error | null = null;
+
+      mockTerminalStart.mockImplementation(() => Promise.reject("string error"));
+
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        terminal: { enabled: true },
+        events: {
+          onError: (error) => {
+            capturedError = error;
+          },
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      // Wait for async error
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(capturedError).not.toBeNull();
+      expect(capturedError?.message).toBe("string error");
+    });
+  });
+});
+
+// ============================================================================
+// createEchoGateway Tests
+// ============================================================================
 
 describe("createEchoGateway", () => {
   describe("lifecycle", () => {
@@ -71,6 +370,19 @@ describe("createEchoGateway", () => {
       const channels2 = gateway.channels.length;
 
       expect(channels1).toBe(channels2);
+    });
+
+    it("ignores multiple stop calls", async () => {
+      const gateway = createEchoGateway({
+        http: { port: 0 },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.stop();
+      await gateway.stop();
+
+      expect(gateway.isRunning).toBe(false);
     });
   });
 
@@ -132,57 +444,45 @@ describe("createEchoGateway", () => {
       expect(gateway.channels).toContain("http");
       expect(gateway.channels).toContain("terminal");
     });
-  });
 
-  describe("event callbacks", () => {
-    it("calls onMessage when message processed", async () => {
-      let messageChannel: string | null = null;
-      let messageSession: string | null = null;
-
+    it("supports discord channel", async () => {
       const gateway = createEchoGateway({
-        http: { port: 0 },
-        events: {
-          onMessage: (channel, sessionKey) => {
-            messageChannel = channel;
-            messageSession = sessionKey;
-          },
-        },
+        discord: { token: "test-token" },
       });
       gateways.push(gateway);
 
       await gateway.start();
 
-      // Directly call handler to test event
-      await gateway.handler.handle({
-        sessionKey: "test:session:456",
-        content: "hello",
-        sender: { id: "user1" },
-      });
-
-      // Note: Direct handler calls don't go through wrap, so this tests the base handler
-      // The wrapped handlers are internal to the gateway
+      expect(gateway.channels).toContain("discord");
     });
 
-    it("calls onResponse after handler responds", async () => {
-      let responseChannel: string | null = null;
-      let responseSuccess: boolean | null = null;
-
+    it("supports all channels together", async () => {
       const gateway = createEchoGateway({
+        discord: { token: "test-token" },
         http: { port: 0 },
-        events: {
-          onResponse: (channel, _sessionKey, success) => {
-            responseChannel = channel;
-            responseSuccess = success;
-          },
-        },
+        terminal: { enabled: true },
       });
       gateways.push(gateway);
 
       await gateway.start();
 
-      // Test via HTTP endpoint to go through wrapped handler
-      const httpPort = (gateway as unknown as { channels: string[] }).channels.includes("http");
-      expect(httpPort).toBe(true);
+      expect(gateway.channels).toContain("discord");
+      expect(gateway.channels).toContain("http");
+      expect(gateway.channels).toContain("terminal");
+    });
+  });
+
+  describe("terminal handling", () => {
+    it("respects terminal.enabled = false", async () => {
+      const gateway = createEchoGateway({
+        http: { port: 0 },
+        terminal: { enabled: false },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(gateway.channels).not.toContain("terminal");
     });
   });
 });
