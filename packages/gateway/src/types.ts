@@ -108,6 +108,9 @@ export interface DiscordChannelConfig {
   /** Require bot mention (default: false) */
   requireMention?: boolean;
 
+  /** Ignore bot messages (default: true) */
+  ignoreBots?: boolean;
+
   /** Allowlist configuration */
   allowlist?: {
     guilds?: string[];

@@ -84,6 +84,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         handler: wrapHandler("discord"),
         requireMention: discord.requireMention,
         allowlist: discord.allowlist,
+        ignoreBots: discord.ignoreBots,
         events: {
           onError: (error) => events.onError?.(error, "discord"),
         },
@@ -214,6 +215,7 @@ export function createEchoGateway(
         handler: wrapHandler("discord"),
         requireMention: discord.requireMention,
         allowlist: discord.allowlist,
+        ignoreBots: discord.ignoreBots,
       });
       await discordGateway.connect();
       activeChannels.push("discord");

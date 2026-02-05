@@ -7,6 +7,7 @@
  * Environment variables:
  *   ANTHROPIC_API_KEY - Required for agent
  *   DISCORD_TOKEN     - Discord bot token (optional)
+ *   DISCORD_ALLOW_BOTS - Allow bot messages (default: false)
  *   HTTP_PORT         - HTTP server port (default: 3000)
  *   HTTP_API_KEY      - HTTP API key (optional)
  *   TERMINAL          - Enable terminal REPL (default: false)
@@ -20,6 +21,7 @@ import { createGateway, createEchoGateway } from "./src";
 // Configuration from environment
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 const discordToken = process.env.DISCORD_TOKEN;
+const discordAllowBots = process.env.DISCORD_ALLOW_BOTS === "true";
 const httpPort = Number(process.env.HTTP_PORT) || 3000;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
@@ -35,10 +37,18 @@ if (echoMode) {
   }
 }
 
+// Discord config
+const discordConfig = discordToken
+  ? {
+      token: discordToken,
+      ignoreBots: !discordAllowBots,
+    }
+  : undefined;
+
 // Build gateway config
 const gateway = echoMode
   ? createEchoGateway({
-      discord: discordToken ? { token: discordToken } : undefined,
+      discord: discordConfig,
       http: { port: httpPort, apiKey: httpApiKey },
       terminal: enableTerminal ? { enabled: true } : undefined,
       events: {
@@ -53,7 +63,7 @@ const gateway = echoMode
         apiKey: anthropicApiKey as string,
         agentId: "deca",
       },
-      discord: discordToken ? { token: discordToken } : undefined,
+      discord: discordConfig,
       http: { port: httpPort, apiKey: httpApiKey },
       terminal: enableTerminal ? { enabled: true } : undefined,
       events: {
