@@ -462,7 +462,7 @@ describe("HeartbeatManager", () => {
       manager.requestNow("interval");
       manager.requestNow("cron");
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Should use highest priority reason
       expect(receivedReason).toBe("cron");

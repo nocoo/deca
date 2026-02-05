@@ -373,17 +373,18 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
 
     // 3. Wait for bot response (LLM call can take time)
     // Custom wait that excludes the webhook message
-    const botResponse = await waitForBotReply(
+    const botResponses = await waitForBotReplies(
       { botToken: discord.botToken, channelId: discord.testChannelId },
       testId,
       webhookMessageId,
       {
         timeout: 60000, // 60 seconds for LLM
         interval: 1000,
+        minMessages: 2, // Wait for at least 2 messages (debug + actual response)
       },
     );
 
-    if (!botResponse) {
+    if (botResponses.length === 0) {
       return {
         name,
         passed: false,
@@ -392,15 +393,19 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
       };
     }
 
-    // 4. Verify response mentions Paris
-    if (
-      !botResponse.content.toLowerCase().includes("paris") &&
-      !botResponse.content.includes("Paris")
-    ) {
+    // 4. Verify at least one response mentions Paris
+    const hasParisResponse = botResponses.some(
+      (msg) =>
+        msg.content.toLowerCase().includes("paris") ||
+        msg.content.includes("Paris"),
+    );
+
+    if (!hasParisResponse) {
+      const allContent = botResponses.map((m) => m.content).join("\n---\n");
       return {
         name,
         passed: false,
-        error: `Response doesn't mention Paris: ${botResponse.content.slice(0, 200)}`,
+        error: `No response mentions Paris. Got ${botResponses.length} messages: ${allContent.slice(0, 300)}`,
         duration: Date.now() - startTime,
       };
     }
@@ -418,6 +423,66 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
       await gateway.stop();
     }
   }
+}
+
+/**
+ * Wait for bot replies, excluding the original webhook message.
+ * Returns all bot messages found that match criteria.
+ */
+async function waitForBotReplies(
+  config: { botToken: string; channelId: string },
+  testId: string,
+  excludeMessageId: string | undefined,
+  options: { timeout: number; interval: number; minMessages?: number },
+): Promise<DiscordMessageData[]> {
+  const startTime = Date.now();
+  const minMessages = options.minMessages ?? 1;
+
+  while (Date.now() - startTime < options.timeout) {
+    const result = await fetchChannelMessages(config, 20);
+
+    if (result.success) {
+      // Find all bot messages that:
+      // 1. Are NOT the webhook message we sent
+      // 2. Are from a bot (author.bot = true)
+      // 3. Reference our test message
+      const responses = result.messages.filter((msg) => {
+        if (excludeMessageId && msg.id === excludeMessageId) {
+          return false; // Skip the webhook message
+        }
+        if (!msg.author.bot) {
+          return false; // Only bot messages
+        }
+        // Look for response that references our test ID OR is a direct reply
+        return (
+          msg.content.includes(testId) ||
+          isReplyToTestMessage(msg, excludeMessageId)
+        );
+      });
+
+      // Return if we have enough messages
+      if (responses.length >= minMessages) {
+        return responses;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, options.interval));
+  }
+
+  // Return whatever we found, even if less than minMessages
+  const finalResult = await fetchChannelMessages(config, 20);
+  if (finalResult.success) {
+    return finalResult.messages.filter((msg) => {
+      if (excludeMessageId && msg.id === excludeMessageId) return false;
+      if (!msg.author.bot) return false;
+      return (
+        msg.content.includes(testId) ||
+        isReplyToTestMessage(msg, excludeMessageId)
+      );
+    });
+  }
+
+  return [];
 }
 
 /**
