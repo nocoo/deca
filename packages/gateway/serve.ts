@@ -64,6 +64,7 @@ const gateway = createGateway({
         token: discord.botToken,
         requireMention,
         ignoreBots: true,
+        allowlist: discord.guildId ? { guilds: [discord.guildId] } : undefined,
       }
     : undefined,
   http: {
@@ -98,7 +99,8 @@ try {
   console.log("\n📡 Active channels:");
   for (const channel of gateway.channels) {
     if (channel === "discord") {
-      console.log(`  - discord (requireMention: ${requireMention})`);
+      const guildInfo = discord?.guildId ? ` guildId: ${discord.guildId}` : "";
+      console.log(`  - discord (requireMention: ${requireMention}${guildInfo})`);
     } else {
       console.log(`  - ${channel}`);
     }

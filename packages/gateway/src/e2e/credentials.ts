@@ -23,11 +23,13 @@ export interface DiscordCredentials {
   /** Bot token for Discord API */
   botToken: string;
   /** Webhook URL for sending test messages */
-  webhookUrl: string;
+  webhookUrl?: string;
   /** Channel ID for fetching messages */
-  testChannelId: string;
+  testChannelId?: string;
   /** Bot's user ID (optional) */
   botUserId?: string;
+  /** Guild ID to restrict bot to (security) */
+  guildId?: string;
 }
 
 const CREDENTIALS_DIR = join(homedir(), ".deca", "credentials");
