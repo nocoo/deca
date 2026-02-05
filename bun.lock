@@ -42,6 +42,20 @@
         "@types/bun": "latest",
       },
     },
+    "packages/gateway": {
+      "name": "@deca/gateway",
+      "version": "0.1.0",
+      "dependencies": {
+        "@deca/agent": "workspace:*",
+        "@deca/discord": "workspace:*",
+        "@deca/http": "workspace:*",
+        "@deca/storage": "workspace:*",
+        "@deca/terminal": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+    },
     "packages/http": {
       "name": "@deca/http",
       "version": "0.1.0",
@@ -94,6 +108,8 @@
     "@deca/api": ["@deca/api@workspace:apps/api"],
 
     "@deca/discord": ["@deca/discord@workspace:packages/discord"],
+
+    "@deca/gateway": ["@deca/gateway@workspace:packages/gateway"],
 
     "@deca/http": ["@deca/http@workspace:packages/http"],
 

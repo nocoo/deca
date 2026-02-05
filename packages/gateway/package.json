@@ -1,0 +1,26 @@
+{
+  "name": "@deca/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "start": "bun run cli.ts",
+    "test": "bun test",
+    "test:unit": "bun test src/",
+    "test:e2e": "bun run src/e2e/runner.ts",
+    "lint": "biome lint src",
+    "format": "biome format src"
+  },
+  "dependencies": {
+    "@deca/agent": "workspace:*",
+    "@deca/discord": "workspace:*",
+    "@deca/http": "workspace:*",
+    "@deca/storage": "workspace:*",
+    "@deca/terminal": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
