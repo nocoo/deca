@@ -32,7 +32,7 @@ const discord = loadDiscordCredentials();
 const httpPort = Number(process.env.HTTP_PORT) || 7014;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
-const requireMention = process.env.REQUIRE_MENTION !== "false"; // default: true
+const requireMention = process.env.REQUIRE_MENTION === "true"; // default: false
 
 console.log("🚀 Starting Deca Gateway...\n");
 
