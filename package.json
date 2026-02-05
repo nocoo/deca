@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "bun@1.1.34",
   "scripts": {
-    "dev": "bun --filter '@deca/gateway' start",
+    "dev": "bun --filter '@deca/gateway' serve",
     "gateway": "bun --filter '@deca/gateway' serve",
     "test": "bun run test:unit",
     "test:unit": "bun --filter '@deca/*' test:unit",
