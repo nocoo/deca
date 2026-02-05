@@ -24,9 +24,6 @@ packages/
   http/       - HTTP API channel (Hono)
   gateway/    - Assembly layer (combines agent + channels)
 
-apps/
-  api/        - Legacy HTTP API (Elysia, executors, providers)
-
 docs/
   deca/       - Architecture and design documents
 ```
@@ -52,10 +49,10 @@ agent → storage
 bun install
 
 # Run gateway with echo mode (no API key required)
-cd packages/gateway && bun run start
+bun run dev
 
 # Run gateway with agent (requires API key)
-cd packages/gateway && ANTHROPIC_API_KEY=xxx bun run start
+ANTHROPIC_API_KEY=xxx bun run dev
 
 # Run individual channel standalone
 cd packages/discord && DISCORD_TOKEN=xxx bun run standalone
@@ -77,11 +74,6 @@ bun --filter @deca/agent test:unit
 bun --filter @deca/gateway test:unit
 ```
 
-## Local Domains
-
-- API: `https://deca.dev.hexly.ai` (Caddy -> 127.0.0.1:7010)
-- Console: `https://deca-console.dev.hexly.ai` (Caddy -> 127.0.0.1:7011)
-
 ## Test Stats
 
 | Package | Tests |
@@ -92,5 +84,4 @@ bun --filter @deca/gateway test:unit
 | @deca/http | 35 |
 | @deca/storage | 29 |
 | @deca/gateway | 14 |
-| @deca/api | 25 |
-| **Total** | **676** |
+| **Total** | **651** |

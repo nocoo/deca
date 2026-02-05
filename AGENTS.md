@@ -16,9 +16,6 @@ packages/
   terminal/   - Terminal REPL channel
   http/       - HTTP API channel (Hono)
   gateway/    - Assembly layer (combines agent + channels)
-
-apps/
-  api/        - Legacy HTTP API (executors, providers)
 ```
 
 ## Critical Dependency Rules

@@ -3,18 +3,17 @@
   "private": true,
   "packageManager": "bun@1.1.34",
   "scripts": {
-    "dev": "bun --filter ./apps/api dev",
-    "dev:api": "bun --filter ./apps/api dev",
+    "dev": "bun --filter '@deca/gateway' start",
     "test": "bun run test:unit",
-    "test:unit": "bun --filter '@deca/*' test:unit && bun --filter ./apps/api test:unit",
-    "test:e2e": "bun --filter '@deca/agent' test:e2e && bun --filter ./apps/api test:e2e",
+    "test:unit": "bun --filter '@deca/*' test:unit",
+    "test:e2e": "bun --filter '@deca/agent' test:e2e",
     "test:all": "bun run test:unit && bun run test:e2e",
     "test:coverage": "bun --filter '@deca/*' test --coverage",
-    "lint": "bun --filter ./apps/api lint && bun --filter '@deca/*' lint",
+    "lint": "bun --filter '@deca/*' lint",
     "format": "biome format .",
     "prepare": "husky"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["packages/*"],
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
     "husky": "^9.1.7"
