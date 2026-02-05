@@ -24,7 +24,7 @@ import {
 // Configuration
 // =============================================================================
 
-const DEFAULT_GATEWAY_URL = "http://localhost:8080";
+const DEFAULT_GATEWAY_URL = "http://localhost:7014";
 const DEFAULT_OUTPUT_DIR = "./reports";
 
 export interface RunnerConfig {
@@ -339,7 +339,7 @@ Usage:
   bun run runner.ts [options]
 
 Options:
-  --gateway-url=<url>  Gateway URL (default: http://localhost:8080)
+  --gateway-url=<url>  Gateway URL (default: http://localhost:7014)
   --output=<dir>       Output directory (default: ./reports)
   --case=<id>          Run single case by ID
   --api-key=<key>      API key for gateway
@@ -349,7 +349,7 @@ Options:
 Examples:
   bun run runner.ts
   bun run runner.ts --case=identity-001
-  bun run runner.ts --gateway-url=http://localhost:3000
+  bun run runner.ts --gateway-url=http://localhost:7014
 `);
       process.exit(0);
     }

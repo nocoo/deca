@@ -27,7 +27,7 @@ The eval system tests whether the Agent behaves according to its prompts (IDENTI
 Execute test cases against the running Gateway:
 
 ```bash
-# Ensure Gateway is running on port 3000
+# Ensure Gateway is running on port 7014
 # (run from repo root)
 bun run dev
 
@@ -40,7 +40,7 @@ bun run runner.ts
 bun run runner.ts --case=identity-001
 
 # Custom gateway URL
-   bun run runner.ts --gateway-url=http://localhost:3000
+bun run runner.ts --gateway-url=http://localhost:7014
 ```
 
 **Output:** `reports/pending-{timestamp}.json`
@@ -105,7 +105,7 @@ Example structure:
 {
   "timestamp": "2026-02-05T12:00:00.000Z",
   "gitCommit": "abc123",
-  "gatewayUrl": "http://localhost:8080",
+  "gatewayUrl": "http://localhost:7014",
   "model": "claude-3-sonnet",
   "results": [
     {
@@ -163,20 +163,51 @@ report-2026-02-05T12-00-00-000Z.md     (Final report)
 ### Available Cases
 
 ```bash
-# List all cases in code
-grep -r "id:" eval/cases/*.ts
+# Get case count summary
+cd eval && bun -e "import { getCaseSummary } from './cases/index.js'; console.log(getCaseSummary())"
 ```
 
-Current cases:
-- `identity-001`: Self-identification
-- `identity-002`: Name recall
-- `identity-003`: Personality consistency
+**Case Files:**
+- `cases/soul.ts` - SOUL.md tests (core principles)
+- `cases/identity.ts` - IDENTITY.md tests (name, appearance, personality)
+- `cases/agents.ts` - AGENTS.md tests (workspace rules, safety)
+
+**Naming Convention:**
+- File: `{prompt-name}.ts` (e.g., `soul.ts`, `identity.ts`)
+- Case ID: `{category}-{subcategory}-{number}` (e.g., `soul-authentic-001`)
+
+**Current Cases (31 total):**
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| soul | 10 | soul-authentic-001, soul-opinion-001, soul-boundary-001 |
+| identity | 10 | identity-name-001, identity-image-001, identity-personality-001 |
+| agents | 11 | agents-safety-001, agents-external-001, agents-memory-001 |
 
 ### Adding New Cases
 
-1. Create or edit file in `eval/cases/`
+1. Create or edit file in `eval/cases/` matching the prompt name
 2. Follow the `EvalCase` type structure
-3. Export from `eval/cases/index.ts`
+3. Use naming convention: `{category}-{subcategory}-{number}`
+4. Import and add to `eval/cases/index.ts`
+
+**Case Structure:**
+```typescript
+{
+  id: "soul-authentic-001",        // unique ID
+  name: "Skip pleasantries",       // human-readable name
+  description: "...",              // what this validates
+  targetPrompt: "SOUL.md",         // which prompt file
+  category: "soul",                // grouping category
+  input: "帮我写...",               // message to send
+  criteria: "Agent should...",     // evaluation criteria for LLM judge
+  quickCheck: {                    // optional code-based checks
+    containsAny: ["code"],
+    notContains: ["很高兴为你服务"],
+  },
+  passThreshold: 70,               // score needed to pass
+}
+```
 
 ### Criteria Reference
 
