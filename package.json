@@ -12,7 +12,10 @@
     "test:coverage": "bun --filter '@deca/*' test --coverage",
     "lint": "bun --filter '@deca/*' lint",
     "format": "biome format .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "eval": "bun run eval/runner.ts",
+    "eval:report": "bun run eval/reporter.ts",
+    "eval:test": "bun test --cwd eval"
   },
   "workspaces": ["packages/*"],
   "devDependencies": {

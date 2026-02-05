@@ -7,7 +7,9 @@
     "lint": "biome check .",
     "format": "biome format . --write",
     "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "run": "bun run runner.ts",
+    "report": "bun run reporter.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
