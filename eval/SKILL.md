@@ -27,7 +27,10 @@ The eval system tests whether the Agent behaves according to its prompts (IDENTI
 Execute test cases against the running Gateway:
 
 ```bash
-# Ensure Gateway is running on port 8080
+# Ensure Gateway is running on port 3000
+# (run from repo root)
+bun run dev
+
 cd eval
 
 # Run all cases
@@ -37,7 +40,7 @@ bun run runner.ts
 bun run runner.ts --case=identity-001
 
 # Custom gateway URL
-bun run runner.ts --gateway-url=http://localhost:3000
+   bun run runner.ts --gateway-url=http://localhost:3000
 ```
 
 **Output:** `reports/pending-{timestamp}.json`
@@ -193,9 +196,9 @@ cat eval/cases/identity.ts
 Error: Connection refused
 ```
 
-Start the Gateway first:
+Start the Gateway first (from repo root):
 ```bash
-bun run start
+bun run dev
 ```
 
 ### No Results in Pending

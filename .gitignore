@@ -13,3 +13,7 @@ apps/**/coverage
 .mini-agent/
 .openclaw-mini/
 *.credentials.json
+
+# Eval reports
+eval/reports/*.json
+eval/reports/*.md
