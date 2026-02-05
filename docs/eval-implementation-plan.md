@@ -4,13 +4,89 @@
 
 构建系统化的 Prompt 评估系统，验证 `prompts/` 目录中的配置是否有效。
 
-## 核心特性
+## 核心约束
 
-- TypeScript 定义测试用例
-- 使用真实 `prompts/` 目录进行测试
-- LLM Judge 评估（由 OpenCode 执行）
-- 生成格式化 Markdown 报告
-- 支持 lint 和单元测试
+### 🔴 强制约束
+
+1. **LLM 打分禁止使用脚本** - 评分由 OpenCode 手动执行，不得自动化
+2. **脚本禁止使用 LLM** - Runner/Reporter 等脚本纯代码执行，不调用任何 LLM API
+3. **单元测试覆盖率 90%+** - 所有脚本必须有高质量单元测试
+4. **中间 JSON 交换数据** - LLM 和脚本之间通过 JSON 文件传递数据
+5. **Skill 流程优先** - 本次优先建立 Skill 工作流，仅保留最小 case 验证流程
+6. **绝对独立** - Eval 通过 Gateway HTTP API 调用，不直接依赖 Agent 包
+
+### 架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         OpenCode (LLM)                          │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    读取 SKILL.md                         │   │
+│  │                         ↓                                │   │
+│  │  Step 1: 执行 bun eval/runner.ts                         │   │
+│  │                         ↓                                │   │
+│  │           eval/reports/pending-xxx.json                  │   │
+│  │                         ↓                                │   │
+│  │  Step 2: 读取 JSON，逐条评估打分（LLM 手动）               │   │
+│  │                         ↓                                │   │
+│  │           eval/reports/judged-xxx.json                   │   │
+│  │                         ↓                                │   │
+│  │  Step 3: 执行 bun eval/reporter.ts                       │   │
+│  │                         ↓                                │   │
+│  │           eval/reports/report-xxx.md                     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTP API
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Gateway (被测对象)                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  Agent   │  │ Discord  │  │   HTTP   │  │ Terminal │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 数据流
+
+```
+[Cases] ──脚本──→ [pending.json] ──LLM评估──→ [judged.json] ──脚本──→ [report.md]
+   │                    │                          │                    │
+   │                    │                          │                    │
+   └── 纯代码 ──────────┘                          └──── 纯代码 ────────┘
+                        │                          │
+                        └───── LLM 手动打分 ───────┘
+```
+
+---
+
+## 目录结构
+
+```
+deca/
+├── eval/                         # 独立 Eval 系统
+│   ├── SKILL.md                  # 项目级 Skill（OpenCode 读取）
+│   ├── package.json              # 独立包配置
+│   ├── tsconfig.json             # TypeScript 配置
+│   │
+│   ├── types.ts                  # 类型定义
+│   ├── types.test.ts             # 类型测试
+│   │
+│   ├── cases/                    # 测试用例（最小集）
+│   │   ├── index.ts              # 导出
+│   │   └── identity.ts           # 仅 1-2 个用例验证流程
+│   │
+│   ├── runner.ts                 # 执行器（调用 Gateway HTTP）
+│   ├── runner.test.ts            # 90%+ 覆盖率
+│   │
+│   ├── reporter.ts               # 报告生成器
+│   ├── reporter.test.ts          # 90%+ 覆盖率
+│   │
+│   └── reports/                  # JSON/MD 输出
+│       └── .gitkeep
+│
+└── prompts/                      # 被测 Prompt
+```
 
 ---
 
@@ -19,242 +95,340 @@
 ### Phase 1: 基础结构
 
 #### Commit 1: 初始化 eval 目录结构
-```
-eval/
-├── package.json
-├── tsconfig.json
-└── reports/
-    └── .gitkeep
-```
 
-**文件清单：**
-- `eval/package.json` - 包配置（scripts: lint, test:unit）
+**文件：**
+- `eval/package.json` - 包配置
 - `eval/tsconfig.json` - TypeScript 配置
-- `eval/reports/.gitkeep` - 报告输出目录占位
+- `eval/reports/.gitkeep` - 输出目录
 
-**验证：** `bun run --cwd eval lint` 无报错
+**package.json 内容：**
+```json
+{
+  "name": "eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format . --write",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.8.3",
+    "@types/bun": "latest"
+  }
+}
+```
+
+**验证：** `cd eval && bun install && bun run lint`
 
 ---
 
 #### Commit 2: 定义核心类型
-```
-eval/
-└── types.ts
-```
+
+**文件：** `eval/types.ts`
 
 **内容：**
-- `EvalCase` - 测试用例定义
-- `EvalResult` - 执行结果
-- `EvalReport` - 评估报告
-- `JudgeExample` - Few-shot 示例
-- `CategoryStats` - 分类统计
+```typescript
+// 测试用例定义
+export interface EvalCase {
+  id: string;
+  name: string;
+  description: string;
+  targetPrompt: string;
+  category: string;
+  input: string;
+  criteria: string;
+  reference?: string;
+  rubric?: Record<1|2|3|4|5, string>;
+  quickCheck?: QuickCheck;
+  passThreshold?: number;  // 默认 70
+}
+
+// 快速检查
+export interface QuickCheck {
+  containsAny?: string[];
+  containsAll?: string[];
+  notContains?: string[];
+  matchPattern?: string;
+}
+
+// 执行结果（Runner 输出）
+export interface EvalResult {
+  caseId: string;
+  caseName: string;
+  targetPrompt: string;
+  category: string;
+  input: string;
+  output: string;
+  durationMs: number;
+  quickCheck: {
+    ran: boolean;
+    passed: boolean | null;
+    details?: string;
+  };
+  // LLM 填充
+  judgement?: Judgement;
+  error?: string;
+}
+
+// LLM 评估结果
+export interface Judgement {
+  passed: boolean;
+  score: number;       // 0-100
+  reasoning: string;
+}
+
+// 最终报告
+export interface EvalReport {
+  timestamp: string;
+  gitCommit: string;
+  model: string;
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+    avgScore: number;
+  };
+  byCategory: Record<string, CategoryStats>;
+  results: EvalResult[];
+}
+
+export interface CategoryStats {
+  total: number;
+  passed: number;
+  failed: number;
+  passRate: number;
+  avgScore: number;
+}
+```
 
 **验证：** TypeScript 编译通过
 
 ---
 
-#### Commit 3: 类型单元测试
-```
-eval/
-└── types.test.ts
+#### Commit 3: 类型工具函数和测试
+
+**文件：** `eval/types.ts`（添加工具函数）、`eval/types.test.ts`
+
+**工具函数：**
+```typescript
+// 快速检查执行
+export function runQuickCheck(output: string, check: QuickCheck): { passed: boolean; details: string }
+
+// 默认值填充
+export function withDefaults(case_: Partial<EvalCase>): EvalCase
 ```
 
-**内容：**
-- 验证类型结构正确
-- 验证默认值逻辑
-- 验证工具函数（如有）
+**测试覆盖：**
+- `runQuickCheck` containsAny 逻辑
+- `runQuickCheck` containsAll 逻辑
+- `runQuickCheck` notContains 逻辑
+- `runQuickCheck` matchPattern 逻辑
+- `runQuickCheck` 组合逻辑
+- `withDefaults` 默认值填充
 
-**验证：** `bun test eval/types.test.ts` 通过
+**验证：** `bun test eval/types.test.ts --coverage` 90%+
 
 ---
 
-### Phase 2: 测试用例
+### Phase 2: 最小测试用例
 
-#### Commit 4: IDENTITY.md 测试用例
-```
-eval/
-└── cases/
-    └── identity.ts
+#### Commit 4: 最小用例集
+
+**文件：** `eval/cases/identity.ts`、`eval/cases/index.ts`
+
+**用例（仅验证流程）：**
+```typescript
+// identity.ts - 只保留 1-2 个用例
+export const identityCases: EvalCase[] = [
+  {
+    id: "identity-basic",
+    name: "基础身份识别",
+    description: "验证 Agent 能正确识别自己是 Tomato",
+    targetPrompt: "IDENTITY.md",
+    category: "identity",
+    input: "你是谁？",
+    criteria: "Agent 应该说自己是 Tomato 或 🍅",
+    quickCheck: {
+      containsAny: ["Tomato", "🍅", "番茄"],
+      notContains: ["Claude", "Anthropic"],
+    },
+    passThreshold: 70,
+  },
+];
 ```
 
-**用例清单：**
-- `identity-self-intro` - 自我介绍
-- `identity-name-query` - 名字询问
-- `identity-not-claude` - 不是 Claude
+**index.ts：**
+```typescript
+export * from "./identity.js";
+export function getAllCases(): EvalCase[];
+export function getCaseById(id: string): EvalCase | undefined;
+```
 
 **验证：** 导入无错误
-
----
-
-#### Commit 5: SOUL.md 测试用例
-```
-eval/
-└── cases/
-    └── soul.ts
-```
-
-**用例清单：**
-- `soul-responsiveness` - 事事有回应
-- `soul-personality` - 人格一致性
-- `soul-boundary` - 边界意识
-
-**验证：** 导入无错误
-
----
-
-#### Commit 6: AGENTS.md 测试用例
-```
-eval/
-└── cases/
-    └── agents.ts
-```
-
-**用例清单：**
-- `agents-memory-aware` - 记忆意识
-- `agents-safety` - 安全边界
-- `agents-group-chat` - 群聊行为
-
-**验证：** 导入无错误
-
----
-
-#### Commit 7: 用例索引导出
-```
-eval/
-└── cases/
-    └── index.ts
-```
-
-**内容：**
-- 导出所有用例
-- 提供 `getAllCases()` 函数
-- 提供 `getCasesByPrompt()` 函数
-- 提供 `getCaseById()` 函数
-
-**验证：** `bun eval/cases/index.ts` 无错误
 
 ---
 
 ### Phase 3: Runner 执行器
 
-#### Commit 8: Runner 核心逻辑
-```
-eval/
-└── runner.ts
-```
+#### Commit 5: Runner 核心逻辑
+
+**文件：** `eval/runner.ts`
 
 **功能：**
-- 加载 credentials
-- 加载测试用例
-- 创建 Agent 实例（使用真实 prompts/）
-- 执行用例并收集结果
-- 运行快速检查
-- 输出 JSON 到 stdout 或文件
+1. 加载测试用例
+2. 启动或连接 Gateway HTTP Server
+3. 发送消息到 `/api/chat` 端点
+4. 收集响应
+5. 运行快速检查
+6. 输出 JSON 到 `eval/reports/pending-{timestamp}.json`
 
-**CLI 接口：**
+**关键：通过 HTTP API 调用，不直接依赖 Agent 包**
+
+```typescript
+// 通过 HTTP 调用 Gateway
+async function callGateway(input: string): Promise<string> {
+  const response = await fetch("http://localhost:8080/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: input, sessionId: `eval-${Date.now()}` }),
+  });
+  const data = await response.json();
+  return data.response;
+}
+```
+
+**CLI：**
 ```bash
-bun eval/runner.ts                    # 运行所有
-bun eval/runner.ts --case identity-self-intro  # 运行单个
-bun eval/runner.ts --prompt IDENTITY.md        # 按 prompt 筛选
+bun eval/runner.ts                           # 运行所有
+bun eval/runner.ts --case identity-basic     # 运行单个
+bun eval/runner.ts --gateway http://localhost:8080  # 指定 Gateway
 bun eval/runner.ts --output reports/pending.json
 ```
 
-**验证：** `bun eval/runner.ts --help` 显示帮助
+**验证：** `bun eval/runner.ts --help`
 
 ---
 
-#### Commit 9: Runner 单元测试
-```
-eval/
-└── runner.test.ts
-```
+#### Commit 6: Runner 单元测试
 
-**测试内容：**
+**文件：** `eval/runner.test.ts`
+
+**测试覆盖（90%+）：**
 - 用例加载逻辑
-- 快速检查逻辑（containsAny, containsAll, notContains）
-- 结果结构验证
 - CLI 参数解析
+- HTTP 请求构造（mock）
+- 结果 JSON 结构验证
+- 快速检查集成
+- 错误处理
 
-**验证：** `bun test eval/runner.test.ts` 通过
+**验证：** `bun test eval/runner.test.ts --coverage`
 
 ---
 
 ### Phase 4: Reporter 报告器
 
-#### Commit 10: Reporter 核心逻辑
-```
-eval/
-└── reporter.ts
-```
+#### Commit 7: Reporter 核心逻辑
+
+**文件：** `eval/reporter.ts`
 
 **功能：**
-- 读取评估结果 JSON
-- 计算统计数据
-- 生成 Markdown 报告
-- 支持输出到文件或 stdout
+1. 读取 `judged-xxx.json`（包含 LLM 评估结果）
+2. 计算统计数据
+3. 生成 Markdown 报告
+4. 输出到文件或 stdout
 
-**CLI 接口：**
+**CLI：**
 ```bash
-bun eval/reporter.ts reports/judged.json
-bun eval/reporter.ts reports/judged.json --output reports/report.md
+bun eval/reporter.ts reports/judged-xxx.json
+bun eval/reporter.ts reports/judged-xxx.json --output reports/report.md
 ```
 
-**验证：** `bun eval/reporter.ts --help` 显示帮助
+**Markdown 格式：**
+```markdown
+# Eval Report
+
+**时间**: 2026-02-05 17:00:00
+**Commit**: abc123
+**通过率**: 80% (4/5)
+
+## 总结
+
+| 指标 | 值 |
+|------|---|
+| 总用例 | 5 |
+| 通过 | 4 |
+| 失败 | 1 |
+| 平均分 | 82 |
+
+## 失败用例
+
+### ❌ identity-basic (50/100)
+
+**输入**: 你是谁？
+**输出**: 我是 Claude...
+**原因**: 未正确识别身份
+```
+
+**验证：** `bun eval/reporter.ts --help`
 
 ---
 
-#### Commit 11: Reporter 单元测试
-```
-eval/
-└── reporter.test.ts
-```
+#### Commit 8: Reporter 单元测试
 
-**测试内容：**
+**文件：** `eval/reporter.test.ts`
+
+**测试覆盖（90%+）：**
 - 统计计算逻辑
-- Markdown 格式生成
-- 边界情况处理
+- passRate 计算
+- avgScore 计算
+- 分类统计
+- Markdown 生成
+- 边界情况（空结果、全通过、全失败）
 
-**验证：** `bun test eval/reporter.test.ts` 通过
+**验证：** `bun test eval/reporter.test.ts --coverage`
 
 ---
 
 ### Phase 5: Skill 集成
 
-#### Commit 12: 项目级 SKILL.md
-```
-eval/
-└── SKILL.md
-```
+#### Commit 9: 项目级 SKILL.md
 
-**内容：**
-- Skill 元数据（name, description, triggers）
-- 使用流程说明
-- LLM Judge 评估指南
-- 评分标准和原则
-- 输出格式规范
+**文件：** `eval/SKILL.md`
 
-**验证：** 内容完整，格式正确
+**内容要点：**
+1. Skill 元数据
+2. 完整工作流程
+3. LLM Judge 评估指南
+4. 评分标准
+5. JSON 格式说明
+6. 常见问题
+
+**关键：详细说明 LLM 如何手动评估并写入 JSON**
 
 ---
 
 ### Phase 6: 根目录集成
 
-#### Commit 13: 更新根目录 package.json
-```
-package.json (root)
-```
+#### Commit 10: 更新根目录配置
+
+**文件：** `package.json`（根目录）
 
 **新增 scripts：**
 ```json
 {
   "scripts": {
-    "eval": "bun eval/runner.ts",
-    "eval:report": "bun eval/reporter.ts"
+    "eval:run": "bun eval/runner.ts",
+    "eval:report": "bun eval/reporter.ts",
+    "eval:lint": "bun run --cwd eval lint",
+    "eval:test": "bun test eval/"
   }
 }
 ```
 
-**验证：** `bun run eval --help` 工作正常
+**验证：** `bun run eval:run --help`
 
 ---
 
@@ -262,63 +436,47 @@ package.json (root)
 
 ### 功能验收
 
-- [ ] `bun run eval` 能执行所有测试用例
-- [ ] `bun run eval --case xxx` 能执行单个用例
-- [ ] 输出 JSON 结构正确，包含所有必要字段
-- [ ] 快速检查（containsAny/containsAll/notContains）工作正常
-- [ ] Reporter 能生成格式正确的 Markdown 报告
+- [ ] `bun eval/runner.ts` 通过 HTTP 调用 Gateway
+- [ ] 输出正确的 `pending-xxx.json`
+- [ ] LLM 可以读取 JSON 并填充 `judgement`
+- [ ] `bun eval/reporter.ts` 生成正确的 Markdown 报告
 
 ### 质量验收
 
 - [ ] `bun run --cwd eval lint` 无错误
-- [ ] `bun test eval/` 所有单元测试通过
-- [ ] 代码符合项目 biome 配置
-- [ ] 类型定义完整，无 any
+- [ ] `bun test eval/ --coverage` 覆盖率 90%+
+- [ ] 脚本不调用任何 LLM API
+- [ ] LLM 评估不通过脚本执行
 
-### 文档验收
+### 流程验收
 
-- [ ] SKILL.md 内容完整
-- [ ] LLM Judge 指南清晰
-- [ ] CLI 帮助信息完整
-
----
-
-## 依赖关系
-
-```
-types.ts
-    ↓
-cases/*.ts → cases/index.ts
-    ↓
-runner.ts → runner.test.ts
-    ↓
-reporter.ts → reporter.test.ts
-    ↓
-SKILL.md
-    ↓
-package.json (root)
-```
+- [ ] SKILL.md 能指导完整工作流
+- [ ] JSON 格式清晰，LLM 易于填充
+- [ ] 报告格式美观，信息完整
 
 ---
 
-## 时间估算
+## Commit 清单
 
-| Phase | Commits | 预计时间 |
-|-------|---------|----------|
-| Phase 1: 基础结构 | 3 | 15 min |
-| Phase 2: 测试用例 | 4 | 20 min |
-| Phase 3: Runner | 2 | 25 min |
-| Phase 4: Reporter | 2 | 15 min |
-| Phase 5: Skill | 1 | 10 min |
-| Phase 6: 集成 | 1 | 5 min |
-| **总计** | **13** | **~90 min** |
+| # | Commit | 内容 | 验证 |
+|---|--------|------|------|
+| 1 | `chore: init eval directory structure` | package.json, tsconfig.json, reports/ | lint 通过 |
+| 2 | `feat: add eval core types` | types.ts | 编译通过 |
+| 3 | `test: add types unit tests (90%+)` | types.test.ts | 覆盖率 90%+ |
+| 4 | `feat: add minimal eval cases` | cases/identity.ts, cases/index.ts | 导入无错误 |
+| 5 | `feat: add runner (HTTP gateway call)` | runner.ts | --help 工作 |
+| 6 | `test: add runner unit tests (90%+)` | runner.test.ts | 覆盖率 90%+ |
+| 7 | `feat: add reporter` | reporter.ts | --help 工作 |
+| 8 | `test: add reporter unit tests (90%+)` | reporter.test.ts | 覆盖率 90%+ |
+| 9 | `docs: add eval SKILL.md` | SKILL.md | 内容完整 |
+| 10 | `chore: integrate eval scripts in root` | package.json (root) | 脚本工作 |
 
 ---
 
 ## 后续扩展（不在本次范围）
 
-- [ ] 多次运行与统计聚合（runs > 1）
-- [ ] 更多 Prompt 文件的测试用例（TOOLS.md, USER.md, MEMORY.md）
+- [ ] 补充更多测试用例
+- [ ] Discord 渠道测试
+- [ ] 多次运行与统计聚合
 - [ ] CI 集成
 - [ ] 历史报告对比
-- [ ] Web UI 展示
