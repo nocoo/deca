@@ -60,6 +60,8 @@ export interface DecaConfig {
       enabled?: boolean;
       defaultChannelId?: string;
       allowedUsers?: string[];
+      /** Enable debug mode - show session ID and timing info (default: true) */
+      debugMode?: boolean;
     };
   };
 

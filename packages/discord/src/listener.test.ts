@@ -319,7 +319,7 @@ describe("processMessage", () => {
     const handler = createMockHandler({ text: "Hello!", success: true });
     const message = createMockMessage();
 
-    await processMessage(message, "bot123", { handler });
+    await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalledWith("Hello!");
   });
@@ -332,7 +332,7 @@ describe("processMessage", () => {
     });
     const message = createMockMessage();
 
-    await processMessage(message, "bot123", { handler });
+    await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
     const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
@@ -345,7 +345,7 @@ describe("processMessage", () => {
     };
     const message = createMockMessage();
 
-    await processMessage(message, "bot123", { handler });
+    await processMessage(message, "bot123", { handler, debugMode: false });
 
     // Should send error message, not throw
     expect(message.reply).toHaveBeenCalled();
@@ -362,7 +362,7 @@ describe("processMessage", () => {
     const message = createMockMessage();
 
     // Should not throw, should handle gracefully
-    await processMessage(message, "bot123", { handler });
+    await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
     const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
@@ -379,7 +379,7 @@ describe("processMessage", () => {
 
     // Should not throw even if reply fails
     await expect(
-      processMessage(message, "bot123", { handler }),
+      processMessage(message, "bot123", { handler, debugMode: false }),
     ).resolves.toBeUndefined();
   });
 
@@ -389,7 +389,7 @@ describe("processMessage", () => {
     };
     const message = createMockMessage();
 
-    await processMessage(message, "bot123", { handler });
+    await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
     const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
@@ -404,6 +404,73 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(channel.sendTyping).toHaveBeenCalled();
+  });
+
+  describe("debugMode", () => {
+    it("sends debug message before processing when debugMode is true", async () => {
+      const handler = createMockHandler({ text: "Response", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler, debugMode: true });
+
+      // Should have 2 replies: debug message + actual response
+      expect(message.reply).toHaveBeenCalledTimes(2);
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      const secondCall = (message.reply as ReturnType<typeof mock>).mock.calls[1];
+
+      // First message should be debug info
+      expect(firstCall[0]).toContain("Processing...");
+      expect(firstCall[0]).toContain("Session:");
+      expect(firstCall[0]).toContain("```");
+
+      // Second message should be actual response
+      expect(secondCall[0]).toBe("Response");
+    });
+
+    it("sends debug message by default (debugMode undefined)", async () => {
+      const handler = createMockHandler({ text: "Response", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler });
+
+      // Should have 2 replies: debug message + actual response
+      expect(message.reply).toHaveBeenCalledTimes(2);
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      expect(firstCall[0]).toContain("Processing...");
+    });
+
+    it("skips debug message when debugMode is false", async () => {
+      const handler = createMockHandler({ text: "Response", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler, debugMode: false });
+
+      // Should only have 1 reply: actual response
+      expect(message.reply).toHaveBeenCalledTimes(1);
+      expect(message.reply).toHaveBeenCalledWith("Response");
+    });
+
+    it("includes short session key in debug message", async () => {
+      const handler = createMockHandler({ text: "OK", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler, debugMode: true });
+
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      // Session key should be truncated (last 12 chars with ... prefix)
+      expect(firstCall[0]).toMatch(/Session: \.\.\.[a-z0-9:]+/i);
+    });
+
+    it("includes timestamp in debug message", async () => {
+      const handler = createMockHandler({ text: "OK", success: true });
+      const message = createMockMessage();
+
+      await processMessage(message, "bot123", { handler, debugMode: true });
+
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      // Should contain ISO timestamp format
+      expect(firstCall[0]).toMatch(/Time: \d{4}-\d{2}-\d{2}T/);
+    });
   });
 
   describe("reactions", () => {

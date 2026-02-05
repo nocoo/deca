@@ -120,6 +120,9 @@ export interface DiscordChannelConfig {
     channels?: string[];
     users?: string[];
   };
+
+  /** Debug mode - show session ID and timing info before processing (default: true) */
+  debugMode?: boolean;
 }
 
 /**

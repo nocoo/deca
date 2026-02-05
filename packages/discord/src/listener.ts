@@ -62,6 +62,9 @@ export interface ListenerConfig {
     /** Debounce window in milliseconds (default: 3000) */
     windowMs?: number;
   };
+
+  /** Debug mode - show session ID and timing info before processing (default: true) */
+  debugMode?: boolean;
 }
 
 /**
@@ -281,7 +284,15 @@ async function executeHandler(
   botUserId: string,
   config: ListenerConfig,
 ): Promise<void> {
+  const startTime = Date.now();
+
   try {
+    // Send debug acknowledgment if enabled (default: true)
+    if (config.debugMode !== false) {
+      const debugInfo = formatDebugMessage(request.sessionKey, startTime);
+      await sendReply(message, debugInfo);
+    }
+
     // Call handler
     const response = await config.handler.handle(request);
 
@@ -305,6 +316,19 @@ async function executeHandler(
     }
     await markError(message, botUserId);
   }
+}
+
+/**
+ * Format debug message with session info.
+ */
+function formatDebugMessage(sessionKey: string, startTime: number): string {
+  const timestamp = new Date(startTime).toISOString();
+  // Use short session key (last 8 chars) for readability
+  const shortSession = sessionKey.length > 20
+    ? `...${sessionKey.slice(-12)}`
+    : sessionKey;
+
+  return `\`\`\`\n⏳ Processing...\nSession: ${shortSession}\nTime: ${timestamp}\n\`\`\``;
 }
 
 /**

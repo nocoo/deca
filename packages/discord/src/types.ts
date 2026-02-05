@@ -125,6 +125,9 @@ export interface DiscordGatewayConfig {
     /** Debounce window in milliseconds (default: 3000) */
     windowMs?: number;
   };
+
+  /** Debug mode - show session ID and timing info before processing (default: true) */
+  debugMode?: boolean;
 }
 
 /**
