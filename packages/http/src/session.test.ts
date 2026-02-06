@@ -2,84 +2,108 @@ import { describe, expect, it } from "bun:test";
 import {
   generateSessionKey,
   parseSessionKey,
-  generateSessionId,
+  extractUserId,
   extractSessionId,
 } from "./session";
 import { HTTP_SESSION_PREFIX } from "./types";
 
-describe("generateSessionId", () => {
-  it("generates unique IDs", () => {
-    const id1 = generateSessionId();
-    const id2 = generateSessionId();
-
-    expect(id1).not.toBe(id2);
-    expect(id1.length).toBeGreaterThan(10);
-  });
-
-  it("generates string IDs", () => {
-    const id = generateSessionId();
-    expect(typeof id).toBe("string");
-  });
-});
-
 describe("generateSessionKey", () => {
-  it("generates key with default values", () => {
-    const key = generateSessionKey();
-    expect(key).toMatch(new RegExp(`^${HTTP_SESSION_PREFIX}:deca:.+$`));
-  });
-
-  it("generates key with custom sessionId", () => {
-    const key = generateSessionKey({ sessionId: "session123" });
-    expect(key).toBe(`${HTTP_SESSION_PREFIX}:deca:session123`);
+  it("generates key with unified format", () => {
+    const key = generateSessionKey({ userId: "user123" });
+    expect(key).toBe("agent:deca:user:user123");
   });
 
   it("generates key with custom agentId", () => {
-    const key = generateSessionKey({ sessionId: "s1", agentId: "custom" });
-    expect(key).toBe(`${HTTP_SESSION_PREFIX}:custom:s1`);
+    const key = generateSessionKey({ userId: "user123", agentId: "custom" });
+    expect(key).toBe("agent:custom:user:user123");
+  });
+
+  it("normalizes userId to lowercase", () => {
+    const key = generateSessionKey({ userId: "User123" });
+    expect(key).toBe("agent:deca:user:user123");
+  });
+
+  it("normalizes agentId to lowercase", () => {
+    const key = generateSessionKey({ userId: "user123", agentId: "MyAgent" });
+    expect(key).toBe("agent:myagent:user:user123");
+  });
+
+  it("throws for empty userId", () => {
+    expect(() => generateSessionKey({ userId: "" })).toThrow();
+  });
+
+  it("throws for whitespace userId", () => {
+    expect(() => generateSessionKey({ userId: "   " })).toThrow();
   });
 });
 
 describe("parseSessionKey", () => {
-  it("parses valid session key", () => {
+  it("parses new unified format", () => {
+    const key = "agent:deca:user:user123";
+    const result = parseSessionKey(key);
+
+    expect(result).not.toBeNull();
+    expect(result?.agentId).toBe("deca");
+    expect(result?.userId).toBe("user123");
+  });
+
+  it("parses legacy http format", () => {
     const key = `${HTTP_SESSION_PREFIX}:deca:session123`;
     const result = parseSessionKey(key);
 
     expect(result).not.toBeNull();
     expect(result?.agentId).toBe("deca");
-    expect(result?.sessionId).toBe("session123");
+    expect(result?.userId).toBe("session123");
   });
 
   it("returns null for invalid prefix", () => {
     expect(parseSessionKey("terminal:deca:session")).toBeNull();
   });
 
-  it("returns null for wrong number of parts", () => {
+  it("returns null for wrong number of parts in unified format", () => {
+    expect(parseSessionKey("agent:deca:user")).toBeNull();
+    expect(parseSessionKey("agent:deca:user:a:b")).toBeNull();
+  });
+
+  it("returns null for wrong number of parts in legacy format", () => {
     expect(parseSessionKey("http:deca")).toBeNull();
     expect(parseSessionKey("http:deca:session:extra")).toBeNull();
   });
 
-  it("returns null for empty parts", () => {
+  it("returns null for empty parts in legacy format", () => {
     expect(parseSessionKey("http::session")).toBeNull();
     expect(parseSessionKey("http:deca:")).toBeNull();
   });
 
   it("round-trips with generateSessionKey", () => {
-    const key = generateSessionKey({ sessionId: "test123", agentId: "agent1" });
+    const key = generateSessionKey({ userId: "test123", agentId: "agent1" });
     const parsed = parseSessionKey(key);
 
     expect(parsed).not.toBeNull();
-    expect(parsed?.sessionId).toBe("test123");
+    expect(parsed?.userId).toBe("test123");
     expect(parsed?.agentId).toBe("agent1");
   });
 });
 
-describe("extractSessionId", () => {
-  it("extracts session ID from valid key", () => {
-    const sessionId = extractSessionId("http:deca:abc123");
-    expect(sessionId).toBe("abc123");
+describe("extractUserId", () => {
+  it("extracts userId from new unified format", () => {
+    const userId = extractUserId("agent:deca:user:user123");
+    expect(userId).toBe("user123");
+  });
+
+  it("extracts userId from legacy format", () => {
+    const userId = extractUserId("http:deca:abc123");
+    expect(userId).toBe("abc123");
   });
 
   it("returns null for invalid key", () => {
-    expect(extractSessionId("invalid")).toBeNull();
+    expect(extractUserId("invalid")).toBeNull();
+  });
+});
+
+describe("extractSessionId (deprecated)", () => {
+  it("works as alias for extractUserId", () => {
+    const sessionId = extractSessionId("http:deca:abc123");
+    expect(sessionId).toBe("abc123");
   });
 });

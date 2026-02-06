@@ -29,7 +29,7 @@ export {
 export {
   generateSessionKey,
   parseSessionKey,
-  generateSessionId,
+  extractUserId,
   extractSessionId,
   type SessionKeyParams,
   type HttpSessionInfo,

@@ -6,19 +6,15 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { extractUserId, generateSessionKey } from "./session";
 import type {
-  HttpServer,
-  HttpServerConfig,
   ChatRequestBody,
   ChatResponseBody,
+  HttpServer,
+  HttpServerConfig,
   MessageRequest,
 } from "./types";
-import {
-  DEFAULT_PORT,
-  DEFAULT_HOSTNAME,
-  API_KEY_HEADER,
-} from "./types";
-import { generateSessionKey, extractSessionId } from "./session";
+import { API_KEY_HEADER, DEFAULT_HOSTNAME, DEFAULT_PORT } from "./types";
 
 /**
  * Create an HTTP server instance
@@ -94,10 +90,9 @@ export function createHttpServer(config: HttpServerConfig): HttpServer {
       }
 
       // Generate or use provided session key
-      const sessionKey = generateSessionKey({
-        sessionId: body.sessionId,
-      });
-      const sessionId = extractSessionId(sessionKey) ?? "";
+      const userId = body.senderId ?? "anonymous";
+      const sessionKey = generateSessionKey({ userId });
+      const sessionId = extractUserId(sessionKey) ?? "";
 
       // Create request
       const request: MessageRequest = {
@@ -145,7 +140,8 @@ export function createHttpServer(config: HttpServerConfig): HttpServer {
         return c.json({ success: false, error: "content_required" }, 400);
       }
 
-      const sessionKey = body.sessionKey ?? generateSessionKey();
+      const sessionKey =
+        body.sessionKey ?? generateSessionKey({ userId: "http-client" });
 
       const request: MessageRequest = {
         sessionKey,

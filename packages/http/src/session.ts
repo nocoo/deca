@@ -1,86 +1,73 @@
 /**
  * HTTP Session Key Management
  *
- * Generates and parses session keys for HTTP conversations.
+ * Uses unified format: agent:{agentId}:user:{userId}
+ * Requires userId parameter for user identification.
  */
 
 import { HTTP_SESSION_PREFIX } from "./types";
 
-/**
- * Session key parameters
- */
-export interface SessionKeyParams {
-  /** Session ID */
-  sessionId?: string;
+const DEFAULT_AGENT_ID = "deca";
 
-  /** Agent ID (default: "deca") */
+export interface SessionKeyParams {
+  userId: string;
   agentId?: string;
 }
 
-/**
- * Parsed session key info
- */
 export interface HttpSessionInfo {
-  /** Agent ID */
   agentId: string;
-
-  /** Session ID */
-  sessionId: string;
+  userId: string;
 }
 
-/**
- * Generate a unique session ID
- */
-export function generateSessionId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+function normalizeAgentId(agentId: string | undefined): string {
+  if (!agentId || agentId.trim() === "") {
+    return DEFAULT_AGENT_ID;
+  }
+  return agentId.trim().toLowerCase();
 }
 
-/**
- * Generate a session key for HTTP
- *
- * Format: http:agentId:sessionId
- *
- * @example
- * generateSessionKey({ sessionId: "abc123" })
- * // => "http:deca:abc123"
- */
-export function generateSessionKey(params: SessionKeyParams = {}): string {
-  const { sessionId = generateSessionId(), agentId = "deca" } = params;
-  return `${HTTP_SESSION_PREFIX}:${agentId}:${sessionId}`;
+function normalizeUserId(userId: string): string {
+  return userId.trim().toLowerCase();
 }
 
-/**
- * Parse an HTTP session key
- *
- * @returns Parsed info or null if invalid
- */
+export function generateSessionKey(params: SessionKeyParams): string {
+  const agentId = normalizeAgentId(params.agentId);
+  const userId = normalizeUserId(params.userId);
+  if (!userId) {
+    throw new Error("userId is required for HTTP session");
+  }
+  return `agent:${agentId}:user:${userId}`;
+}
+
 export function parseSessionKey(key: string): HttpSessionInfo | null {
   const parts = key.split(":");
 
-  if (parts.length !== 3) {
-    return null;
+  // New unified format: agent:{agentId}:user:{userId}
+  if (parts.length === 4 && parts[0] === "agent" && parts[2] === "user") {
+    return {
+      agentId: parts[1],
+      userId: parts[3],
+    };
   }
 
-  const [prefix, agentId, sessionId] = parts;
-
-  if (prefix !== HTTP_SESSION_PREFIX) {
-    return null;
+  // Legacy format: http:{agentId}:{sessionId}
+  if (parts.length === 3 && parts[0] === HTTP_SESSION_PREFIX) {
+    const [, agentId, sessionId] = parts;
+    if (!agentId || !sessionId) {
+      return null;
+    }
+    return { agentId, userId: sessionId };
   }
 
-  if (!agentId || !sessionId) {
-    return null;
-  }
-
-  return {
-    agentId,
-    sessionId,
-  };
+  return null;
 }
 
-/**
- * Extract session ID from session key
- */
-export function extractSessionId(sessionKey: string): string | null {
+export function extractUserId(sessionKey: string): string | null {
   const parsed = parseSessionKey(sessionKey);
-  return parsed?.sessionId ?? null;
+  return parsed?.userId ?? null;
+}
+
+/** @deprecated Use extractUserId instead */
+export function extractSessionId(sessionKey: string): string | null {
+  return extractUserId(sessionKey);
 }

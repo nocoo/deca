@@ -1,6 +1,6 @@
-import { describe, expect, it, afterEach } from "bun:test";
-import { createHttpServer } from "./server";
+import { afterEach, describe, expect, it } from "bun:test";
 import { createEchoHandler } from "./echo-handler";
+import { createHttpServer } from "./server";
 import type { HttpServer } from "./types";
 
 // Track servers to clean up
@@ -133,7 +133,7 @@ describe("createHttpServer", () => {
       expect(data.sessionId).toBeDefined();
     });
 
-    it("uses provided session ID", async () => {
+    it("uses provided senderId as session identity", async () => {
       const server = createTestServer({
         handler: createEchoHandler(),
       });
@@ -143,12 +143,12 @@ describe("createHttpServer", () => {
       const response = await fetch(`http://127.0.0.1:${server.port}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "test", sessionId: "my-session" }),
+        body: JSON.stringify({ message: "test", senderId: "user-123" }),
       });
 
       const data = await response.json();
 
-      expect(data.sessionId).toBe("my-session");
+      expect(data.sessionId).toBe("user-123");
     });
 
     it("returns error for missing message", async () => {
