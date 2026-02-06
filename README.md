@@ -41,28 +41,39 @@ ANTHROPIC_API_KEY=xxx bun run dev
 
 ## 🧪 测试
 
+Deca 采用四层测试架构：
+
+| 层级 | 类型 | 命令 | 特点 |
+|------|------|------|------|
+| 1 | Unit | `bun run test:unit` | Mock 依赖，快速 |
+| 2 | Lint | `bun run lint` | 静态检查 |
+| 3 | E2E | `bun --filter @deca/discord test:e2e` | Echo 模式 |
+| 4 | Behavioral | `bun --filter @deca/gateway test:behavioral` | 真实 LLM |
+
 ```bash
-# 运行所有单元测试
+# 单元测试
 bun run test:unit
 
-# 运行代码检查
+# 代码检查
 bun run lint
 
-# 运行特定模块测试
-bun --filter @deca/agent test:unit
+# 行为测试（需要 LLM API + Discord）
+bun --filter @deca/gateway test:behavioral
 ```
+
+详见 [docs/04-testing.md](docs/04-testing.md)
 
 ## 📊 测试覆盖率
 
 | 模块 | 测试数 | 覆盖率目标 |
 |------|--------|-----------|
 | @deca/agent | 319 | 90%+ |
-| @deca/discord | 218 | 90%+ |
-| @deca/terminal | 36 | 90%+ |
+| @deca/discord | 254 | 90%+ |
+| @deca/terminal | 47 | 90%+ |
 | @deca/http | 35 | 90%+ |
-| @deca/storage | 29 | 90%+ |
-| @deca/gateway | 14 | 90%+ |
-| **总计** | **651** | **90%+** |
+| @deca/storage | 47 | 90%+ |
+| @deca/gateway | 37 | 90%+ |
+| **总计** | **739** | **90%+** |
 
 ## 📚 文档
 
@@ -71,8 +82,10 @@ bun --filter @deca/agent test:unit
 | [系统架构](docs/01-architecture.md) | 整体架构设计和模块依赖关系 |
 | [模块详解](docs/02-modules.md) | 各模块功能和接口说明 |
 | [开发指南](docs/03-development.md) | 本地开发环境配置和常用命令 |
-| [测试规范](docs/04-testing.md) | 测试策略、覆盖率要求和 Mock 方案 |
+| [测试规范](docs/04-testing.md) | **四层测试架构**、覆盖率要求 |
 | [贡献指南](docs/05-contributing.md) | Git 规范、代码风格和提交要求 |
+| [E2E 调试](docs/06-e2e-discord-debugging.md) | Discord E2E 调试闭环 |
+| [Agent 工具](docs/07-agent-tools.md) | Agent 工具系统详解 |
 
 ---
 

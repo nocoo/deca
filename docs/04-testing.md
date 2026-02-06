@@ -9,90 +9,128 @@
 3. **隔离测试** - 每个测试独立运行，无副作用
 4. **快速反馈** - 单元测试应在秒级完成
 
+## 四层测试架构
+
+| 层级 | 类型 | 命令 | 特点 | 运行时机 |
+|------|------|------|------|----------|
+| 1 | **Unit** | `test:unit` | Mock 依赖，快速，隔离 | pre-commit |
+| 2 | **Lint** | `lint` | 静态代码检查 | pre-commit |
+| 3 | **E2E** | `test:e2e` | Echo 模式，验证通道集成 | pre-push |
+| 4 | **Behavioral** | `test:behavioral` | 真实 LLM，验证 Agent 行为 | 手动/CI |
+
+### 各层详解
+
+#### Layer 1: Unit Test
+- **目标**: 验证单个函数/类的逻辑正确性
+- **位置**: `packages/*/src/**/*.test.ts`
+- **依赖**: 全部 Mock
+- **速度**: 秒级完成
+
+#### Layer 2: Lint
+- **目标**: 代码风格、类型检查、潜在 bug 检测
+- **工具**: Biome
+- **速度**: 秒级完成
+
+#### Layer 3: E2E Test
+- **目标**: 验证 Discord/HTTP/Terminal 通道的消息流转
+- **位置**: `packages/*/src/e2e/`
+- **模式**: Echo 模式（无真实 LLM）
+- **速度**: 分钟级
+
+#### Layer 4: Behavioral Test
+- **目标**: 验证 Agent 在真实环境下的工具使用行为
+- **位置**: `packages/gateway/behavioral-tests/`
+- **依赖**: 真实 LLM API、真实 Discord
+- **速度**: 分钟级，可能有 flaky
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Behavioral Tests                      │
+│            (Real LLM, Real Discord, Real FS)            │
+├─────────────────────────────────────────────────────────┤
+│                       E2E Tests                          │
+│              (Echo Mode, Real Channels)                  │
+├─────────────────────────────────────────────────────────┤
+│                    Lint (Biome)                          │
+├─────────────────────────────────────────────────────────┤
+│                     Unit Tests                           │
+│              (Mocked, Fast, Isolated)                    │
+└─────────────────────────────────────────────────────────┘
+```
+
 ## 覆盖率目标
 
 | 模块 | 当前测试数 | 覆盖率目标 | 状态 |
 |------|-----------|-----------|------|
 | @deca/agent | 319 | 90%+ | ✅ |
-| @deca/discord | 218 | 90%+ | ✅ |
-| @deca/terminal | 36 | 90%+ | ✅ |
+| @deca/discord | 254 | 90%+ | ✅ |
+| @deca/terminal | 47 | 90%+ | ✅ |
 | @deca/http | 35 | 90%+ | ✅ |
-| @deca/storage | 29 | 90%+ | ✅ |
-| @deca/gateway | 14 | 90%+ | ✅ |
-| **总计** | **651** | **90%+** | ✅ |
+| @deca/storage | 47 | 90%+ | ✅ |
+| @deca/gateway | 37 | 90%+ | ✅ |
+| **总计** | **739** | **90%+** | ✅ |
 
-## 测试类型
+## 测试命令
 
 ### 单元测试
 
-测试单个函数或模块的行为。
+```bash
+# 运行所有单元测试
+bun run test:unit
 
-```typescript
-// packages/agent/src/core/agent.test.ts
-import { describe, it, expect } from 'bun:test';
-import { createAgent } from './agent';
+# 运行特定模块
+bun --filter @deca/agent test:unit
+bun --filter @deca/discord test:unit
 
-describe('createAgent', () => {
-  it('should create agent with default config', () => {
-    const agent = createAgent({ apiKey: 'test-key' });
-    expect(agent).toBeDefined();
-    expect(agent.run).toBeInstanceOf(Function);
-  });
+# 运行单个测试文件
+bun test packages/agent/src/core/agent.test.ts
 
-  it('should throw error when apiKey is missing', () => {
-    expect(() => createAgent({} as any)).toThrow('apiKey is required');
-  });
-});
+# 运行匹配模式的测试
+bun test --filter "should create agent"
 ```
 
-### 集成测试
+### Lint
 
-测试多个模块协作的行为。
+```bash
+# 运行所有 lint
+bun run lint
 
-```typescript
-// packages/gateway/src/gateway.test.ts
-describe('Gateway Integration', () => {
-  it('should route message from terminal to agent', async () => {
-    const gateway = createGateway({
-      terminal: { enabled: true },
-      agent: mockAgentConfig,
-    });
-    
-    await gateway.start();
-    const result = await gateway.handleMessage('Hello');
-    expect(result.success).toBe(true);
-    await gateway.stop();
-  });
-});
+# 运行特定模块
+bun --filter @deca/agent lint
 ```
 
 ### E2E 测试
 
-测试完整的用户场景。
+```bash
+# 运行 Discord E2E（需要配置 ~/.deca/credentials/discord.json）
+bun --filter @deca/discord test:e2e
 
-```typescript
-// packages/discord/e2e/bot.e2e.ts
-describe('Discord Bot E2E', () => {
-  it('should respond to user message', async () => {
-    // 使用真实的 Discord API（需要测试 token）
-    const bot = await createBot({ token: process.env.TEST_DISCORD_TOKEN });
-    await bot.connect();
-    
-    // 发送测试消息
-    const response = await bot.sendTestMessage('Hello');
-    expect(response).toContain('Echo: Hello');
-    
-    await bot.disconnect();
-  });
-});
+# 运行 Gateway E2E
+bun --filter @deca/gateway test:e2e
 ```
+
+### Behavioral 测试
+
+```bash
+# 运行 Agent 工具行为测试（需要 LLM API + Discord）
+bun --filter @deca/gateway test:behavioral
+
+# 带调试输出
+cd packages/gateway && bun run behavioral-tests/tools.test.ts --debug
+```
+
+## Git Hooks (Husky)
+
+| Hook | 运行内容 | 目的 |
+|------|----------|------|
+| pre-commit | Unit + Lint | 快速验证，阻止明显错误 |
+| pre-push | Unit + Lint + E2E | 完整验证，阻止破坏性变更 |
 
 ## Mock 策略
 
 ### LLM API Mock
 
 ```typescript
-// packages/agent/src/test-utils/mock-anthropic.ts
 export function createMockAnthropic() {
   return {
     messages: {
@@ -109,7 +147,6 @@ export function createMockAnthropic() {
 ### Discord API Mock
 
 ```typescript
-// packages/discord/src/test-utils/mock-discord.ts
 export function createMockDiscordClient() {
   return {
     login: async () => {},
@@ -124,45 +161,11 @@ export function createMockDiscordClient() {
 ### 文件系统 Mock
 
 ```typescript
-// 使用临时目录
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const tempDir = await mkdtemp(join(tmpdir(), 'deca-test-'));
-```
-
-## 测试命令
-
-### 运行所有测试
-
-```bash
-bun run test:unit
-```
-
-### 运行特定模块测试
-
-```bash
-bun --filter @deca/agent test:unit
-bun --filter @deca/discord test:unit
-```
-
-### 运行单个测试文件
-
-```bash
-bun test packages/agent/src/core/agent.test.ts
-```
-
-### 运行匹配模式的测试
-
-```bash
-bun test --filter "should create agent"
-```
-
-### 查看覆盖率报告
-
-```bash
-bun run test:coverage
 ```
 
 ## 测试文件命名
@@ -171,7 +174,8 @@ bun run test:coverage
 |------|---------|------|
 | 单元测试 | `*.test.ts` | 与源文件同目录 |
 | 集成测试 | `*.integration.ts` | `__tests__/` 目录 |
-| E2E 测试 | `*.e2e.ts` | `e2e/` 目录 |
+| E2E 测试 | `*.e2e.ts` 或 `e2e/*.ts` | `e2e/` 目录 |
+| 行为测试 | `*.test.ts` | `behavioral-tests/` 目录 |
 
 ## 测试最佳实践
 
@@ -198,15 +202,6 @@ it('should set default values', async () => {
   const session = await createSession();
   expect(session.messages).toEqual([]);
 });
-
-// ❌ 不好
-it('should create session with defaults', async () => {
-  const session = await createSession();
-  expect(session.id).toBeDefined();
-  expect(session.messages).toEqual([]);
-  expect(session.createdAt).toBeDefined();
-  // ... 太多断言
-});
 ```
 
 ### 3. 使用 beforeEach/afterEach 清理状态
@@ -221,10 +216,6 @@ describe('SessionManager', () => {
 
   afterEach(async () => {
     await rm(tempDir, { recursive: true });
-  });
-
-  it('should save session to disk', async () => {
-    // 使用 tempDir
   });
 });
 ```
@@ -241,16 +232,13 @@ it('should persist session across restarts', async () => {
   const session = await manager2.load('session1');
   expect(session.messages).toEqual(['hello']);
 });
-
-// ❌ 不好 - 测试实现
-it('should write to sessions.json file', async () => {
-  // 不应该测试具体的文件名
-});
 ```
 
 ## 相关文档
 
-- [系统架构](01-architecture.md) - 整体架构设计
-- [模块详解](02-modules.md) - 各模块功能和接口
-- [开发指南](03-development.md) - 本地开发环境配置
-- [贡献指南](05-contributing.md) - Git 规范和提交要求
+- [系统架构](01-architecture.md)
+- [模块详解](02-modules.md)
+- [开发指南](03-development.md)
+- [贡献指南](05-contributing.md)
+- [E2E Discord 调试](06-e2e-discord-debugging.md)
+- [Agent 工具](07-agent-tools.md)
