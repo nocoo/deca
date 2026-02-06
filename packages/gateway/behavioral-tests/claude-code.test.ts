@@ -66,7 +66,7 @@ async function loadConfig(): Promise<Config> {
 const PROCESSING_PREFIXES = ["⏳", "Processing", "Thinking"];
 
 function isProcessingMessage(content: string): boolean {
-  const trimmed = content.trim();
+  const trimmed = content.trim().replace(/^```\n?/, "");
   return PROCESSING_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
 }
 
@@ -113,6 +113,7 @@ async function waitForAgentResponse(
         return msgTime > afterTimestamp && isBotUser;
       })
       .filter((msg) => !isProcessingMessage(msg.content))
+      .filter((msg) => !msg.content.startsWith("Use the claude_code tool"))
       .sort(
         (a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -318,8 +319,8 @@ async function runTest(
 
     if (DEBUG) console.log(`   [DEBUG] Response: ${response.slice(0, 200)}...`);
 
-    // Wait a bit for any file operations to complete
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Wait for file operations to complete (claude_code may still be writing)
+    await new Promise((resolve) => setTimeout(resolve, 8000));
 
     const validation = await test.validate(response);
 
