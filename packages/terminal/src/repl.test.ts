@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { Readable } from "node:stream";
-import { createTerminal } from "./repl";
 import { createEchoHandler } from "./echo-handler";
+import { createTerminal } from "./repl";
 import type { MessageResponse } from "./types";
 
 /**
@@ -34,7 +34,10 @@ function createMockOutput() {
     isTTY: false,
   };
 
-  return stream as unknown as NodeJS.WritableStream & { data: string; clear(): void };
+  return stream as unknown as NodeJS.WritableStream & {
+    data: string;
+    clear(): void;
+  };
 }
 
 describe("createTerminal", () => {
@@ -152,7 +155,7 @@ describe("createTerminal", () => {
         output,
       });
 
-      expect(terminal.sessionKey).toMatch(/^terminal:deca:/);
+      expect(terminal.sessionKey).toMatch(/^agent:main:user:/);
     });
 
     it("uses custom session key", () => {

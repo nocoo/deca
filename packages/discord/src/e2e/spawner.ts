@@ -31,6 +31,8 @@ export interface SpawnerConfig {
   enableCron?: boolean;
   /** Cron storage path */
   cronStoragePath?: string;
+  /** HTTP server port (default: 3000) */
+  httpPort?: number;
 }
 
 interface LLMCredential {
@@ -146,6 +148,9 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.cronStoragePath) {
       env.CRON_STORAGE_PATH = config.cronStoragePath;
+    }
+    if (config.httpPort) {
+      env.HTTP_PORT = String(config.httpPort);
     }
   }
 

@@ -312,7 +312,7 @@ describe("processMessage", () => {
     expect(request.sender.username).toBe("testuser");
     expect(request.channel.id).toBe("channel789");
     expect(request.channel.guildId).toBe("guild456");
-    expect(request.sessionKey).toContain("discord:mybot:");
+    expect(request.sessionKey).toContain("agent:mybot:");
   });
 
   it("sends reply on success", async () => {
@@ -415,8 +415,10 @@ describe("processMessage", () => {
 
       // Should have 2 replies: debug message + actual response
       expect(message.reply).toHaveBeenCalledTimes(2);
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
-      const secondCall = (message.reply as ReturnType<typeof mock>).mock.calls[1];
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock
+        .calls[0];
+      const secondCall = (message.reply as ReturnType<typeof mock>).mock
+        .calls[1];
 
       // First message should be debug info
       expect(firstCall[0]).toContain("Processing...");
@@ -435,7 +437,8 @@ describe("processMessage", () => {
 
       // Should have 2 replies: debug message + actual response
       expect(message.reply).toHaveBeenCalledTimes(2);
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock
+        .calls[0];
       expect(firstCall[0]).toContain("Processing...");
     });
 
@@ -456,7 +459,8 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock
+        .calls[0];
       // Session key should be truncated (last 12 chars with ... prefix)
       expect(firstCall[0]).toMatch(/Session: \.\.\.[a-z0-9:]+/i);
     });
@@ -467,7 +471,8 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+      const firstCall = (message.reply as ReturnType<typeof mock>).mock
+        .calls[0];
       // Should contain ISO timestamp format
       expect(firstCall[0]).toMatch(/Time: \d{4}-\d{2}-\d{2}T/);
     });

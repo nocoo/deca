@@ -2,76 +2,135 @@
  * Discord Session Key Management
  *
  * Generates and parses session keys for Discord conversations.
- * Session keys uniquely identify a conversation context.
+ * Uses unified session key format for cross-channel sharing.
  */
 
 import {
   type ChannelType,
   DEFAULT_AGENT_ID,
-  DISCORD_SESSION_PREFIX,
   type DiscordSessionInfo,
 } from "./types";
 
-export { DEFAULT_AGENT_ID, DISCORD_SESSION_PREFIX };
+export { DEFAULT_AGENT_ID };
 
-/**
- * Parameters for generating a Discord session key
- */
 export interface SessionKeyParams {
-  /** Channel type */
   type: ChannelType;
-  /** User ID */
   userId: string;
-  /** Agent ID (default: "deca") */
   agentId?: string;
-  /** Guild ID (required for guild/thread) */
   guildId?: string;
-  /** Channel ID (required for guild/thread) */
   channelId?: string;
-  /** Thread ID (required for thread) */
   threadId?: string;
 }
 
+function normalizeAgentId(agentId: string | undefined): string {
+  if (!agentId || agentId.trim() === "") {
+    return DEFAULT_AGENT_ID;
+  }
+  return agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+}
+
 /**
- * Generate a Discord session key for conversation tracking.
+ * Generate a Discord session key using unified format.
  *
  * Key formats:
- * - DM: discord:{agentId}:dm:{userId}
- * - Guild: discord:{agentId}:guild:{guildId}:{channelId}:{userId}
- * - Thread: discord:{agentId}:thread:{guildId}:{threadId}:{userId}
- *
- * @param params - Session key parameters
- * @returns Session key string
+ * - DM: agent:{agentId}:user:{userId}
+ * - Guild: agent:{agentId}:channel:{guildId}:{channelId}
+ * - Thread: agent:{agentId}:thread:{guildId}:{threadId}
  */
 export function resolveDiscordSessionKey(params: SessionKeyParams): string {
   const agentId = normalizeAgentId(params.agentId);
 
   switch (params.type) {
     case "dm":
-      return `${DISCORD_SESSION_PREFIX}:${agentId}:dm:${params.userId}`;
+      return `agent:${agentId}:user:${params.userId}`;
 
     case "guild":
-      return `${DISCORD_SESSION_PREFIX}:${agentId}:guild:${params.guildId}:${params.channelId}:${params.userId}`;
+      return `agent:${agentId}:channel:${params.guildId}:${params.channelId}`;
 
     case "thread":
-      return `${DISCORD_SESSION_PREFIX}:${agentId}:thread:${params.guildId}:${params.threadId}:${params.userId}`;
+      return `agent:${agentId}:thread:${params.guildId}:${params.threadId}`;
   }
 }
 
-/**
- * Parse a Discord session key back into its components.
- *
- * @param key - Session key string
- * @returns Parsed session info or null if not a valid Discord key
- */
-export function parseDiscordSessionKey(key: string): DiscordSessionInfo | null {
-  if (!key.startsWith(`${DISCORD_SESSION_PREFIX}:`)) {
+export type UnifiedSessionType = "user" | "channel" | "thread";
+
+export interface UnifiedSessionInfo {
+  agentId: string;
+  type: UnifiedSessionType;
+  userId?: string;
+  guildId?: string;
+  channelId?: string;
+  threadId?: string;
+}
+
+export function parseUnifiedSessionKey(key: string): UnifiedSessionInfo | null {
+  if (!key.startsWith("agent:")) {
     return null;
   }
 
   const parts = key.split(":");
+  if (parts.length < 4) {
+    return null;
+  }
 
-  // Minimum: discord:agentId:type:userId (4 parts for DM)
+  const [, agentId, type, ...rest] = parts;
+
+  switch (type) {
+    case "user": {
+      if (rest.length !== 1) return null;
+      return { agentId, type: "user", userId: rest[0] };
+    }
+    case "channel": {
+      if (rest.length !== 2) return null;
+      return { agentId, type: "channel", guildId: rest[0], channelId: rest[1] };
+    }
+    case "thread": {
+      if (rest.length !== 2) return null;
+      return { agentId, type: "thread", guildId: rest[0], threadId: rest[1] };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Parse a Discord session key (supports both old and new formats).
+ * @deprecated Use parseUnifiedSessionKey for new unified format
+ */
+export function parseDiscordSessionKey(key: string): DiscordSessionInfo | null {
+  const unified = parseUnifiedSessionKey(key);
+  if (unified) {
+    switch (unified.type) {
+      case "user":
+        return {
+          agentId: unified.agentId,
+          type: "dm",
+          userId: unified.userId ?? "",
+        };
+      case "channel":
+        return {
+          agentId: unified.agentId,
+          type: "guild",
+          userId: "",
+          guildId: unified.guildId,
+          channelId: unified.channelId,
+        };
+      case "thread":
+        return {
+          agentId: unified.agentId,
+          type: "thread",
+          userId: "",
+          guildId: unified.guildId,
+          threadId: unified.threadId,
+        };
+    }
+  }
+
+  if (!key.startsWith("discord:")) {
+    return null;
+  }
+
+  const parts = key.split(":");
   if (parts.length < 4) {
     return null;
   }
@@ -81,52 +140,19 @@ export function parseDiscordSessionKey(key: string): DiscordSessionInfo | null {
   switch (type) {
     case "dm": {
       if (rest.length !== 1) return null;
-      return {
-        agentId,
-        type: "dm",
-        userId: rest[0],
-      };
+      return { agentId, type: "dm", userId: rest[0] };
     }
-
     case "guild": {
       if (rest.length !== 3) return null;
       const [guildId, channelId, userId] = rest;
-      return {
-        agentId,
-        type: "guild",
-        userId,
-        guildId,
-        channelId,
-      };
+      return { agentId, type: "guild", userId, guildId, channelId };
     }
-
     case "thread": {
       if (rest.length !== 3) return null;
       const [guildId, threadId, userId] = rest;
-      return {
-        agentId,
-        type: "thread",
-        userId,
-        guildId,
-        threadId,
-      };
+      return { agentId, type: "thread", userId, guildId, threadId };
     }
-
     default:
       return null;
   }
-}
-
-/**
- * Normalize agent ID for use in session keys.
- * - Converts to lowercase
- * - Replaces invalid characters with hyphens
- * - Falls back to default if empty
- */
-function normalizeAgentId(agentId: string | undefined): string {
-  if (!agentId || agentId.trim() === "") {
-    return DEFAULT_AGENT_ID;
-  }
-
-  return agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
 }

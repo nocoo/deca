@@ -10,6 +10,12 @@ export {
   normalizeAgentId,
   isSubagentSessionKey,
   resolveAgentIdFromSessionKey,
+  buildUserSessionKey,
+  buildChannelSessionKey,
+  buildThreadSessionKey,
+  parseUnifiedSessionKey,
+  type SessionKeyType,
+  type UnifiedSessionKeyInfo,
 } from "./session-key.js";
 export { MemoryManager, type MemorySearchResult } from "./memory.js";
 export { SkillManager, type Skill, type SkillMatch } from "./skills.js";

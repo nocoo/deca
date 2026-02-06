@@ -128,3 +128,77 @@ export function resolveSessionKey(params: {
   }
   return buildAgentMainSessionKey({ agentId, mainKey: DEFAULT_MAIN_KEY });
 }
+
+export type SessionKeyType = "user" | "channel" | "thread";
+
+export interface UnifiedSessionKeyInfo {
+  agentId: string;
+  type: SessionKeyType;
+  userId?: string;
+  guildId?: string;
+  channelId?: string;
+  threadId?: string;
+}
+
+export function buildUserSessionKey(params: {
+  agentId?: string;
+  userId: string;
+}): string {
+  const agentId = normalizeAgentId(params.agentId);
+  return `agent:${agentId}:user:${params.userId}`;
+}
+
+export function buildChannelSessionKey(params: {
+  agentId?: string;
+  guildId: string;
+  channelId: string;
+}): string {
+  const agentId = normalizeAgentId(params.agentId);
+  return `agent:${agentId}:channel:${params.guildId}:${params.channelId}`;
+}
+
+export function buildThreadSessionKey(params: {
+  agentId?: string;
+  guildId: string;
+  threadId: string;
+}): string {
+  const agentId = normalizeAgentId(params.agentId);
+  return `agent:${agentId}:thread:${params.guildId}:${params.threadId}`;
+}
+
+export function parseUnifiedSessionKey(
+  key: string,
+): UnifiedSessionKeyInfo | null {
+  if (!key.startsWith("agent:")) {
+    return null;
+  }
+
+  const parts = key.split(":");
+  if (parts.length < 4) {
+    return null;
+  }
+
+  const [, agentId, type, ...rest] = parts;
+
+  switch (type) {
+    case "user": {
+      if (rest.length !== 1) return null;
+      return { agentId, type: "user", userId: rest[0] };
+    }
+    case "channel": {
+      if (rest.length !== 2) return null;
+      return {
+        agentId,
+        type: "channel",
+        guildId: rest[0],
+        channelId: rest[1],
+      };
+    }
+    case "thread": {
+      if (rest.length !== 2) return null;
+      return { agentId, type: "thread", guildId: rest[0], threadId: rest[1] };
+    }
+    default:
+      return null;
+  }
+}

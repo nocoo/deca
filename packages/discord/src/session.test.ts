@@ -1,21 +1,19 @@
 import { describe, expect, it } from "bun:test";
 import {
   DEFAULT_AGENT_ID,
-  DISCORD_SESSION_PREFIX,
   parseDiscordSessionKey,
+  parseUnifiedSessionKey,
   resolveDiscordSessionKey,
 } from "./session";
 
 describe("resolveDiscordSessionKey", () => {
   describe("DM mode", () => {
-    it("generates DM session key", () => {
+    it("generates user session key for DM", () => {
       const key = resolveDiscordSessionKey({
         type: "dm",
         userId: "user123",
       });
-      expect(key).toBe(
-        `${DISCORD_SESSION_PREFIX}:${DEFAULT_AGENT_ID}:dm:user123`,
-      );
+      expect(key).toBe(`agent:${DEFAULT_AGENT_ID}:user:user123`);
     });
 
     it("uses default agent ID for DM", () => {
@@ -23,7 +21,7 @@ describe("resolveDiscordSessionKey", () => {
         type: "dm",
         userId: "user123",
       });
-      expect(key).toContain(`:${DEFAULT_AGENT_ID}:`);
+      expect(key).toContain(`agent:${DEFAULT_AGENT_ID}:`);
     });
 
     it("uses custom agent ID for DM", () => {
@@ -32,7 +30,7 @@ describe("resolveDiscordSessionKey", () => {
         userId: "user123",
         agentId: "mybot",
       });
-      expect(key).toBe(`${DISCORD_SESSION_PREFIX}:mybot:dm:user123`);
+      expect(key).toBe("agent:mybot:user:user123");
     });
   });
 
@@ -44,9 +42,7 @@ describe("resolveDiscordSessionKey", () => {
         guildId: "guild456",
         channelId: "channel789",
       });
-      expect(key).toBe(
-        `${DISCORD_SESSION_PREFIX}:${DEFAULT_AGENT_ID}:guild:guild456:channel789:user123`,
-      );
+      expect(key).toBe(`agent:${DEFAULT_AGENT_ID}:channel:guild456:channel789`);
     });
 
     it("includes guild ID in key", () => {
@@ -66,17 +62,17 @@ describe("resolveDiscordSessionKey", () => {
         guildId: "guild456",
         channelId: "channel789",
       });
-      expect(key).toContain(":channel789:");
+      expect(key).toContain(":channel789");
     });
 
-    it("includes user ID in key", () => {
+    it("does NOT include user ID in key (channel-level session)", () => {
       const key = resolveDiscordSessionKey({
         type: "guild",
         userId: "user123",
         guildId: "guild456",
         channelId: "channel789",
       });
-      expect(key).toContain(":user123");
+      expect(key).not.toContain(":user123");
     });
   });
 
@@ -89,9 +85,7 @@ describe("resolveDiscordSessionKey", () => {
         channelId: "channel789",
         threadId: "thread999",
       });
-      expect(key).toBe(
-        `${DISCORD_SESSION_PREFIX}:${DEFAULT_AGENT_ID}:thread:guild456:thread999:user123`,
-      );
+      expect(key).toBe(`agent:${DEFAULT_AGENT_ID}:thread:guild456:thread999`);
     });
 
     it("uses thread ID instead of channel ID", () => {
@@ -102,8 +96,8 @@ describe("resolveDiscordSessionKey", () => {
         channelId: "channel789",
         threadId: "thread999",
       });
-      expect(key).toContain(":thread999:");
-      expect(key).not.toContain(":channel789:");
+      expect(key).toContain(":thread999");
+      expect(key).not.toContain(":channel789");
     });
   });
 
@@ -114,7 +108,7 @@ describe("resolveDiscordSessionKey", () => {
         userId: "user123",
         agentId: "MyBot",
       });
-      expect(key).toBe(`${DISCORD_SESSION_PREFIX}:mybot:dm:user123`);
+      expect(key).toBe("agent:mybot:user:user123");
     });
 
     it("replaces invalid characters", () => {
@@ -123,7 +117,7 @@ describe("resolveDiscordSessionKey", () => {
         userId: "user123",
         agentId: "My Bot!@#$%",
       });
-      expect(key).toBe(`${DISCORD_SESSION_PREFIX}:my-bot-----:dm:user123`);
+      expect(key).toBe("agent:my-bot-----:user:user123");
     });
 
     it("uses default for empty agent ID", () => {
@@ -132,9 +126,7 @@ describe("resolveDiscordSessionKey", () => {
         userId: "user123",
         agentId: "",
       });
-      expect(key).toBe(
-        `${DISCORD_SESSION_PREFIX}:${DEFAULT_AGENT_ID}:dm:user123`,
-      );
+      expect(key).toBe(`agent:${DEFAULT_AGENT_ID}:user:user123`);
     });
 
     it("uses default for whitespace-only agent ID", () => {
@@ -143,29 +135,80 @@ describe("resolveDiscordSessionKey", () => {
         userId: "user123",
         agentId: "   ",
       });
-      expect(key).toBe(
-        `${DISCORD_SESSION_PREFIX}:${DEFAULT_AGENT_ID}:dm:user123`,
-      );
+      expect(key).toBe(`agent:${DEFAULT_AGENT_ID}:user:user123`);
     });
   });
 });
 
-describe("parseDiscordSessionKey", () => {
-  it("parses DM session key", () => {
-    const key = `${DISCORD_SESSION_PREFIX}:mybot:dm:user123`;
+describe("parseUnifiedSessionKey", () => {
+  it("parses user session key", () => {
+    const key = "agent:mybot:user:user123";
+    const parsed = parseUnifiedSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("user");
+    expect(parsed?.userId).toBe("user123");
+  });
+
+  it("parses channel session key", () => {
+    const key = "agent:mybot:channel:guild456:channel789";
+    const parsed = parseUnifiedSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("channel");
+    expect(parsed?.guildId).toBe("guild456");
+    expect(parsed?.channelId).toBe("channel789");
+  });
+
+  it("parses thread session key", () => {
+    const key = "agent:mybot:thread:guild456:thread999";
+    const parsed = parseUnifiedSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("thread");
+    expect(parsed?.guildId).toBe("guild456");
+    expect(parsed?.threadId).toBe("thread999");
+  });
+
+  it("returns null for non-agent keys", () => {
+    expect(parseUnifiedSessionKey("other:key")).toBeNull();
+    expect(parseUnifiedSessionKey("")).toBeNull();
+    expect(parseUnifiedSessionKey("agent")).toBeNull();
+  });
+
+  it("returns null for malformed agent keys", () => {
+    expect(parseUnifiedSessionKey("agent:")).toBeNull();
+    expect(parseUnifiedSessionKey("agent:mybot")).toBeNull();
+    expect(parseUnifiedSessionKey("agent:mybot:invalid")).toBeNull();
+  });
+});
+
+describe("parseDiscordSessionKey (legacy compatibility)", () => {
+  it("parses unified format and returns discord format", () => {
+    const key = "agent:mybot:user:user123";
     const parsed = parseDiscordSessionKey(key);
 
     expect(parsed).not.toBeNull();
     expect(parsed?.agentId).toBe("mybot");
     expect(parsed?.type).toBe("dm");
     expect(parsed?.userId).toBe("user123");
-    expect(parsed?.guildId).toBeUndefined();
-    expect(parsed?.channelId).toBeUndefined();
-    expect(parsed?.threadId).toBeUndefined();
   });
 
-  it("parses guild session key", () => {
-    const key = `${DISCORD_SESSION_PREFIX}:mybot:guild:guild456:channel789:user123`;
+  it("parses legacy DM session key", () => {
+    const key = "discord:mybot:dm:user123";
+    const parsed = parseDiscordSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("dm");
+    expect(parsed?.userId).toBe("user123");
+  });
+
+  it("parses legacy guild session key", () => {
+    const key = "discord:mybot:guild:guild456:channel789:user123";
     const parsed = parseDiscordSessionKey(key);
 
     expect(parsed).not.toBeNull();
@@ -174,11 +217,10 @@ describe("parseDiscordSessionKey", () => {
     expect(parsed?.userId).toBe("user123");
     expect(parsed?.guildId).toBe("guild456");
     expect(parsed?.channelId).toBe("channel789");
-    expect(parsed?.threadId).toBeUndefined();
   });
 
-  it("parses thread session key", () => {
-    const key = `${DISCORD_SESSION_PREFIX}:mybot:thread:guild456:thread999:user123`;
+  it("parses legacy thread session key", () => {
+    const key = "discord:mybot:thread:guild456:thread999:user123";
     const parsed = parseDiscordSessionKey(key);
 
     expect(parsed).not.toBeNull();
@@ -192,16 +234,11 @@ describe("parseDiscordSessionKey", () => {
   it("returns null for non-discord keys", () => {
     expect(parseDiscordSessionKey("other:key")).toBeNull();
     expect(parseDiscordSessionKey("")).toBeNull();
-    expect(parseDiscordSessionKey("discord")).toBeNull();
   });
 
   it("returns null for malformed discord keys", () => {
-    expect(parseDiscordSessionKey(`${DISCORD_SESSION_PREFIX}:`)).toBeNull();
-    expect(
-      parseDiscordSessionKey(`${DISCORD_SESSION_PREFIX}:agent`),
-    ).toBeNull();
-    expect(
-      parseDiscordSessionKey(`${DISCORD_SESSION_PREFIX}:agent:invalid`),
-    ).toBeNull();
+    expect(parseDiscordSessionKey("discord:")).toBeNull();
+    expect(parseDiscordSessionKey("discord:agent")).toBeNull();
+    expect(parseDiscordSessionKey("discord:agent:invalid")).toBeNull();
   });
 });
