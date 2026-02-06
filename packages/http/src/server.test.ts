@@ -81,6 +81,24 @@ describe("createHttpServer", () => {
 
       expect(port1).toBe(port2);
     });
+
+    it("ignores stop when not running", () => {
+      const server = createTestServer({
+        handler: createEchoHandler(),
+      });
+
+      server.stop();
+      expect(server.isRunning).toBe(false);
+    });
+
+    it("exposes app instance", () => {
+      const server = createTestServer({
+        handler: createEchoHandler(),
+      });
+
+      expect(server.app).toBeDefined();
+      expect(typeof server.app.fetch).toBe("function");
+    });
   });
 
   describe("/health endpoint", () => {
@@ -257,6 +275,38 @@ describe("createHttpServer", () => {
       expect(response.status).toBe(400);
       expect(data.error).toBe("content_required");
     });
+
+    it("handles handler errors", async () => {
+      let receivedError: Error | null = null;
+
+      const server = createTestServer({
+        handler: {
+          async handle() {
+            throw new Error("Message handler failed");
+          },
+        },
+        events: {
+          onError: (err) => {
+            receivedError = err;
+          },
+        },
+      });
+
+      await server.start();
+
+      const response = await fetch(`http://127.0.0.1:${server.port}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "test" }),
+      });
+
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("Message handler failed");
+      expect(receivedError?.message).toBe("Message handler failed");
+    });
   });
 
   describe("API key authentication", () => {
@@ -372,6 +422,50 @@ describe("createHttpServer", () => {
 
       expect(receivedError).not.toBeNull();
       expect(receivedError?.message).toBe("Test error");
+    });
+  });
+
+  describe("CORS middleware", () => {
+    it("adds CORS headers when origins configured", async () => {
+      const server = createTestServer({
+        handler: createEchoHandler(),
+        corsOrigins: ["http://localhost:3000"],
+      });
+
+      await server.start();
+
+      const response = await fetch(`http://127.0.0.1:${server.port}/health`, {
+        headers: {
+          Origin: "http://localhost:3000",
+        },
+      });
+
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "http://localhost:3000",
+      );
+    });
+
+    it("handles preflight OPTIONS request", async () => {
+      const server = createTestServer({
+        handler: createEchoHandler(),
+        corsOrigins: ["http://localhost:3000"],
+      });
+
+      await server.start();
+
+      const response = await fetch(`http://127.0.0.1:${server.port}/chat`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: "http://localhost:3000",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "Content-Type",
+        },
+      });
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("Access-Control-Allow-Methods")).toContain(
+        "POST",
+      );
     });
   });
 });
