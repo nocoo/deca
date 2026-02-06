@@ -73,7 +73,7 @@ export class SessionManager {
    */
   private cache = new Map<string, Message[]>();
 
-  constructor(baseDir = "./.openclaw-mini/sessions") {
+  constructor(baseDir = "./.deca/sessions") {
     this.baseDir = baseDir;
   }
 

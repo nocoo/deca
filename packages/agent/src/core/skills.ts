@@ -32,7 +32,7 @@ export interface SkillMatch {
   matchedTrigger?: string;
 }
 
-const SKILL_DIR_NAMES = [".mini-agent/skills", "skills"];
+const SKILL_DIR_NAMES = [".deca/skills", "skills"];
 
 export class SkillManager {
   private workspaceDir: string;
@@ -40,7 +40,7 @@ export class SkillManager {
   private skills: Map<string, Skill> = new Map();
   private loaded = false;
 
-  constructor(workspaceDir: string, userDir = "~/.mini-agent") {
+  constructor(workspaceDir: string, userDir = "~/.deca") {
     this.workspaceDir = workspaceDir;
     this.userDir = userDir.replace("~", process.env.HOME || "");
   }
@@ -54,12 +54,12 @@ export class SkillManager {
     // 1. 加载内置技能
     this.registerBuiltinSkills();
 
-    // 2. 加载用户全局技能 (~/.mini-agent/skills/)
+    // 2. 加载用户全局技能 (~/.deca/skills/)
     for (const dirName of SKILL_DIR_NAMES) {
       await this.loadFromDir(path.join(this.userDir, dirName), "user");
     }
 
-    // 3. 加载工作空间技能 (./skills/ 或 ./.mini-agent/skills/)
+    // 3. 加载工作空间技能 (./skills/ 或 ./.deca/skills/)
     for (const dirName of SKILL_DIR_NAMES) {
       await this.loadFromDir(
         path.join(this.workspaceDir, dirName),

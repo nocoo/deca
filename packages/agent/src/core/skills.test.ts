@@ -57,8 +57,8 @@ Custom prompt here`,
       expect(customSkill?.triggers).toContain("/custom");
     });
 
-    it("should load skills from .mini-agent/skills directory", async () => {
-      const skillsDir = path.join(tempWorkspace, ".mini-agent/skills");
+    it("should load skills from .deca/skills directory", async () => {
+      const skillsDir = path.join(tempWorkspace, ".deca/skills");
       await fs.mkdir(skillsDir, { recursive: true });
       await fs.writeFile(
         path.join(skillsDir, "hidden.md"),

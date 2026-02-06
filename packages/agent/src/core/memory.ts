@@ -31,7 +31,7 @@ export class MemoryManager {
   private entries: MemoryEntry[] = [];
   private loaded = false;
 
-  constructor(baseDir = "./.mini-agent/memory") {
+  constructor(baseDir = "./.deca/memory") {
     this.baseDir = baseDir;
   }
 

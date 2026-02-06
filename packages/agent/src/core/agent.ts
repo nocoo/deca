@@ -221,7 +221,7 @@ export class Agent {
     // - ContextLoader/SkillManager/HeartbeatManager use promptDir (personality files)
     // - Tools use workspaceDir (file operations)
     this.sessions = new SessionManager(config.sessionDir);
-    this.memory = new MemoryManager(config.memoryDir ?? "./.mini-agent/memory");
+    this.memory = new MemoryManager(config.memoryDir ?? "./.deca/memory");
     this.context = new ContextLoader(this.promptDir);
     this.skills = new SkillManager(this.promptDir);
     this.heartbeat = new HeartbeatManager(this.promptDir, {
