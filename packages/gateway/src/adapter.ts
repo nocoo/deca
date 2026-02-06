@@ -17,6 +17,7 @@ import type {
   MessageHandler,
   MessageRequest,
   MessageResponse,
+  ReplyMeta,
 } from "./types";
 
 export interface AgentAdapter extends MessageHandler {
@@ -65,11 +66,29 @@ export async function createAgentAdapter(
     cronService,
     async handle(request: MessageRequest): Promise<MessageResponse> {
       try {
+        const onReply = request.callbacks?.onReply;
+
         const result: RunResult = await agent.run(
           request.sessionKey,
           request.content,
           {
             onTextDelta: request.callbacks?.onTextDelta,
+            onToolStart: onReply
+              ? (name: string) => {
+                  onReply(`🔧 正在执行 ${name}...`, {
+                    kind: "progress",
+                    toolName: name,
+                  });
+                }
+              : undefined,
+            onToolEnd: onReply
+              ? (name: string) => {
+                  onReply(`✅ ${name} 完成`, {
+                    kind: "progress",
+                    toolName: name,
+                  });
+                }
+              : undefined,
           },
         );
 

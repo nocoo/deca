@@ -10,6 +10,7 @@ export type {
   MessageHandler,
   MessageRequest,
   MessageResponse,
+  ReplyMeta,
   GatewayConfig,
   AgentAdapterConfig,
   DiscordChannelConfig,

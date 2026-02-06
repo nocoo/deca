@@ -21,6 +21,7 @@ export type {
   DiscordGuild,
   ReconnectOptions,
   GatewayEventCallbacks,
+  ReplyMeta,
 } from "./types";
 
 // Constants
@@ -95,6 +96,9 @@ export {
   type DebouncedHandler,
   type DebounceManager,
 } from "./debounce";
+
+// Reply Throttling
+export { ReplyThrottler } from "./reply-throttler";
 
 // Slash Commands
 export {

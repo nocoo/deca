@@ -22,6 +22,15 @@ export interface MessageHandler {
 }
 
 /**
+ * Reply metadata for multi-reply support
+ */
+export interface ReplyMeta {
+  kind: "ack" | "progress" | "final";
+  runId?: string;
+  toolName?: string;
+}
+
+/**
  * Incoming message request from Discord
  */
 export interface MessageRequest {
@@ -51,6 +60,7 @@ export interface MessageRequest {
   /** Optional streaming callbacks */
   callbacks?: {
     onTextDelta?: (delta: string) => void;
+    onReply?: (text: string, meta: ReplyMeta) => Promise<void>;
   };
 }
 

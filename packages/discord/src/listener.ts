@@ -18,6 +18,7 @@ import {
   createGracefulShutdown,
 } from "./graceful-shutdown";
 import { markError, markReceived, markSuccess } from "./reaction";
+import { ReplyThrottler } from "./reply-throttler";
 import { sendReply, showTyping } from "./sender";
 import { resolveDiscordSessionKey } from "./session";
 import type {
@@ -25,6 +26,7 @@ import type {
   ChannelType,
   MessageHandler,
   MessageRequest,
+  ReplyMeta,
 } from "./types";
 
 /**
@@ -285,20 +287,36 @@ async function executeHandler(
   config: ListenerConfig,
 ): Promise<void> {
   const startTime = Date.now();
+  const throttler = new ReplyThrottler();
+  let hasSentFinal = false;
+
+  const onReply = async (text: string, meta: ReplyMeta): Promise<void> => {
+    if (meta.kind === "final") {
+      hasSentFinal = true;
+    }
+    await throttler.maybeReply(message, text, meta);
+  };
 
   try {
-    // Send debug acknowledgment if enabled (default: true)
     if (config.debugMode !== false) {
       const debugInfo = formatDebugMessage(request.sessionKey, startTime);
-      await sendReply(message, debugInfo);
+      await onReply(debugInfo, { kind: "ack" });
     }
 
-    // Call handler
-    const response = await config.handler.handle(request);
+    const requestWithCallbacks: MessageRequest = {
+      ...request,
+      callbacks: {
+        ...request.callbacks,
+        onReply,
+      },
+    };
 
-    // Send response
+    const response = await config.handler.handle(requestWithCallbacks);
+
     if (response.success && response.text) {
-      await sendReply(message, response.text);
+      if (!hasSentFinal) {
+        await sendReply(message, response.text);
+      }
       await markSuccess(message, botUserId);
     } else if (!response.success) {
       const errorMsg = response.error || "An error occurred";
@@ -306,7 +324,6 @@ async function executeHandler(
       await markError(message, botUserId);
     }
   } catch (error) {
-    // Handle exceptions
     const errorMsg =
       error instanceof Error ? error.message : "Unknown error occurred";
     try {
@@ -324,9 +341,8 @@ async function executeHandler(
 function formatDebugMessage(sessionKey: string, startTime: number): string {
   const timestamp = new Date(startTime).toISOString();
   // Use short session key (last 8 chars) for readability
-  const shortSession = sessionKey.length > 20
-    ? `...${sessionKey.slice(-12)}`
-    : sessionKey;
+  const shortSession =
+    sessionKey.length > 20 ? `...${sessionKey.slice(-12)}` : sessionKey;
 
   return `\`\`\`\n⏳ Processing...\nSession: ${shortSession}\nTime: ${timestamp}\n\`\`\``;
 }

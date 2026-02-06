@@ -22,6 +22,18 @@ export interface MessageHandler {
 }
 
 /**
+ * Reply metadata for multi-reply support
+ */
+export interface ReplyMeta {
+  /** Type of reply */
+  kind: "ack" | "progress" | "final";
+  /** Run ID for correlation */
+  runId?: string;
+  /** Tool name (for progress replies) */
+  toolName?: string;
+}
+
+/**
  * Common message request
  */
 export interface MessageRequest {
@@ -32,7 +44,10 @@ export interface MessageRequest {
     username?: string;
   };
   callbacks?: {
+    /** Stream text deltas */
     onTextDelta?: (delta: string) => void;
+    /** Send intermediate replies (ack, progress, final) */
+    onReply?: (text: string, meta: ReplyMeta) => Promise<void>;
   };
 }
 
