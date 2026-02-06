@@ -434,25 +434,10 @@ export const sessionsSpawnTool: Tool<{
 
 // ============== 导出 ==============
 
-/**
- * 所有内置工具
- *
- * 这 9 个工具覆盖了 Agent 的核心能力:
- * - 感知: read, list, grep
- * - 行动: write, edit, exec
- * - 记忆: memory_search, memory_get
- * - 编排: sessions_spawn
- *
- * OpenClaw 有 50+ 工具，包括:
- * - 浏览器自动化 (Puppeteer)
- * - Git 操作
- * - 数据库查询
- * - API 调用
- * - 等等...
- *
- * 但这 9 个是最基础的，理解了这些就理解了工具系统的本质。
- */
-export const builtinTools: Tool[] = [
+import type { CronService } from "../cron/service.js";
+import { createCronTool } from "../cron/tool.js";
+
+const coreTools: Tool[] = [
   readTool,
   writeTool,
   editTool,
@@ -463,3 +448,9 @@ export const builtinTools: Tool[] = [
   memoryGetTool,
   sessionsSpawnTool,
 ];
+
+export const builtinTools: Tool[] = coreTools;
+
+export function createBuiltinToolsWithCron(cronService: CronService): Tool[] {
+  return [...coreTools, createCronTool(cronService)];
+}
