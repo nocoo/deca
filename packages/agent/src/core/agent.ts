@@ -839,4 +839,36 @@ export class Agent {
   setTools(tools: Tool[]): void {
     this.tools = tools;
   }
+
+  async getStatus(sessionKey?: string): Promise<{
+    model: string;
+    agentId: string;
+    contextTokens: number;
+    session?: {
+      key: string;
+      messageCount: number;
+      userMessages: number;
+      assistantMessages: number;
+      totalChars: number;
+    };
+  }> {
+    const base = {
+      model: this.model,
+      agentId: this.agentId,
+      contextTokens: this.contextTokens,
+    };
+
+    if (!sessionKey) {
+      return base;
+    }
+
+    const sessionStats = await this.sessions.getStats(sessionKey);
+    return {
+      ...base,
+      session: {
+        key: sessionKey,
+        ...sessionStats,
+      },
+    };
+  }
 }

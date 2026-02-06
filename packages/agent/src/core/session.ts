@@ -204,4 +204,40 @@ export class SessionManager {
       return [];
     }
   }
+
+  async getStats(sessionKey: string): Promise<{
+    messageCount: number;
+    userMessages: number;
+    assistantMessages: number;
+    totalChars: number;
+  }> {
+    const messages = await this.load(sessionKey);
+    let totalChars = 0;
+    let userMessages = 0;
+    let assistantMessages = 0;
+
+    for (const msg of messages) {
+      if (msg.role === "user") userMessages++;
+      else assistantMessages++;
+
+      if (typeof msg.content === "string") {
+        totalChars += msg.content.length;
+      } else if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (block.type === "text" && block.text) {
+            totalChars += block.text.length;
+          } else if (block.type === "tool_result" && block.content) {
+            totalChars += block.content.length;
+          }
+        }
+      }
+    }
+
+    return {
+      messageCount: messages.length,
+      userMessages,
+      assistantMessages,
+      totalChars,
+    };
+  }
 }

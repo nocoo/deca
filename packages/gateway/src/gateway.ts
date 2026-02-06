@@ -149,11 +149,23 @@ export function createGateway(config: GatewayConfig): Gateway {
           onClearSession: async (sessionKey: string) => {
             await adapter?.agent.reset(sessionKey);
           },
-          onGetStatus: async () => ({
-            uptime: Date.now() - startTime,
-            guilds: discordGateway?.client.guilds.cache.size ?? 0,
-            pendingMessages: 0,
-          }),
+          onGetStatus: async (sessionKey: string) => {
+            const agentStatus = await adapter.agent.getStatus(sessionKey);
+            return {
+              uptime: Date.now() - startTime,
+              guilds: discordGateway?.client.guilds.cache.size ?? 0,
+              model: agentStatus.model,
+              agentId: agentStatus.agentId,
+              contextTokens: agentStatus.contextTokens,
+              session: agentStatus.session
+                ? {
+                    key: agentStatus.session.key,
+                    messageCount: agentStatus.session.messageCount,
+                    totalChars: agentStatus.session.totalChars,
+                  }
+                : undefined,
+            };
+          },
         };
         slashCommandsCleanup = setupSlashCommands(
           discordGateway.client,

@@ -12,6 +12,20 @@ const mockAgentRun = mock(() =>
 const mockStartHeartbeat = mock(() => {});
 const mockStopHeartbeat = mock(() => {});
 const mockAgentReset = mock(() => Promise.resolve());
+const mockAgentGetStatus = mock(() =>
+  Promise.resolve({
+    model: "mock-model",
+    agentId: "mock-agent",
+    contextTokens: 128000,
+    session: {
+      key: "test-session",
+      messageCount: 10,
+      userMessages: 5,
+      assistantMessages: 5,
+      totalChars: 1000,
+    },
+  }),
+);
 
 mock.module("@deca/agent", () => ({
   Agent: class MockAgent {
@@ -20,6 +34,7 @@ mock.module("@deca/agent", () => ({
     startHeartbeat = mockStartHeartbeat;
     stopHeartbeat = mockStopHeartbeat;
     reset = mockAgentReset;
+    getStatus = mockAgentGetStatus;
   },
 }));
 
@@ -534,11 +549,17 @@ describe("createGateway", () => {
       const setupCall = mockSetupSlashCommands.mock.calls[0];
       const config = setupCall[1];
 
-      const status = await config.onGetStatus();
+      const status = await config.onGetStatus("test-session");
 
       expect(status.guilds).toBe(1);
-      expect(status.pendingMessages).toBe(0);
       expect(typeof status.uptime).toBe("number");
+      expect(status.model).toBe("mock-model");
+      expect(status.contextTokens).toBe(128000);
+      expect(status.session).toEqual({
+        key: "test-session",
+        messageCount: 10,
+        totalChars: 1000,
+      });
     });
   });
 });

@@ -40,25 +40,23 @@ export interface CommandDefinition {
   handler: SlashCommandHandler;
 }
 
-/**
- * Slash commands configuration
- */
 export interface SlashCommandsConfig {
-  /** Application/Client ID */
   clientId: string;
-  /** Bot token */
   token: string;
-  /** Message handler for /ask command */
   messageHandler: MessageHandler;
-  /** Agent ID for session keys */
   agentId?: string;
-  /** Session clearer callback */
   onClearSession?: (sessionKey: string) => Promise<void>;
-  /** Status callback */
-  onGetStatus?: () => Promise<{
+  onGetStatus?: (sessionKey: string) => Promise<{
     uptime: number;
     guilds: number;
-    pendingMessages: number;
+    model: string;
+    agentId: string;
+    contextTokens: number;
+    session?: {
+      key: string;
+      messageCount: number;
+      totalChars: number;
+    };
   }>;
 }
 
@@ -261,16 +259,29 @@ async function handleStatusCommand(
   config: SlashCommandsConfig,
 ): Promise<void> {
   if (config.onGetStatus) {
-    const status = await config.onGetStatus();
+    const sessionKey = createSessionKey(interaction, config.agentId);
+    const status = await config.onGetStatus(sessionKey);
     const uptimeHours = (status.uptime / 3600000).toFixed(1);
 
+    const contextPercent = status.session
+      ? Math.round(
+          (status.session.totalChars / (status.contextTokens * 4)) * 100,
+        )
+      : 0;
+
+    const lines = [
+      "📊 **Bot Status**",
+      `🧠 Model: ${status.model}`,
+      `📚 Context: ${contextPercent}% used (${status.contextTokens.toLocaleString()} tokens)`,
+      `⏱️ Uptime: ${uptimeHours}h · Servers: ${status.guilds}`,
+    ];
+
+    if (status.session) {
+      lines.push(`🧵 Session: ${status.session.messageCount} messages`);
+    }
+
     await interaction.reply({
-      content: [
-        "📊 **Bot Status**",
-        `• Uptime: ${uptimeHours} hours`,
-        `• Servers: ${status.guilds}`,
-        `• Pending messages: ${status.pendingMessages}`,
-      ].join("\n"),
+      content: lines.join("\n"),
       ephemeral: true,
     });
   } else {
