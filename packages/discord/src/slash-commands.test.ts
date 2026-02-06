@@ -181,14 +181,21 @@ describe("slash-commands", () => {
   });
 
   describe("/status command", () => {
-    test("calls onGetStatus callback", async () => {
+    test("calls onGetStatus callback and displays status info", async () => {
       const client = createMockClient();
       const handler = createMockHandler();
       const onGetStatus = mock(() =>
         Promise.resolve({
           uptime: 3600000,
           guilds: 5,
-          pendingMessages: 2,
+          model: "glm-4.7",
+          agentId: "main",
+          contextTokens: 128000,
+          session: {
+            key: "agent:main:test",
+            messageCount: 10,
+            totalChars: 2000,
+          },
         }),
       );
 
@@ -207,6 +214,14 @@ describe("slash-commands", () => {
 
       expect(onGetStatus).toHaveBeenCalled();
       expect(interaction.reply).toHaveBeenCalled();
+
+      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
+        .calls[0];
+      const content = replyCall[0].content;
+      expect(content).toContain("Model: glm-4.7");
+      expect(content).toContain("Context:");
+      expect(content).toContain("128,000 tokens");
+      expect(content).toContain("Session: 10 messages");
     });
 
     test("shows simple message when onGetStatus not configured", async () => {
