@@ -59,18 +59,6 @@ function attachMockClient(agent: Agent) {
   (agent as unknown as { client: typeof client }).client = client;
 }
 
-mock.module("@anthropic-ai/sdk", () => ({
-  default: class MockAnthropic {
-    messages = {
-      stream: () => createStream({ deltas: [], finalContent: [] }),
-      create: async () => ({
-        content: [{ type: "text" as const, text: summaryText }],
-      }),
-    };
-    constructor(public options: unknown) {}
-  },
-}));
-
 import { Agent } from "./agent.js";
 
 describe("Agent", () => {

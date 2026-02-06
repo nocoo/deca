@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach, mock, beforeEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Gateway } from "./types";
 
 // ============================================================================
@@ -9,11 +9,15 @@ import type { Gateway } from "./types";
 const mockAgentRun = mock(() =>
   Promise.resolve({ text: "Agent response", turns: 1, toolCalls: 0 }),
 );
+const mockStartHeartbeat = mock(() => {});
+const mockStopHeartbeat = mock(() => {});
 
 mock.module("@deca/agent", () => ({
   Agent: class MockAgent {
     constructor(public config: unknown) {}
     run = mockAgentRun;
+    startHeartbeat = mockStartHeartbeat;
+    stopHeartbeat = mockStopHeartbeat;
   },
 }));
 
@@ -54,7 +58,7 @@ mock.module("@deca/http", () => ({
 }));
 
 // Import after mocks are set up
-import { createGateway, createEchoGateway } from "./gateway";
+import { createEchoGateway, createGateway } from "./gateway";
 
 // ============================================================================
 // Test Utilities
@@ -75,6 +79,8 @@ afterEach(async () => {
 beforeEach(() => {
   // Reset mocks
   mockAgentRun.mockClear();
+  mockStartHeartbeat.mockClear();
+  mockStopHeartbeat.mockClear();
   mockDiscordConnect.mockClear();
   mockDiscordShutdown.mockClear();
   mockTerminalStart.mockClear();
@@ -285,7 +291,9 @@ describe("createGateway", () => {
     it("catches terminal start errors (non-Error)", async () => {
       let capturedError: Error | null = null;
 
-      mockTerminalStart.mockImplementation(() => Promise.reject("string error"));
+      mockTerminalStart.mockImplementation(() =>
+        Promise.reject("string error"),
+      );
 
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
@@ -305,6 +313,69 @@ describe("createGateway", () => {
 
       expect(capturedError).not.toBeNull();
       expect(capturedError?.message).toBe("string error");
+    });
+  });
+
+  describe("heartbeat", () => {
+    it("starts heartbeat when enabled with Discord channel", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", enableHeartbeat: true },
+        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not start heartbeat when heartbeatChannelId is missing", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", enableHeartbeat: true },
+        discord: { token: "discord-token" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+    });
+
+    it("does not start heartbeat when enableHeartbeat is false", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", enableHeartbeat: false },
+        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+    });
+
+    it("does not start heartbeat without Discord channel", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", enableHeartbeat: true },
+        http: { port: 3000 },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+    });
+
+    it("stops heartbeat when gateway stops", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", enableHeartbeat: true },
+        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.stop();
+
+      expect(mockStopHeartbeat).toHaveBeenCalledTimes(1);
     });
   });
 });

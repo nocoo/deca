@@ -20,7 +20,11 @@ export type {
 } from "./types";
 
 // Adapter
-export { createAgentAdapter, createEchoAdapter } from "./adapter";
+export {
+  createAgentAdapter,
+  createEchoAdapter,
+  type AgentAdapter,
+} from "./adapter";
 
 // Gateway
 export { createGateway, createEchoGateway } from "./gateway";

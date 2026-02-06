@@ -102,6 +102,12 @@ export interface AgentAdapterConfig {
 
   /** Memory storage directory */
   memoryDir?: string;
+
+  /** Enable heartbeat (default: false) */
+  enableHeartbeat?: boolean;
+
+  /** Heartbeat interval in milliseconds (default: 30 minutes) */
+  heartbeatIntervalMs?: number;
 }
 
 /**
@@ -126,6 +132,9 @@ export interface DiscordChannelConfig {
 
   /** Debug mode - show session ID and timing info before processing (default: true) */
   debugMode?: boolean;
+
+  /** Channel ID for heartbeat notifications (enables proactive messaging) */
+  heartbeatChannelId?: string;
 }
 
 /**

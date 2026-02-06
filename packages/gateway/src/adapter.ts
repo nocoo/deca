@@ -13,10 +13,14 @@ import type {
   MessageResponse,
 } from "./types";
 
+export interface AgentAdapter extends MessageHandler {
+  readonly agent: Agent;
+}
+
 /**
  * Create an agent adapter that implements the MessageHandler interface
  */
-export function createAgentAdapter(config: AgentAdapterConfig): MessageHandler {
+export function createAgentAdapter(config: AgentAdapterConfig): AgentAdapter {
   const agentConfig: AgentConfig = {
     apiKey: config.apiKey,
     baseUrl: config.baseUrl,
@@ -30,12 +34,14 @@ export function createAgentAdapter(config: AgentAdapterConfig): MessageHandler {
     memoryDir: config.memoryDir,
     enableContext: true,
     enableSkills: true,
-    enableHeartbeat: false,
+    enableHeartbeat: config.enableHeartbeat ?? false,
+    heartbeatInterval: config.heartbeatIntervalMs,
   };
 
   const agent = new Agent(agentConfig);
 
   return {
+    agent,
     async handle(request: MessageRequest): Promise<MessageResponse> {
       try {
         const result: RunResult = await agent.run(

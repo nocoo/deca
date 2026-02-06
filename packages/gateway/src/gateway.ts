@@ -5,25 +5,22 @@
  * This is the central composition point of the system.
  */
 
+import type { HeartbeatTask, WakeRequest } from "@deca/agent";
 import {
-  createDiscordGateway,
   type DiscordGateway,
+  createDiscordGateway,
+  sendToChannel,
 } from "@deca/discord";
-import {
-  createTerminal,
-  type Terminal,
-} from "@deca/terminal";
-import {
-  createHttpServer,
-  type HttpServer,
-} from "@deca/http";
+import { type HttpServer, createHttpServer } from "@deca/http";
+import { type Terminal, createTerminal } from "@deca/terminal";
+import type { TextBasedChannel } from "discord.js";
 
-import type {
-  Gateway,
-  GatewayConfig,
-  MessageHandler,
-} from "./types";
-import { createAgentAdapter, createEchoAdapter } from "./adapter";
+import {
+  type AgentAdapter,
+  createAgentAdapter,
+  createEchoAdapter,
+} from "./adapter";
+import type { Gateway, GatewayConfig, MessageHandler } from "./types";
 
 /**
  * Create a gateway instance
@@ -42,7 +39,7 @@ export function createGateway(config: GatewayConfig): Gateway {
   let isRunning = false;
 
   // Create the message handler (agent adapter)
-  const handler: MessageHandler = createAgentAdapter(config.agent);
+  const adapter: AgentAdapter = createAgentAdapter(config.agent);
 
   /**
    * Wrap handler with event callbacks
@@ -53,7 +50,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         events.onMessage?.(channel, request.sessionKey);
 
         try {
-          const response = await handler.handle(request);
+          const response = await adapter.handle(request);
           events.onResponse?.(channel, request.sessionKey, response.success);
           return response;
         } catch (error) {
@@ -64,6 +61,40 @@ export function createGateway(config: GatewayConfig): Gateway {
         }
       },
     };
+  }
+
+  function formatHeartbeatMessage(tasks: HeartbeatTask[]): string {
+    const taskList = tasks
+      .map((t, i) => `${i + 1}. ${t.description}`)
+      .join("\n");
+    return `📋 **Heartbeat** (${tasks.length} pending tasks)\n${taskList}`;
+  }
+
+  function setupHeartbeatCallback(): void {
+    if (!discord?.heartbeatChannelId || !discordGateway) {
+      return;
+    }
+
+    const channelId = discord.heartbeatChannelId;
+
+    adapter.agent.startHeartbeat(
+      async (tasks: HeartbeatTask[], _request: WakeRequest) => {
+        if (tasks.length === 0) {
+          return;
+        }
+
+        try {
+          const channel = discordGateway?.client.channels.cache.get(channelId);
+          if (channel?.isTextBased()) {
+            const message = formatHeartbeatMessage(tasks);
+            await sendToChannel(channel as TextBasedChannel, message);
+          }
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          events.onError?.(err, "heartbeat");
+        }
+      },
+    );
   }
 
   /**
@@ -93,6 +124,11 @@ export function createGateway(config: GatewayConfig): Gateway {
 
       await discordGateway.connect();
       activeChannels.push("discord");
+
+      // Setup heartbeat after Discord is connected
+      if (config.agent.enableHeartbeat && discord.heartbeatChannelId) {
+        setupHeartbeatCallback();
+      }
     }
 
     // Start HTTP if configured
@@ -128,7 +164,10 @@ export function createGateway(config: GatewayConfig): Gateway {
 
       // Terminal start is blocking, run in background
       terminalInstance.start().catch((error) => {
-        events.onError?.(error instanceof Error ? error : new Error(String(error)), "terminal");
+        events.onError?.(
+          error instanceof Error ? error : new Error(String(error)),
+          "terminal",
+        );
       });
     }
   }
@@ -140,6 +179,9 @@ export function createGateway(config: GatewayConfig): Gateway {
     if (!isRunning) {
       return;
     }
+
+    // Stop heartbeat first
+    adapter.agent.stopHeartbeat?.();
 
     // Stop channels in reverse order
     if (terminalInstance) {
@@ -169,7 +211,7 @@ export function createGateway(config: GatewayConfig): Gateway {
       return isRunning;
     },
     get handler() {
-      return handler;
+      return adapter;
     },
     get channels() {
       return [...activeChannels];
@@ -269,8 +311,14 @@ export function createEchoGateway(
   return {
     start,
     stop,
-    get isRunning() { return isRunning; },
-    get handler() { return echoHandler; },
-    get channels() { return [...activeChannels]; },
+    get isRunning() {
+      return isRunning;
+    },
+    get handler() {
+      return echoHandler;
+    },
+    get channels() {
+      return [...activeChannels];
+    },
   };
 }
