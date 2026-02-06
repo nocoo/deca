@@ -13,8 +13,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { CronService } from "../service.js";
-import type { CronJob } from "../types.js";
+import { CronService } from "../cron/service.js";
+import type { CronJob } from "../cron/types.js";
 
 describe("CronService E2E", () => {
   let tempDir: string;
