@@ -436,6 +436,7 @@ export const sessionsSpawnTool: Tool<{
 
 import type { CronService } from "../cron/service.js";
 import { createCronTool } from "../cron/tool.js";
+import { claudeCodeTool } from "./coding-agent/index.js";
 
 const coreTools: Tool[] = [
   readTool,
@@ -447,6 +448,7 @@ const coreTools: Tool[] = [
   memorySearchTool,
   memoryGetTool,
   sessionsSpawnTool,
+  claudeCodeTool,
 ];
 
 export const builtinTools: Tool[] = coreTools;
@@ -454,3 +456,5 @@ export const builtinTools: Tool[] = coreTools;
 export function createBuiltinToolsWithCron(cronService: CronService): Tool[] {
   return [...coreTools, createCronTool(cronService)];
 }
+
+export { claudeCodeTool };

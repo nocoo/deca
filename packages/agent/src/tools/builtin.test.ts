@@ -37,8 +37,8 @@ describe("builtin tools", () => {
   });
 
   describe("builtinTools export", () => {
-    it("should export all 9 tools", () => {
-      expect(builtinTools.length).toBe(9);
+    it("should export all 10 tools", () => {
+      expect(builtinTools.length).toBe(10);
       const names = builtinTools.map((t) => t.name);
       expect(names).toContain("read");
       expect(names).toContain("write");
@@ -49,6 +49,7 @@ describe("builtin tools", () => {
       expect(names).toContain("memory_search");
       expect(names).toContain("memory_get");
       expect(names).toContain("sessions_spawn");
+      expect(names).toContain("claude_code");
     });
   });
 
