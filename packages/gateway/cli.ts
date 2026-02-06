@@ -16,6 +16,8 @@
  *   ENABLE_MEMORY      - Enable memory system (default: false)
  *   MEMORY_DIR         - Memory storage directory (optional)
  *   WORKSPACE_DIR      - Workspace directory for agent file operations (optional)
+ *   ENABLE_CRON        - Enable cron scheduler (default: false)
+ *   CRON_STORAGE_PATH  - Cron storage path (optional)
  *
  * Usage:
  *   ANTHROPIC_API_KEY=xxx bun run packages/gateway/cli.ts
@@ -36,6 +38,8 @@ const echoMode = process.env.ECHO_MODE === "true" || !anthropicApiKey;
 const enableMemory = process.env.ENABLE_MEMORY === "true";
 const memoryDir = process.env.MEMORY_DIR;
 const workspaceDir = process.env.WORKSPACE_DIR;
+const enableCron = process.env.ENABLE_CRON === "true";
+const cronStoragePath = process.env.CRON_STORAGE_PATH;
 
 console.log("🚀 Starting Deca Gateway...\n");
 
@@ -79,6 +83,8 @@ const gateway = echoMode
         enableMemory,
         memoryDir,
         workspaceDir,
+        enableCron,
+        cronStoragePath,
       },
       discord: discordConfig,
       http: { port: httpPort, apiKey: httpApiKey },

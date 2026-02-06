@@ -27,6 +27,10 @@ export interface SpawnerConfig {
   enableMemory?: boolean;
   /** Memory storage directory */
   memoryDir?: string;
+  /** Enable cron scheduler */
+  enableCron?: boolean;
+  /** Cron storage path */
+  cronStoragePath?: string;
 }
 
 interface LLMCredential {
@@ -136,6 +140,12 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.memoryDir) {
       env.MEMORY_DIR = config.memoryDir;
+    }
+    if (config.enableCron) {
+      env.ENABLE_CRON = "true";
+    }
+    if (config.cronStoragePath) {
+      env.CRON_STORAGE_PATH = config.cronStoragePath;
     }
   }
 
