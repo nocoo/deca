@@ -20,6 +20,7 @@ export {
   getMessageReactions,
   waitForBotResponse,
   waitForReaction,
+  waitForReactionRemoval,
   type DiscordMessageData,
   type DiscordReaction,
   type FetcherConfig,

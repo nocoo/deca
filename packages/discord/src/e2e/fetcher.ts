@@ -217,6 +217,35 @@ export async function waitForReaction(
 }
 
 /**
+ * Wait for a specific reaction to be removed from a message.
+ *
+ * @param config - Fetcher configuration
+ * @param messageId - Message ID to check
+ * @param options - Wait options
+ * @returns True if reaction was removed (not found), false if timeout
+ */
+export async function waitForReactionRemoval(
+  config: FetcherConfig,
+  messageId: string,
+  options: ReactionWaitOptions,
+): Promise<boolean> {
+  const timeout = options.timeout ?? 10000;
+  const interval = options.interval ?? 500;
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const reactions = await getMessageReactions(config, messageId);
+    if (!reactions.includes(options.emoji)) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+
+  return false;
+}
+
+/**
  * Get reactions on a specific message.
  *
  * @param config - Fetcher configuration
