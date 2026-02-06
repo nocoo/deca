@@ -1,4 +1,5 @@
 export { createDispatcher } from "./dispatcher";
+export { createDispatcherHandler } from "./handler-adapter";
 export type {
   Dispatcher,
   DispatcherConfig,
