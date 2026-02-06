@@ -211,6 +211,68 @@ function createToolTests(): ToolTestCase[] {
         return { passed: true };
       },
     },
+
+    {
+      name: "exec: run shell command",
+      setup: async () => {
+        mkdirSync(TEST_DIR, { recursive: true });
+      },
+      prompt: `Use the exec tool to run: echo "${testMarker}_EXEC_OUTPUT". Tell me the exact output.`,
+      validate: async (response) => {
+        if (!response.includes(`${testMarker}_EXEC_OUTPUT`)) {
+          return {
+            passed: false,
+            error: `Expected "${testMarker}_EXEC_OUTPUT" in response`,
+          };
+        }
+        return { passed: true };
+      },
+    },
+
+    {
+      name: "list: list directory",
+      setup: async () => {
+        mkdirSync(TEST_DIR, { recursive: true });
+        writeFileSync(join(TEST_DIR, `${testMarker}_file1.txt`), "content1");
+        writeFileSync(join(TEST_DIR, `${testMarker}_file2.txt`), "content2");
+        mkdirSync(join(TEST_DIR, `${testMarker}_subdir`), { recursive: true });
+      },
+      prompt: `Use the list tool to list ${TEST_DIR}. Tell me how many items contain "${testMarker}" in their name.`,
+      validate: async (response) => {
+        if (!response.includes("3") && !response.includes("three")) {
+          return {
+            passed: false,
+            error: `Expected "3" or "three" items in response: ${response.slice(0, 200)}`,
+          };
+        }
+        return { passed: true };
+      },
+    },
+
+    {
+      name: "grep: search file content",
+      setup: async () => {
+        mkdirSync(TEST_DIR, { recursive: true });
+        writeFileSync(
+          join(TEST_DIR, "grep-test.txt"),
+          `Line 1: hello\nLine 2: ${testMarker}_GREP_TARGET\nLine 3: world`,
+        );
+      },
+      prompt: `Use the grep tool to search for "${testMarker}_GREP_TARGET" in ${TEST_DIR}. Which line number contains it?`,
+      validate: async (response) => {
+        if (
+          !response.includes("2") &&
+          !response.includes("two") &&
+          !response.includes("second")
+        ) {
+          return {
+            passed: false,
+            error: `Expected line "2" in response: ${response.slice(0, 200)}`,
+          };
+        }
+        return { passed: true };
+      },
+    },
   ];
 }
 
