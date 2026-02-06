@@ -152,8 +152,22 @@ async function sendAndWait(
   return { success: true, response };
 }
 
+function startBot(): Promise<BotProcess> {
+  return spawnBot({
+    cwd: getGatewayDir(),
+    mode: "agent",
+    allowBots: true,
+    debounce: false,
+    startupTimeout: 30000,
+    workspaceDir: process.cwd(),
+    enableMemory: true,
+    memoryDir: MEMORY_DIR,
+    debug: DEBUG,
+  });
+}
+
 async function main() {
-  console.log("🧪 Agent Behavioral Tests - Memory Tools\n");
+  console.log("🧪 Agent Behavioral Tests - Memory System\n");
 
   let config: Config;
   try {
@@ -172,37 +186,19 @@ async function main() {
   console.log(`✓ Test directory: ${TEST_DIR}`);
   console.log(`✓ Memory directory: ${MEMORY_DIR}`);
 
-  let bot: BotProcess;
-  try {
-    console.log("\n📡 Starting Agent Bot with Memory enabled...");
-    bot = await spawnBot({
-      cwd: getGatewayDir(),
-      mode: "agent",
-      allowBots: true,
-      debounce: false,
-      startupTimeout: 30000,
-      workspaceDir: process.cwd(),
-      enableMemory: true,
-      memoryDir: MEMORY_DIR,
-      debug: DEBUG,
-    });
-    console.log(`✓ Bot started (PID: ${bot.pid})`);
-  } catch (error) {
-    console.error(`✗ Bot error: ${(error as Error).message}`);
-    process.exit(1);
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 5000));
-
-  console.log(`\n${"=".repeat(60)}`);
-  console.log("Running Memory Tool Tests\n");
-
   const results: { name: string; passed: boolean; error?: string }[] = [];
   const testMarker = `MEMKEY_${Date.now()}`;
 
-  // Test 1: memory_search returns no results when empty
+  console.log("\n📡 Starting Agent Bot (Phase 1: Accuracy)...");
+  let bot = await startBot();
+  console.log(`✓ Bot started (PID: ${bot.pid})`);
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log("Phase 1: Accuracy Tests\n");
+
   {
-    const testName = "memory_search: empty search returns no results";
+    const testName = "accuracy: empty search returns 'no results'";
     process.stdout.write(`  ${testName}... `);
 
     const result = await sendAndWait(
@@ -240,18 +236,16 @@ async function main() {
         });
       }
     }
-
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  // Test 2: memory_get returns error for non-existent id
   {
-    const testName = "memory_get: non-existent id returns error";
+    const testName = "accuracy: memory_get with fake ID returns 'not found'";
     process.stdout.write(`  ${testName}... `);
 
     const result = await sendAndWait(
       config,
-      `Use memory_get tool to get memory with id "mem_fake_123456". Tell me the exact result from the tool.`,
+      'Use memory_get tool to get memory with id "mem_fake_123456". Tell me the exact result from the tool.',
     );
 
     if (!result.success) {
@@ -284,20 +278,17 @@ async function main() {
         });
       }
     }
-
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  // Test 3: Full memory flow - auto-save then search
+  const uniqueSecret1 = `SECRET_${testMarker}_ALPHA`;
   {
-    const testName = "memory flow: auto-save conversation then search";
+    const testName = "accuracy: auto-saved conversation is searchable";
     process.stdout.write(`  ${testName}... `);
 
-    // Step 1: Send a message with unique content that will be auto-saved
-    const uniqueSecret = `SECRET_${testMarker}_XYZZY`;
     const step1 = await sendAndWait(
       config,
-      `Remember this important information: The secret code is "${uniqueSecret}". Just confirm you understood.`,
+      `Remember this important information: The secret code is "${uniqueSecret1}". Just confirm you understood.`,
     );
 
     if (!step1.success) {
@@ -305,18 +296,17 @@ async function main() {
       console.log(`    Error (step 1): ${step1.error}`);
       results.push({ name: testName, passed: false, error: step1.error });
     } else {
-      if (DEBUG)
+      if (DEBUG) {
         console.log(
           `\n   [DEBUG] Step 1 response: ${step1.response?.slice(0, 100)}`,
         );
+      }
 
-      // Wait for memory to be saved
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      // Step 2: Search for the saved content
       const step2 = await sendAndWait(
         config,
-        `Use memory_search tool to search for "${uniqueSecret}". Tell me if you found any results and what they contain.`,
+        `Use memory_search tool to search for "${uniqueSecret1}". Tell me if you found any results and what they contain.`,
       );
 
       if (!step2.success) {
@@ -325,12 +315,12 @@ async function main() {
         results.push({ name: testName, passed: false, error: step2.error });
       } else {
         const response = step2.response ?? "";
-        if (DEBUG)
+        if (DEBUG) {
           console.log(`   [DEBUG] Step 2 response: ${response.slice(0, 200)}`);
+        }
 
-        // Check if we found the memory
         const foundMemory =
-          response.includes(uniqueSecret) ||
+          response.includes(uniqueSecret1) ||
           response.includes("secret") ||
           response.includes("found") ||
           response.includes("result") ||
@@ -354,9 +344,247 @@ async function main() {
           results.push({
             name: testName,
             passed: false,
-            error: `Memory not found after auto-save: ${response.slice(0, 150)}`,
+            error: `Memory not found: ${response.slice(0, 150)}`,
           });
         }
+      }
+    }
+  }
+
+  {
+    const testName = "accuracy: memory_get retrieves full content by ID";
+    process.stdout.write(`  ${testName}... `);
+
+    const searchResult = await sendAndWait(
+      config,
+      `Use memory_search tool to search for "${uniqueSecret1}". Return ONLY the memory ID (starts with mem_).`,
+    );
+
+    if (!searchResult.success) {
+      console.log("✗");
+      console.log(`    Error (search): ${searchResult.error}`);
+      results.push({
+        name: testName,
+        passed: false,
+        error: searchResult.error,
+      });
+    } else {
+      const searchResponse = searchResult.response ?? "";
+      const idMatch = searchResponse.match(/mem_\d+_\w+/);
+
+      if (!idMatch) {
+        console.log("✗");
+        console.log("    Error: Could not extract memory ID from response");
+        results.push({
+          name: testName,
+          passed: false,
+          error: "No memory ID found in search response",
+        });
+      } else {
+        const memoryId = idMatch[0];
+        if (DEBUG) {
+          console.log(`\n   [DEBUG] Found memory ID: ${memoryId}`);
+        }
+
+        const getResult = await sendAndWait(
+          config,
+          `Use memory_get tool to get the full content of memory with ID "${memoryId}". Show me the content.`,
+        );
+
+        if (!getResult.success) {
+          console.log("✗");
+          console.log(`    Error (get): ${getResult.error}`);
+          results.push({
+            name: testName,
+            passed: false,
+            error: getResult.error,
+          });
+        } else {
+          const getResponse = getResult.response ?? "";
+
+          if (
+            getResponse.includes(uniqueSecret1) ||
+            getResponse.includes("secret")
+          ) {
+            console.log("✓");
+            results.push({ name: testName, passed: true });
+          } else {
+            console.log("✗");
+            console.log("    Error: Full content should contain the secret");
+            console.log(`    Response: ${getResponse.slice(0, 200)}`);
+            results.push({
+              name: testName,
+              passed: false,
+              error: `Content mismatch: ${getResponse.slice(0, 150)}`,
+            });
+          }
+        }
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  const uniqueSecret2 = `SECRET_${testMarker}_BETA`;
+  {
+    const testName = "accuracy: store second memory for persistence test";
+    process.stdout.write(`  ${testName}... `);
+
+    const result = await sendAndWait(
+      config,
+      `Remember another important code: "${uniqueSecret2}". This is for testing persistence. Just confirm.`,
+    );
+
+    if (!result.success) {
+      console.log("✗");
+      console.log(`    Error: ${result.error}`);
+      results.push({ name: testName, passed: false, error: result.error });
+    } else {
+      console.log("✓");
+      results.push({ name: testName, passed: true });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+
+  console.log("\n🛑 Stopping bot for persistence test...");
+  await bot.stop();
+  console.log("✓ Bot stopped");
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  console.log("\n📡 Restarting Agent Bot (Phase 2: Persistence)...");
+  bot = await startBot();
+  console.log(`✓ Bot restarted (PID: ${bot.pid})`);
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log("Phase 2: Persistence Tests\n");
+
+  {
+    const testName = "persistence: first memory survives restart";
+    process.stdout.write(`  ${testName}... `);
+
+    const result = await sendAndWait(
+      config,
+      `Use memory_search tool to search for "${uniqueSecret1}". Tell me if you found it.`,
+    );
+
+    if (!result.success) {
+      console.log("✗");
+      console.log(`    Error: ${result.error}`);
+      results.push({ name: testName, passed: false, error: result.error });
+    } else {
+      const response = result.response ?? "";
+
+      const found =
+        response.includes(uniqueSecret1) ||
+        response.includes("found") ||
+        response.includes("result") ||
+        response.includes("mem_");
+
+      const notFound =
+        response.includes("未找到") ||
+        response.includes("no result") ||
+        response.includes("No result");
+
+      if (found && !notFound) {
+        console.log("✓");
+        results.push({ name: testName, passed: true });
+      } else {
+        console.log("✗");
+        console.log("    Error: Memory should persist after restart");
+        console.log(`    Response: ${response.slice(0, 200)}`);
+        results.push({
+          name: testName,
+          passed: false,
+          error: `Memory lost after restart: ${response.slice(0, 150)}`,
+        });
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  {
+    const testName = "persistence: second memory survives restart";
+    process.stdout.write(`  ${testName}... `);
+
+    const result = await sendAndWait(
+      config,
+      `Use memory_search tool to search for "${uniqueSecret2}". Tell me if you found it.`,
+    );
+
+    if (!result.success) {
+      console.log("✗");
+      console.log(`    Error: ${result.error}`);
+      results.push({ name: testName, passed: false, error: result.error });
+    } else {
+      const response = result.response ?? "";
+
+      const found =
+        response.includes(uniqueSecret2) ||
+        response.includes("found") ||
+        response.includes("result") ||
+        response.includes("mem_");
+
+      const notFound =
+        response.includes("未找到") ||
+        response.includes("no result") ||
+        response.includes("No result");
+
+      if (found && !notFound) {
+        console.log("✓");
+        results.push({ name: testName, passed: true });
+      } else {
+        console.log("✗");
+        console.log("    Error: Memory should persist after restart");
+        console.log(`    Response: ${response.slice(0, 200)}`);
+        results.push({
+          name: testName,
+          passed: false,
+          error: `Memory lost after restart: ${response.slice(0, 150)}`,
+        });
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  {
+    const testName = "persistence: can distinguish multiple memories";
+    process.stdout.write(`  ${testName}... `);
+
+    const result = await sendAndWait(
+      config,
+      `Use memory_search tool to search for "${testMarker}". How many different secrets do you find? List them.`,
+    );
+
+    if (!result.success) {
+      console.log("✗");
+      console.log(`    Error: ${result.error}`);
+      results.push({ name: testName, passed: false, error: result.error });
+    } else {
+      const response = result.response ?? "";
+
+      const hasAlpha =
+        response.includes("ALPHA") || response.includes(uniqueSecret1);
+      const hasBeta =
+        response.includes("BETA") || response.includes(uniqueSecret2);
+      const hasMultiple =
+        response.includes("2") ||
+        response.includes("two") ||
+        response.includes("multiple") ||
+        (hasAlpha && hasBeta);
+
+      if (hasMultiple || (hasAlpha && hasBeta)) {
+        console.log("✓");
+        results.push({ name: testName, passed: true });
+      } else {
+        console.log("✗");
+        console.log("    Error: Should find both ALPHA and BETA memories");
+        console.log(`    Response: ${response.slice(0, 300)}`);
+        results.push({
+          name: testName,
+          passed: false,
+          error: `Could not distinguish memories: ${response.slice(0, 150)}`,
+        });
       }
     }
   }
@@ -380,6 +608,7 @@ async function main() {
   }
 
   console.log(`\n📁 Test files: ${TEST_DIR}`);
+  console.log(`📁 Memory file: ${join(MEMORY_DIR, "index.json")}`);
   process.exit(passed === total ? 0 : 1);
 }
 
