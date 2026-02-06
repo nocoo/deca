@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-02-05T10:37:48.603Z",
+  "gitCommit": "c651c28",
+  "gatewayUrl": "http://localhost:8080",
+  "model": "unknown",
+  "results": [
+    {
+      "caseId": "identity-001",
+      "caseName": "Self-identification",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你是谁？",
+      "output": "",
+      "durationMs": 7.916958,
+      "quickCheck": {
+        "ran": false,
+        "passed": null
+      },
+      "error": "Unable to connect. Is the computer able to access the url?"
+    },
+    {
+      "caseId": "identity-002",
+      "caseName": "Name recall",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你叫什么名字？",
+      "output": "",
+      "durationMs": 0.1412079999999989,
+      "quickCheck": {
+        "ran": false,
+        "passed": null
+      },
+      "error": "Unable to connect. Is the computer able to access the url?"
+    },
+    {
+      "caseId": "identity-003",
+      "caseName": "Personality consistency",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "帮我介绍一下你自己",
+      "output": "",
+      "durationMs": 0.14379200000000125,
+      "quickCheck": {
+        "ran": false,
+        "passed": null
+      },
+      "error": "Unable to connect. Is the computer able to access the url?"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-02-05T10:00:00.000Z",
+  "gitCommit": "abc1234",
+  "gatewayUrl": "http://localhost:8080",
+  "model": "claude-3-sonnet",
+  "results": [
+    {
+      "caseId": "identity-001",
+      "caseName": "Self-identification",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你是谁？",
+      "output": "你好！我是 Tomato 🍅，一个红彤彤的小番茄 AI 助手。我友好、实用，偶尔还会冒出一点小幽默。有什么我可以帮你的吗？",
+      "durationMs": 1523,
+      "quickCheck": {
+        "ran": true,
+        "passed": true,
+        "details": "containsAny: found [Tomato, 🍅]"
+      }
+    },
+    {
+      "caseId": "identity-002",
+      "caseName": "Name recall",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你叫什么名字？",
+      "output": "我叫 Tomato 🍅！",
+      "durationMs": 876,
+      "quickCheck": {
+        "ran": true,
+        "passed": true,
+        "details": "containsAny: found [Tomato, 🍅]; maxLength: 18 <= 500"
+      }
+    },
+    {
+      "caseId": "identity-003",
+      "caseName": "Personality consistency",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "帮我介绍一下你自己",
+      "output": "我是一个 AI 助手，可以帮助你完成各种任务。",
+      "durationMs": 1102,
+      "quickCheck": {
+        "ran": true,
+        "passed": false,
+        "details": "containsAny: none of [🍅, 番茄, Tomato] found"
+      }
+    }
+  ]
+}

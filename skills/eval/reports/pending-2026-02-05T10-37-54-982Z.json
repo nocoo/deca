@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-02-05T10:37:54.982Z",
+  "gitCommit": "c651c28",
+  "gatewayUrl": "http://127.0.0.1:3000",
+  "model": "unknown",
+  "results": [
+    {
+      "caseId": "identity-001",
+      "caseName": "Self-identification",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你是谁？",
+      "output": "Echo: 你是谁？",
+      "durationMs": 8.018165999999999,
+      "quickCheck": {
+        "ran": true,
+        "passed": false,
+        "details": "containsAny: none of [Tomato, 番茄, 🍅] found"
+      }
+    },
+    {
+      "caseId": "identity-002",
+      "caseName": "Name recall",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "你叫什么名字？",
+      "output": "Echo: 你叫什么名字？",
+      "durationMs": 0.21904099999999893,
+      "quickCheck": {
+        "ran": true,
+        "passed": false,
+        "details": "containsAny: none of [Tomato, 番茄, 🍅] found"
+      }
+    },
+    {
+      "caseId": "identity-003",
+      "caseName": "Personality consistency",
+      "targetPrompt": "IDENTITY.md",
+      "category": "identity",
+      "input": "帮我介绍一下你自己",
+      "output": "Echo: 帮我介绍一下你自己",
+      "durationMs": 0.11616699999999902,
+      "quickCheck": {
+        "ran": true,
+        "passed": false,
+        "details": "containsAny: none of [🍅, 番茄, Tomato] found; minLength: 15 < 20"
+      }
+    }
+  ]
+}
