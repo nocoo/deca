@@ -35,7 +35,7 @@ export interface DispatchRequest extends MessageRequest {
  * Dispatcher configuration
  */
 export interface DispatcherConfig {
-  /** Maximum concurrency (default: 1, serial execution) */
+  /** Maximum concurrency (default: 2) */
   concurrency?: number;
 
   /** Per-request timeout in milliseconds (default: no limit) */

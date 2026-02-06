@@ -8,7 +8,7 @@ import type {
 } from "./types";
 
 export function createDispatcher(config: DispatcherConfig): Dispatcher {
-  const { concurrency = 1, timeout, handler, events = {} } = config;
+  const { concurrency = 2, timeout, handler, events = {} } = config;
 
   const queue = new PQueue({
     concurrency,

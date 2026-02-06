@@ -90,7 +90,7 @@ describe("createDispatcher", () => {
       expect(maxConcurrent).toBe(2);
     });
 
-    it("should default to concurrency 1", async () => {
+    it("should default to concurrency 2", async () => {
       let concurrent = 0;
       let maxConcurrent = 0;
 
@@ -112,7 +112,7 @@ describe("createDispatcher", () => {
 
       await Promise.all(requests.map((r) => dispatcher.dispatch(r)));
 
-      expect(maxConcurrent).toBe(1);
+      expect(maxConcurrent).toBe(2);
     });
   });
 

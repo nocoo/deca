@@ -174,7 +174,7 @@ export interface DispatchRequest extends MessageRequest {
  * Dispatcher 配置
  */
 export interface DispatcherConfig {
-  /** 最大并发数（默认 1，即串行执行） */
+  /** 最大并发数（默认 2） */
   concurrency?: number;
   
   /** 单个请求超时时间（毫秒，默认无限制） */
@@ -289,7 +289,7 @@ import type { MessageResponse } from '../types';
 
 export function createDispatcher(config: DispatcherConfig): Dispatcher {
   const { 
-    concurrency = 1, 
+    concurrency = 2, 
     timeout,
     handler, 
     events = {} 
@@ -521,7 +521,7 @@ export interface GatewayConfig {
 }
 
 export interface DispatcherConfig {
-  /** 最大并发数（默认 1） */
+  /** 最大并发数（默认 2） */
   concurrency?: number;
   
   /** 请求超时（毫秒） */
