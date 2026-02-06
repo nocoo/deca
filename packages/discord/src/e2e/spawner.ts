@@ -6,10 +6,10 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { type Subprocess, spawn } from "bun";
+import { spawn } from "bun";
 
 export interface SpawnerConfig {
-  /** Working directory (apps/api) */
+  /** Working directory */
   cwd: string;
   /** Bot mode: "echo" or "agent" */
   mode?: "echo" | "agent";
@@ -21,6 +21,14 @@ export interface SpawnerConfig {
   startupTimeout?: number;
   /** Enable debug output */
   debug?: boolean;
+  /** Workspace directory for agent file operations */
+  workspaceDir?: string;
+}
+
+interface LLMCredential {
+  apiKey: string;
+  baseUrl?: string;
+  models?: { default?: string };
 }
 
 export interface BotProcess {
@@ -38,26 +46,28 @@ export interface BotProcess {
  * @param config - Spawner configuration
  * @returns Bot process handle
  */
+const LLM_PROVIDERS = ["glm", "minimax"] as const;
+
+async function loadLLMCredentials(): Promise<LLMCredential | null> {
+  const credDir = join(homedir(), ".deca", "credentials");
+
+  for (const provider of LLM_PROVIDERS) {
+    const credPath = join(credDir, `${provider}.json`);
+    try {
+      const content = await Bun.file(credPath).text();
+      return JSON.parse(content) as LLMCredential;
+    } catch {
+      /* empty - try next provider */
+    }
+  }
+  return null;
+}
+
 export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   const mode = config.mode ?? "echo";
   const startupTimeout = config.startupTimeout ?? 10000;
   const debug = config.debug ?? false;
 
-  // Build command - use cli.ts at package root
-  const script = "cli.ts";
-  const args: string[] = [];
-
-  if (mode === "echo") {
-    args.push("--echo");
-  }
-  if (config.debounce) {
-    args.push("--debounce");
-  }
-  if (config.allowBots) {
-    args.push("--allow-bots");
-  }
-
-  // Load Discord token from credentials
   const credPath = join(homedir(), ".deca", "credentials", "discord.json");
   let discordToken: string | undefined;
   try {
@@ -72,25 +82,71 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     throw new Error("Missing botToken in discord.json");
   }
 
+  let llmCreds: LLMCredential | null = null;
+  if (mode === "agent") {
+    llmCreds = await loadLLMCredentials();
+    if (!llmCreds) {
+      throw new Error(
+        "Agent mode requires LLM credentials in ~/.deca/credentials/",
+      );
+    }
+  }
+
+  const useGateway = mode === "agent";
+  const script = useGateway ? "cli.ts" : "cli.ts";
+  const cwd = useGateway ? getGatewayDir() : config.cwd;
+  const args: string[] = [];
+
+  if (mode === "echo" && !useGateway) {
+    args.push("--echo");
+  }
+  if (config.debounce) {
+    args.push("--debounce");
+  }
+  if (config.allowBots && !useGateway) {
+    args.push("--allow-bots");
+  }
+
+  const env: Record<string, string> = {
+    ...(process.env as Record<string, string>),
+    DISCORD_TOKEN: discordToken,
+    FORCE_COLOR: "0",
+  };
+
+  if (useGateway && llmCreds) {
+    env.ANTHROPIC_API_KEY = llmCreds.apiKey;
+    if (llmCreds.baseUrl) {
+      env.ANTHROPIC_BASE_URL = llmCreds.baseUrl;
+    }
+    if (llmCreds.models?.default) {
+      env.ANTHROPIC_MODEL = llmCreds.models.default;
+    }
+    if (config.allowBots) {
+      env.DISCORD_ALLOW_BOTS = "true";
+    }
+    if (config.workspaceDir) {
+      env.WORKSPACE_DIR = config.workspaceDir;
+    }
+  }
+
   if (debug) {
     console.log(`[Spawner] Starting bot in ${mode} mode...`);
-    console.log(`[Spawner] CWD: ${config.cwd}`);
-    console.log(`[Spawner] Args: ${args.join(" ")}`);
+    console.log(`[Spawner] CWD: ${cwd}`);
+    console.log(`[Spawner] Script: ${script}`);
+    console.log(`[Spawner] Args: ${args.join(" ") || "(none)"}`);
+    if (useGateway) {
+      console.log("[Spawner] Using gateway with LLM");
+    }
   }
 
   let isRunning = true;
 
   const proc = spawn({
     cmd: ["bun", "run", script, ...args],
-    cwd: config.cwd,
+    cwd,
     stdout: debug ? "inherit" : "pipe",
     stderr: debug ? "inherit" : "pipe",
-    env: {
-      ...process.env,
-      DISCORD_TOKEN: discordToken,
-      // Prevent bot from requiring interactive input
-      FORCE_COLOR: "0",
-    },
+    env,
   });
 
   // Track process exit
@@ -173,7 +229,11 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
           }
 
           // Check for error
-          if (output.includes("Error:") || output.includes("error:") || output.includes("❌")) {
+          if (
+            output.includes("Error:") ||
+            output.includes("error:") ||
+            output.includes("❌")
+          ) {
             clearTimeout(timeout);
             reader.releaseLock();
             reject(new Error(`Bot startup error: ${output}`));
@@ -236,11 +296,10 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   };
 }
 
-/**
- * Get the packages/discord directory path.
- */
 export function getApiDir(): string {
-  // This file is at packages/discord/src/e2e/spawner.ts
-  // So packages/discord is 2 levels up: e2e -> src -> (discord)
   return join(import.meta.dir, "..", "..");
+}
+
+export function getGatewayDir(): string {
+  return join(import.meta.dir, "..", "..", "..", "gateway");
 }

@@ -30,6 +30,7 @@ export {
 
 export {
   getApiDir,
+  getGatewayDir,
   spawnBot,
   type BotProcess,
   type SpawnerConfig,

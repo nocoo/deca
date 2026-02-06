@@ -17,3 +17,6 @@ apps/**/coverage
 # Eval reports
 eval/reports/*.json
 eval/reports/*.md
+
+# Temporary debugging files
+tmp/
