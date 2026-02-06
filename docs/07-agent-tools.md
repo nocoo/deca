@@ -257,7 +257,7 @@ stdout + stderr（截取前 30KB）
 
 - [ ] exec 超时和危险命令测试
 - [ ] 路径越界安全测试
-- [ ] memory_* 真实系统集成测试
+- [x] memory_* 真实系统集成测试（已完成：behavioral-tests/memory.test.ts）
 
 ### Phase 2: Discord E2E 闭环验证
 

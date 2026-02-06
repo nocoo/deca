@@ -115,6 +115,9 @@ bun --filter @deca/gateway test:e2e
 # 运行 Agent 工具行为测试（需要 LLM API + Discord）
 bun --filter @deca/gateway test:behavioral
 
+# 运行 Memory 工具行为测试
+bun --filter @deca/gateway test:behavioral:memory
+
 # 带调试输出
 cd packages/gateway && bun run behavioral-tests/tools.test.ts --debug
 ```
