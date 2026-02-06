@@ -1,14 +1,23 @@
 # Pre-push: Run E2E tests with real services
 # Requires:
-#   ~/.deca/credentials/anthropic.json (for Agent E2E)
+#   ~/.deca/credentials/<provider>.json for Agent E2E (glm.json or minimax.json)
 #   ~/.deca/credentials/discord.json with webhookUrl, testChannelId (for Discord E2E)
 
 echo "🚀 Running E2E tests before push..."
 
-# Check Agent credentials
-if [ ! -f "$HOME/.deca/credentials/anthropic.json" ]; then
-  echo "⚠️  Warning: No Anthropic credentials found"
+# Check Agent credentials (any LLM provider)
+LLM_CRED_FOUND=false
+for provider in glm minimax; do
+  if [ -f "$HOME/.deca/credentials/${provider}.json" ]; then
+    LLM_CRED_FOUND=true
+    break
+  fi
+done
+
+if [ "$LLM_CRED_FOUND" = false ]; then
+  echo "⚠️  Warning: No LLM credentials found"
   echo "   Agent E2E tests may fail."
+  echo "   Expected: ~/.deca/credentials/glm.json or minimax.json"
 fi
 
 # Check Discord credentials
