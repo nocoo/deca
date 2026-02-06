@@ -22,6 +22,8 @@ export interface AnthropicCredentials {
 export interface DiscordCredentials {
   /** Bot token for Discord API */
   botToken: string;
+  /** Application/Client ID for slash commands registration */
+  clientId?: string;
   /** Webhook URL for sending test messages */
   webhookUrl?: string;
   /** Channel ID for fetching messages */

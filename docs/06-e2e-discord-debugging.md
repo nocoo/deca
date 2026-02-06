@@ -181,9 +181,11 @@ E2E 测试需要真实的 Discord 凭证，存储在 `~/.deca/credentials/discor
 
 ```json
 {
-  "botToken": "Bot Token (用于读取频道消息)",
+  "botToken": "Bot Token (用于 API 认证)",
+  "clientId": "Application ID (用于注册 Slash Commands)",
   "webhookUrl": "Webhook URL (用于发送测试消息)",
   "testChannelId": "测试频道 ID",
+  "guildId": "服务器 ID (用于 Guild 级别命令注册)",
   "botUserId": "Bot 的 User ID (可选，用于过滤)"
 }
 ```
@@ -191,9 +193,11 @@ E2E 测试需要真实的 Discord 凭证，存储在 `~/.deca/credentials/discor
 **获取方式：**
 
 1. **botToken**: Discord Developer Portal → Application → Bot → Token
-2. **webhookUrl**: 服务器设置 → 集成 → Webhooks → 创建 Webhook
-3. **testChannelId**: 开启开发者模式 → 右键频道 → 复制 ID
-4. **botUserId**: 开启开发者模式 → 右键 Bot → 复制 ID
+2. **clientId**: Discord Developer Portal → Application → General Information → Application ID
+3. **webhookUrl**: 服务器设置 → 集成 → Webhooks → 创建 Webhook
+4. **testChannelId**: 开启开发者模式 → 右键频道 → 复制 ID
+5. **guildId**: 开启开发者模式 → 右键服务器 → 复制 ID
+6. **botUserId**: 开启开发者模式 → 右键 Bot → 复制 ID
 
 ## 测试场景
 
