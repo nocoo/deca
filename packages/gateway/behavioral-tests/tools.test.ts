@@ -273,6 +273,59 @@ function createToolTests(): ToolTestCase[] {
         return { passed: true };
       },
     },
+
+    {
+      name: "exec: git status in external directory",
+      prompt:
+        'Use the exec tool to run "git status" in directory /Users/nocoo/workspace/personal/obsidian. Tell me which branch it is on and if it has uncommitted changes.',
+      validate: async (response) => {
+        const hasBranchInfo =
+          response.includes("main") ||
+          response.includes("master") ||
+          response.includes("branch");
+        const hasStatusInfo =
+          response.includes("clean") ||
+          response.includes("uncommitted") ||
+          response.includes("modified") ||
+          response.includes("nothing to commit") ||
+          response.includes("changes");
+        if (!hasBranchInfo) {
+          return {
+            passed: false,
+            error: `Expected branch info in response: ${response.slice(0, 200)}`,
+          };
+        }
+        if (!hasStatusInfo) {
+          return {
+            passed: false,
+            error: `Expected status info in response: ${response.slice(0, 200)}`,
+          };
+        }
+        return { passed: true };
+      },
+    },
+
+    {
+      name: "exec: git log in external directory",
+      prompt:
+        'Use the exec tool to run "git log --oneline -3" in directory /Users/nocoo/workspace/personal/obsidian. Tell me the first commit message.',
+      validate: async (response) => {
+        const hasCommitInfo =
+          response.includes("docs") ||
+          response.includes("add") ||
+          response.includes("update") ||
+          response.includes("fix") ||
+          response.includes("feat") ||
+          response.match(/[a-f0-9]{7}/i);
+        if (!hasCommitInfo) {
+          return {
+            passed: false,
+            error: `Expected commit info in response: ${response.slice(0, 200)}`,
+          };
+        }
+        return { passed: true };
+      },
+    },
   ];
 }
 
