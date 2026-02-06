@@ -12,6 +12,7 @@
     "test:unit": "bun test src/",
     "test:e2e": "bun run src/e2e/runner.ts",
     "test:behavioral": "bun run behavioral-tests/tools.test.ts",
+    "test:behavioral:memory": "bun run behavioral-tests/memory.test.ts",
     "lint": "biome lint src",
     "format": "biome format src"
   },
