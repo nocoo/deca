@@ -26,9 +26,10 @@ export function createProviderResolver(
 ): ProviderResolver {
   async function getAvailableProviders(): Promise<ProviderId[]> {
     const allCredentials = await credentialManager.list();
-    return allCredentials.filter((id) =>
+    const available = allCredentials.filter((id) =>
       LLM_PROVIDER_IDS.includes(id as ProviderId),
     ) as ProviderId[];
+    return LLM_PROVIDER_IDS.filter((id) => available.includes(id));
   }
 
   async function resolveProviderId(): Promise<ProviderId | null> {
