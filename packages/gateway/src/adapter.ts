@@ -36,10 +36,6 @@ export async function createAgentAdapter(
   if (config.enableCron) {
     cronService = new CronService({
       storagePath: config.cronStoragePath,
-      onTrigger: async (job) => {
-        const instruction = `[CRON TASK: ${job.name}] ${job.instruction}`;
-        await agent.run("cron", instruction);
-      },
     });
     await cronService.initialize();
   }

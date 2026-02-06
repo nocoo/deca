@@ -122,6 +122,20 @@ export function createGateway(config: GatewayConfig): Gateway {
       },
     });
 
+    if (adapter.cronService) {
+      const cronDispatcher = dispatcher;
+      adapter.cronService.setOnTrigger(async (job) => {
+        const instruction = `[CRON TASK: ${job.name}] ${job.instruction}`;
+        await cronDispatcher.dispatch({
+          source: "cron",
+          sessionKey: "cron",
+          content: instruction,
+          sender: { id: "cron", username: "cron-scheduler" },
+          priority: 5,
+        });
+      });
+    }
+
     if (discord) {
       discordGateway = createDiscordGateway({
         token: discord.token,
