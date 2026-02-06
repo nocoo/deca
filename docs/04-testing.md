@@ -60,8 +60,10 @@
 
 ## 覆盖率目标
 
-| 模块 | 当前测试数 | 覆盖率目标 | 状态 |
-|------|-----------|-----------|------|
+### 单元测试
+
+| 模块 | 测试数 | 覆盖率目标 | 状态 |
+|------|--------|-----------|------|
 | @deca/agent | 319 | 90%+ | ✅ |
 | @deca/discord | 254 | 90%+ | ✅ |
 | @deca/terminal | 47 | 90%+ | ✅ |
@@ -69,6 +71,18 @@
 | @deca/storage | 47 | 90%+ | ✅ |
 | @deca/gateway | 37 | 90%+ | ✅ |
 | **总计** | **739** | **90%+** | ✅ |
+
+### E2E 测试
+
+| 模块 | 测试数 | 说明 |
+|------|--------|------|
+| @deca/agent | 56 | Memory + Cron 集成测试 |
+| @deca/discord | 3/6 | Core 3 个，Full 6 个 (--core flag) |
+| @deca/gateway | 7 | HTTP + Discord 集成 |
+| @deca/http | 9 | Server + API Key 认证 |
+| @deca/terminal | 6 | REPL + 命令测试 |
+| @deca/storage | 22 | Paths + Config + Credentials + Provider |
+| **总计** | **103+** | - |
 
 ## 测试命令
 
@@ -102,11 +116,20 @@ bun --filter @deca/agent lint
 ### E2E 测试
 
 ```bash
-# 运行 Discord E2E（需要配置 ~/.deca/credentials/discord.json）
-bun --filter @deca/discord test:e2e
+# 运行所有 E2E 测试
+bun --filter '@deca/*' test:e2e
 
-# 运行 Gateway E2E
-bun --filter @deca/gateway test:e2e
+# 运行特定模块 E2E
+bun --filter @deca/agent test:e2e      # Memory + Cron
+bun --filter @deca/discord test:e2e    # Discord 通道
+bun --filter @deca/gateway test:e2e    # Gateway 集成
+bun --filter @deca/http test:e2e       # HTTP API
+bun --filter @deca/terminal test:e2e   # Terminal REPL
+bun --filter @deca/storage test:e2e    # Storage 层
+
+# Discord E2E 分层运行
+bun --filter @deca/discord test:e2e --core  # 仅核心测试 (3个)
+bun --filter @deca/discord test:e2e         # 完整测试 (6个)
 ```
 
 ### Behavioral 测试

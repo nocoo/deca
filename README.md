@@ -66,6 +66,8 @@ bun --filter @deca/gateway test:behavioral
 
 ## 📊 测试覆盖率
 
+### 单元测试 (739 个)
+
 | 模块 | 测试数 | 覆盖率目标 |
 |------|--------|-----------|
 | @deca/agent | 319 | 90%+ |
@@ -74,7 +76,17 @@ bun --filter @deca/gateway test:behavioral
 | @deca/http | 35 | 90%+ |
 | @deca/storage | 47 | 90%+ |
 | @deca/gateway | 37 | 90%+ |
-| **总计** | **739** | **90%+** |
+
+### E2E 测试 (103+ 个)
+
+| 模块 | 测试数 | 说明 |
+|------|--------|------|
+| @deca/agent | 56 | Memory + Cron |
+| @deca/discord | 3/6 | Core/Full |
+| @deca/gateway | 7 | 集成测试 |
+| @deca/http | 9 | API + Auth |
+| @deca/terminal | 6 | REPL |
+| @deca/storage | 22 | 持久化层 |
 
 ## 📚 文档
 
