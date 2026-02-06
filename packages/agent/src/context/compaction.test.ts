@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type Anthropic from "@anthropic-ai/sdk";
 import type { Message } from "../core/session.js";
 import {
   BASE_CHUNK_RATIO,
@@ -14,14 +15,43 @@ import {
   summarizeInStages,
 } from "./compaction.js";
 
+type SummaryClient = Pick<Anthropic, "messages">;
+
+function toSummaryClient(client: unknown): SummaryClient {
+  return client as SummaryClient;
+}
+
 // Mock Anthropic client for testing
-function createMockClient(summaryText = "Test summary") {
-  return {
+function createMockClient(summaryText = "Test summary"): SummaryClient {
+  return toSummaryClient({
     messages: {
       create: async () => ({
         content: [{ type: "text" as const, text: summaryText }],
       }),
     },
+  });
+}
+
+function createRecordingClient(
+  respond: (params: {
+    messages: Array<{ role: string; content: string }>;
+  }) => string | Promise<string>,
+) {
+  const prompts: string[] = [];
+  return {
+    prompts,
+    client: toSummaryClient({
+      messages: {
+        create: async (params: {
+          messages: Array<{ role: string; content: string }>;
+        }) => {
+          const prompt = params.messages?.[0]?.content ?? "";
+          prompts.push(prompt);
+          const text = await respond(params);
+          return { content: [{ type: "text" as const, text }] };
+        },
+      },
+    }),
   };
 }
 
@@ -269,6 +299,128 @@ describe("compaction", () => {
       });
 
       expect(result).toBeDefined();
+    });
+
+    it("should include tool blocks in summary prompt", async () => {
+      const { client, prompts } = createRecordingClient(async () => "Summary");
+      const messages: Message[] = [
+        {
+          role: "assistant",
+          content: [
+            { type: "text", text: "intro" },
+            { type: "tool_use", id: "1", input: { value: 1 } },
+            { type: "tool_result", tool_use_id: "1", content: "done" },
+          ],
+          timestamp: Date.now(),
+        },
+      ];
+
+      const result = await summarizeInStages({
+        messages,
+        client,
+        model: "claude-3-haiku-20240307",
+        maxTokens: 500,
+        maxChunkTokens: 10000,
+        contextWindow: 200000,
+      });
+
+      expect(result).toBe("Summary");
+      expect(prompts[0]).toContain("assistant: intro");
+      expect(prompts[0]).toContain("[tool_use tool]");
+      expect(prompts[0]).toContain("[tool_result] done");
+    });
+
+    it("should append oversized notes after fallback", async () => {
+      let callCount = 0;
+      const { client } = createRecordingClient(async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          throw new Error("boom");
+        }
+        return "Partial summary";
+      });
+
+      const hugeContent = "x".repeat(4000);
+      const messages: Message[] = [
+        createMessage("user", hugeContent),
+        createMessage("assistant", "small"),
+      ];
+
+      const result = await summarizeInStages({
+        messages,
+        client,
+        model: "claude-3-haiku-20240307",
+        maxTokens: 300,
+        maxChunkTokens: 5000,
+        contextWindow: 1000,
+      });
+
+      expect(result).toContain("Partial summary");
+      expect(result).toContain("[Large user");
+    });
+
+    it("should return size fallback when summaries keep failing", async () => {
+      const failingClient = toSummaryClient({
+        messages: {
+          create: async () => {
+            throw new Error("nope");
+          },
+        },
+      });
+
+      const hugeContent = "x".repeat(4000);
+      const messages: Message[] = [createMessage("user", hugeContent)];
+
+      const result = await summarizeInStages({
+        messages,
+        client: failingClient,
+        model: "claude-3-haiku-20240307",
+        maxTokens: 300,
+        maxChunkTokens: 5000,
+        contextWindow: 1000,
+      });
+
+      expect(result).toContain("Summary unavailable due to size limits");
+    });
+
+    it("should merge partial summaries with custom instructions", async () => {
+      const { client, prompts } = createRecordingClient(
+        async ({ messages }) => {
+          const prompt = messages[0]?.content ?? "";
+          if (prompt.includes("Merge these partial summaries")) {
+            return "Merged summary";
+          }
+          return "Partial";
+        },
+      );
+
+      const messages: Message[] = Array.from({ length: 6 }, (_, i) =>
+        createMessage(i % 2 === 0 ? "user" : "assistant", `Message ${i}`),
+      );
+
+      const result = await summarizeInStages({
+        messages,
+        client,
+        model: "claude-3-haiku-20240307",
+        maxTokens: 200,
+        maxChunkTokens: 10,
+        contextWindow: 200000,
+        parts: 2,
+        minMessagesForSplit: 2,
+        customInstructions: "Focus on decisions",
+      });
+
+      expect(result).toBe("Merged summary");
+      expect(
+        prompts.some((prompt) =>
+          prompt.includes("Merge these partial summaries"),
+        ),
+      ).toBe(true);
+      expect(
+        prompts.some((prompt) =>
+          prompt.includes("Additional focus:\nFocus on decisions"),
+        ),
+      ).toBe(true);
     });
   });
 
