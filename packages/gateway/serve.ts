@@ -26,6 +26,7 @@
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { onAgentEvent } from "@deca/agent";
 import {
   createConfigManager,
   createCredentialManager,
@@ -63,6 +64,46 @@ const enableTerminal = process.env.TERMINAL === "true";
 const requireMention = process.env.REQUIRE_MENTION === "true";
 
 console.log("🚀 Starting Deca Gateway...\n");
+
+const verbose = process.env.VERBOSE === "true";
+if (verbose) {
+  onAgentEvent((evt) => {
+    const time = new Date(evt.ts).toISOString().slice(11, 23);
+    const prefix = `[${time}] [${evt.stream}]`;
+
+    if (evt.stream === "tool") {
+      const data = evt.data as {
+        phase: string;
+        name: string;
+        input?: unknown;
+        output?: string;
+      };
+      if (data.phase === "start") {
+        const inputStr = JSON.stringify(data.input ?? {}).slice(0, 100);
+        console.log(`${prefix} 🔧 ${data.name}(${inputStr})`);
+      } else if (data.phase === "end") {
+        const output = (data.output ?? "").slice(0, 200);
+        console.log(`${prefix} ✅ ${data.name} → ${output}`);
+      }
+    } else if (evt.stream === "lifecycle") {
+      const data = evt.data as {
+        phase: string;
+        turns?: number;
+        toolCalls?: number;
+      };
+      if (data.phase === "start") {
+        console.log(`${prefix} ▶️  Run started`);
+      } else if (data.phase === "end") {
+        console.log(
+          `${prefix} ⏹️  Run ended (turns: ${data.turns}, tools: ${data.toolCalls})`,
+        );
+      }
+    } else if (evt.stream === "error") {
+      console.log(`${prefix} ❌ Error: ${JSON.stringify(evt.data)}`);
+    }
+  });
+  console.log("📝 Verbose logging enabled (VERBOSE=true)\n");
+}
 
 let lockHandle: GatewayLockHandle | null = null;
 try {
