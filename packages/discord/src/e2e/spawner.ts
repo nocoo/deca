@@ -216,11 +216,12 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
           const text = new TextDecoder().decode(value);
           output += text;
 
-          // Check for ready message
+          // Check for ready message (Discord standalone or Gateway mode)
           if (
             output.includes("Connected to Discord") ||
             output.includes("✅ Connected to Discord") ||
-            output.includes("✅ Connected as")
+            output.includes("✅ Connected as") ||
+            output.includes("✅ Gateway started")
           ) {
             clearTimeout(timeout);
             reader.releaseLock();

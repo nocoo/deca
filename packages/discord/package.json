@@ -7,6 +7,8 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./e2e": "./src/e2e/index.ts",
+    "./e2e/spawner": "./src/e2e/spawner.ts",
     "./e2e/webhook": "./src/e2e/webhook.ts",
     "./e2e/fetcher": "./src/e2e/fetcher.ts"
   },
