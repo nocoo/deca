@@ -12,6 +12,7 @@
     "test:unit": "bun test src/",
     "test:e2e": "bun run src/e2e/runner.ts",
     "test:behavioral": "bun run behavioral-tests/tools.test.ts",
+    "test:behavioral:claude-code": "bun run behavioral-tests/claude-code.test.ts",
     "test:behavioral:dispatcher": "bun run behavioral-tests/dispatcher.test.ts",
     "test:behavioral:memory": "bun run behavioral-tests/memory.test.ts",
     "test:behavioral:autonomy": "bun run behavioral-tests/agent-autonomy.test.ts",
