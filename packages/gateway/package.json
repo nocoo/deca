@@ -14,8 +14,8 @@
     "test:behavioral": "bun run behavioral-tests/tools.test.ts",
     "test:behavioral:memory": "bun run behavioral-tests/memory.test.ts",
     "test:behavioral:autonomy": "bun run behavioral-tests/agent-autonomy.test.ts",
-    "lint": "biome lint src",
-    "format": "biome format src"
+    "lint": "biome lint src behavioral-tests",
+    "format": "biome format src behavioral-tests"
   },
   "dependencies": {
     "@deca/agent": "workspace:*",
