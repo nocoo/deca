@@ -5,7 +5,13 @@
  * This is the core integration point between channels and the agent.
  */
 
-import { Agent, type AgentConfig, type RunResult } from "@deca/agent";
+import {
+  Agent,
+  type AgentConfig,
+  CronService,
+  type RunResult,
+  createBuiltinToolsWithCron,
+} from "@deca/agent";
 import type {
   AgentAdapterConfig,
   MessageHandler,
@@ -15,12 +21,29 @@ import type {
 
 export interface AgentAdapter extends MessageHandler {
   readonly agent: Agent;
+  readonly cronService?: CronService;
+  shutdown(): Promise<void>;
 }
 
 /**
  * Create an agent adapter that implements the MessageHandler interface
  */
-export function createAgentAdapter(config: AgentAdapterConfig): AgentAdapter {
+export async function createAgentAdapter(
+  config: AgentAdapterConfig,
+): Promise<AgentAdapter> {
+  let cronService: CronService | undefined;
+
+  if (config.enableCron) {
+    cronService = new CronService({
+      storagePath: config.cronStoragePath,
+      onTrigger: async (job) => {
+        const instruction = `[CRON TASK: ${job.name}] ${job.instruction}`;
+        await agent.run("cron", instruction);
+      },
+    });
+    await cronService.initialize();
+  }
+
   const agentConfig: AgentConfig = {
     apiKey: config.apiKey,
     baseUrl: config.baseUrl,
@@ -36,12 +59,14 @@ export function createAgentAdapter(config: AgentAdapterConfig): AgentAdapter {
     enableSkills: true,
     enableHeartbeat: config.enableHeartbeat ?? false,
     heartbeatInterval: config.heartbeatIntervalMs,
+    tools: cronService ? createBuiltinToolsWithCron(cronService) : undefined,
   };
 
   const agent = new Agent(agentConfig);
 
   return {
     agent,
+    cronService,
     async handle(request: MessageRequest): Promise<MessageResponse> {
       try {
         const result: RunResult = await agent.run(
@@ -64,6 +89,11 @@ export function createAgentAdapter(config: AgentAdapterConfig): AgentAdapter {
           success: false,
           error: err.message,
         };
+      }
+    },
+    async shutdown(): Promise<void> {
+      if (cronService) {
+        await cronService.shutdown();
       }
     },
   };

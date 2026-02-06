@@ -1,6 +1,7 @@
 export type { Tool, ToolContext, ToolCall, ToolResult } from "./types.js";
 export {
   builtinTools,
+  createBuiltinToolsWithCron,
   readTool,
   writeTool,
   editTool,

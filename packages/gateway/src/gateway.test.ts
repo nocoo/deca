@@ -245,15 +245,17 @@ describe("createGateway", () => {
   });
 
   describe("handler", () => {
-    it("returns agent adapter as handler", async () => {
+    it("returns agent adapter as handler after start", async () => {
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
         http: { port: 3000 },
       });
       gateways.push(gateway);
 
+      await gateway.start();
+
       expect(gateway.handler).toBeDefined();
-      expect(typeof gateway.handler.handle).toBe("function");
+      expect(typeof gateway.handler?.handle).toBe("function");
     });
 
     it("handler calls agent.run", async () => {
@@ -263,7 +265,9 @@ describe("createGateway", () => {
       });
       gateways.push(gateway);
 
-      await gateway.handler.handle({
+      await gateway.start();
+
+      await gateway.handler?.handle({
         sessionKey: "test:session:123",
         content: "hello",
         sender: { id: "user1" },

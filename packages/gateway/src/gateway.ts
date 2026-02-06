@@ -43,8 +43,7 @@ export function createGateway(config: GatewayConfig): Gateway {
 
   let isRunning = false;
 
-  // Create the message handler (agent adapter)
-  const adapter: AgentAdapter = createAgentAdapter(config.agent);
+  let adapter: AgentAdapter | null = null;
 
   /**
    * Wrap handler with event callbacks
@@ -52,6 +51,7 @@ export function createGateway(config: GatewayConfig): Gateway {
   function wrapHandler(channel: string): MessageHandler {
     return {
       async handle(request) {
+        if (!adapter) throw new Error("Adapter not initialized");
         events.onMessage?.(channel, request.sessionKey);
 
         try {
@@ -76,7 +76,7 @@ export function createGateway(config: GatewayConfig): Gateway {
   }
 
   function setupHeartbeatCallback(): void {
-    if (!discord?.heartbeatChannelId || !discordGateway) {
+    if (!discord?.heartbeatChannelId || !discordGateway || !adapter) {
       return;
     }
 
@@ -114,6 +114,8 @@ export function createGateway(config: GatewayConfig): Gateway {
     startTime = Date.now();
     events.onStart?.();
 
+    adapter = await createAgentAdapter(config.agent);
+
     // Start Discord if configured
     if (discord) {
       discordGateway = createDiscordGateway({
@@ -145,7 +147,7 @@ export function createGateway(config: GatewayConfig): Gateway {
           messageHandler: wrapHandler("discord"),
           agentId: config.agent.agentId,
           onClearSession: async (sessionKey: string) => {
-            await adapter.agent.reset(sessionKey);
+            await adapter?.agent.reset(sessionKey);
           },
           onGetStatus: async () => ({
             uptime: Date.now() - startTime,
@@ -215,7 +217,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
 
     // Stop heartbeat first
-    adapter.agent.stopHeartbeat?.();
+    adapter?.agent.stopHeartbeat?.();
 
     // Stop channels in reverse order
     if (terminalInstance) {
@@ -234,6 +236,9 @@ export function createGateway(config: GatewayConfig): Gateway {
       await discordGateway.shutdown();
       discordGateway = null;
     }
+
+    await adapter?.shutdown();
+    adapter = null;
 
     activeChannels.length = 0;
     isRunning = false;

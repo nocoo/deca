@@ -108,6 +108,12 @@ export interface AgentAdapterConfig {
 
   /** Heartbeat interval in milliseconds (default: 30 minutes) */
   heartbeatIntervalMs?: number;
+
+  /** Enable cron scheduler (default: false) */
+  enableCron?: boolean;
+
+  /** Cron storage path (default: ~/.deca/cron.json) */
+  cronStoragePath?: string;
 }
 
 /**
@@ -201,22 +207,14 @@ export interface GatewayEventCallbacks {
 // Gateway Instance
 // ============================================================================
 
-/**
- * Gateway instance
- */
 export interface Gateway {
-  /** Start the gateway */
   start(): Promise<void>;
 
-  /** Stop the gateway */
   stop(): Promise<void>;
 
-  /** Whether gateway is running */
   readonly isRunning: boolean;
 
-  /** Get the agent adapter */
-  readonly handler: MessageHandler;
+  readonly handler: MessageHandler | null;
 
-  /** Active channels */
   readonly channels: string[];
 }

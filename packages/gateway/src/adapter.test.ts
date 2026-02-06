@@ -1,4 +1,4 @@
-import { describe, expect, it, mock, spyOn } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { createAgentAdapter, createEchoAdapter } from "./adapter";
 import type { MessageRequest } from "./types";
 
@@ -11,11 +11,22 @@ const mockRun = mock(() =>
   }),
 );
 
+const mockCronInitialize = mock(() => Promise.resolve());
+const mockCronShutdown = mock(() => Promise.resolve());
+
 mock.module("@deca/agent", () => ({
   Agent: class MockAgent {
     constructor(public config: unknown) {}
     run = mockRun;
   },
+  CronService: class MockCronService {
+    constructor(public config: unknown) {}
+    initialize = mockCronInitialize;
+    shutdown = mockCronShutdown;
+  },
+  createBuiltinToolsWithCron: (_cronService: unknown) => [
+    { name: "cron", description: "cron tool" },
+  ],
 }));
 
 function createRequest(
@@ -81,17 +92,18 @@ describe("createEchoAdapter", () => {
 });
 
 describe("createAgentAdapter", () => {
-  it("creates adapter with required config", () => {
-    const adapter = createAgentAdapter({
+  it("creates adapter with required config", async () => {
+    const adapter = await createAgentAdapter({
       apiKey: "test-api-key",
     });
 
     expect(adapter).toBeDefined();
     expect(typeof adapter.handle).toBe("function");
+    expect(typeof adapter.shutdown).toBe("function");
   });
 
-  it("creates adapter with full config", () => {
-    const adapter = createAgentAdapter({
+  it("creates adapter with full config", async () => {
+    const adapter = await createAgentAdapter({
       apiKey: "test-api-key",
       baseUrl: "https://custom.api.com",
       model: "claude-3-opus",
@@ -114,7 +126,7 @@ describe("createAgentAdapter", () => {
       }),
     );
 
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     const response = await adapter.handle(createRequest("hello"));
 
     expect(response.success).toBe(true);
@@ -128,7 +140,7 @@ describe("createAgentAdapter", () => {
       Promise.resolve({ text: "ok", turns: 1, toolCalls: 0 }),
     );
 
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     await adapter.handle(createRequest("test message"));
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -140,7 +152,7 @@ describe("createAgentAdapter", () => {
     mockRun.mockClear();
     const deltaCallback = mock(() => {});
 
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     await adapter.handle(createRequest("hello", deltaCallback));
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -153,7 +165,7 @@ describe("createAgentAdapter", () => {
       Promise.reject(new Error("API rate limit exceeded")),
     );
 
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     const response = await adapter.handle(createRequest("hello"));
 
     expect(response.success).toBe(false);
@@ -164,7 +176,7 @@ describe("createAgentAdapter", () => {
   it("returns error response when agent throws string", async () => {
     mockRun.mockImplementation(() => Promise.reject("Unknown error"));
 
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     const response = await adapter.handle(createRequest("hello"));
 
     expect(response.success).toBe(false);
@@ -172,15 +184,62 @@ describe("createAgentAdapter", () => {
     expect(response.error).toBe("Unknown error");
   });
 
-  it("uses default agentId when not provided", () => {
-    // This tests the config mapping - agentId defaults to "deca"
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+  it("uses default agentId when not provided", async () => {
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     expect(adapter).toBeDefined();
   });
 
-  it("uses default enableMemory when not provided", () => {
-    // This tests the config mapping - enableMemory defaults to false
-    const adapter = createAgentAdapter({ apiKey: "test-key" });
+  it("uses default enableMemory when not provided", async () => {
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
     expect(adapter).toBeDefined();
+  });
+
+  it("creates CronService when enableCron is true", async () => {
+    mockCronInitialize.mockClear();
+
+    const adapter = await createAgentAdapter({
+      apiKey: "test-key",
+      enableCron: true,
+    });
+
+    expect(adapter.cronService).toBeDefined();
+    expect(mockCronInitialize).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not create CronService when enableCron is false", async () => {
+    mockCronInitialize.mockClear();
+
+    const adapter = await createAgentAdapter({
+      apiKey: "test-key",
+      enableCron: false,
+    });
+
+    expect(adapter.cronService).toBeUndefined();
+    expect(mockCronInitialize).not.toHaveBeenCalled();
+  });
+
+  it("shutdown calls CronService.shutdown when cron enabled", async () => {
+    mockCronShutdown.mockClear();
+
+    const adapter = await createAgentAdapter({
+      apiKey: "test-key",
+      enableCron: true,
+    });
+
+    await adapter.shutdown();
+
+    expect(mockCronShutdown).toHaveBeenCalledTimes(1);
+  });
+
+  it("shutdown works when cron disabled", async () => {
+    mockCronShutdown.mockClear();
+
+    const adapter = await createAgentAdapter({
+      apiKey: "test-key",
+    });
+
+    await adapter.shutdown();
+
+    expect(mockCronShutdown).not.toHaveBeenCalled();
   });
 });
