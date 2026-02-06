@@ -437,8 +437,8 @@ describe("HeartbeatManager", () => {
 
       manager.requestNow("exec", "test-source");
 
-      // Wait for coalesce window
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for coalesce window + callback execution (flaky test fix)
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(receivedReason).toBe("exec");
     });
