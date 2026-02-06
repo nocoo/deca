@@ -634,4 +634,86 @@ describe("CronService", () => {
       await service.shutdown();
     });
   });
+
+  describe("setOnTrigger (late binding)", () => {
+    it("should allow construction without onTrigger", () => {
+      const service = new CronService({ storagePath });
+      expect(service).toBeDefined();
+    });
+
+    it("should warn when trigger fires without callback", async () => {
+      const consoleSpy = mock(() => {});
+      const originalWarn = console.warn;
+      console.warn = consoleSpy;
+
+      const service = new CronService({ storagePath });
+      await service.initialize();
+
+      const job = await service.addJob({
+        name: "no-callback",
+        instruction: "test",
+        schedule: { kind: "every", everyMs: 60000 },
+        enabled: true,
+      });
+
+      await service.runJob(job.id);
+
+      expect(consoleSpy).toHaveBeenCalled();
+
+      console.warn = originalWarn;
+      await service.shutdown();
+    });
+
+    it("should use callback set via setOnTrigger", async () => {
+      const triggered: string[] = [];
+      const service = new CronService({ storagePath });
+      await service.initialize();
+
+      service.setOnTrigger(async (job) => {
+        triggered.push(job.id);
+      });
+
+      const job = await service.addJob({
+        name: "late-bound",
+        instruction: "test",
+        schedule: { kind: "every", everyMs: 60000 },
+        enabled: true,
+      });
+
+      await service.runJob(job.id);
+
+      expect(triggered).toContain(job.id);
+      await service.shutdown();
+    });
+
+    it("should override initial callback with setOnTrigger", async () => {
+      const initialTriggered: string[] = [];
+      const lateTriggered: string[] = [];
+
+      const service = new CronService({
+        storagePath,
+        onTrigger: async (job) => {
+          initialTriggered.push(job.id);
+        },
+      });
+      await service.initialize();
+
+      service.setOnTrigger(async (job) => {
+        lateTriggered.push(job.id);
+      });
+
+      const job = await service.addJob({
+        name: "override-test",
+        instruction: "test",
+        schedule: { kind: "every", everyMs: 60000 },
+        enabled: true,
+      });
+
+      await service.runJob(job.id);
+
+      expect(initialTriggered).toEqual([]);
+      expect(lateTriggered).toContain(job.id);
+      await service.shutdown();
+    });
+  });
 });

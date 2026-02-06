@@ -57,8 +57,8 @@ export interface CronServiceConfig {
   /** JSON file path for persistence (default: ~/.deca/cron.json) */
   storagePath?: string;
 
-  /** Callback when a job triggers */
-  onTrigger: CronTriggerCallback;
+  /** Callback when a job triggers (optional - can be set later via setOnTrigger) */
+  onTrigger?: CronTriggerCallback;
 }
 
 /**

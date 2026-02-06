@@ -25,6 +25,10 @@ export class CronService {
     this.onTrigger = config.onTrigger;
   }
 
+  setOnTrigger(callback: NonNullable<CronServiceConfig["onTrigger"]>): void {
+    this.onTrigger = callback;
+  }
+
   async initialize(): Promise<void> {
     await this.load();
     this.started = true;
@@ -137,6 +141,11 @@ export class CronService {
     }
 
     await this.save();
+
+    if (!this.onTrigger) {
+      console.warn(`[Cron] Job ${job.id} triggered but no callback registered`);
+      return;
+    }
 
     try {
       await this.onTrigger(job);
