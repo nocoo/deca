@@ -14,15 +14,10 @@ const mockRun = mock(() =>
 const mockCronInitialize = mock(() => Promise.resolve());
 const mockCronShutdown = mock(() => Promise.resolve());
 
-const mockRequestNow = mock(() => {});
-const mockSetTools = mock(() => {});
-
 mock.module("@deca/agent", () => ({
   Agent: class MockAgent {
     constructor(public config: unknown) {}
     run = mockRun;
-    setTools = mockSetTools;
-    getHeartbeat = () => ({ requestNow: mockRequestNow });
   },
   CronService: class MockCronService {
     constructor(public config: unknown) {}

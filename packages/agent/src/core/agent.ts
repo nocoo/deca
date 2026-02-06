@@ -862,16 +862,11 @@ export class Agent {
       return base;
     }
 
-    const resolvedKey = resolveSessionKey({
-      agentId: this.agentId,
-      sessionId: sessionKey,
-      sessionKey: sessionKey,
-    });
-    const sessionStats = await this.sessions.getStats(resolvedKey);
+    const sessionStats = await this.sessions.getStats(sessionKey);
     return {
       ...base,
       session: {
-        key: resolvedKey,
+        key: sessionKey,
         ...sessionStats,
       },
     };

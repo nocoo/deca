@@ -9,7 +9,6 @@ import {
   Agent,
   type AgentConfig,
   CronService,
-  type HeartbeatTask,
   type RunResult,
   createBuiltinToolsWithCron,
 } from "@deca/agent";
@@ -32,6 +31,19 @@ export interface AgentAdapter extends MessageHandler {
 export async function createAgentAdapter(
   config: AgentAdapterConfig,
 ): Promise<AgentAdapter> {
+  let cronService: CronService | undefined;
+
+  if (config.enableCron) {
+    cronService = new CronService({
+      storagePath: config.cronStoragePath,
+      onTrigger: async (job) => {
+        const instruction = `[CRON TASK: ${job.name}] ${job.instruction}`;
+        await agent.run("cron", instruction);
+      },
+    });
+    await cronService.initialize();
+  }
+
   const agentConfig: AgentConfig = {
     apiKey: config.apiKey,
     baseUrl: config.baseUrl,
@@ -47,29 +59,10 @@ export async function createAgentAdapter(
     enableSkills: true,
     enableHeartbeat: config.enableHeartbeat ?? false,
     heartbeatInterval: config.heartbeatIntervalMs,
+    tools: cronService ? createBuiltinToolsWithCron(cronService) : undefined,
   };
 
   const agent = new Agent(agentConfig);
-
-  let cronService: CronService | undefined;
-
-  if (config.enableCron) {
-    cronService = new CronService({
-      storagePath: config.cronStoragePath,
-      onTrigger: async (job) => {
-        const task: HeartbeatTask = {
-          description: `[CRON: ${job.name}] ${job.instruction}`,
-          completed: false,
-          raw: job.instruction,
-          line: -1,
-        };
-        agent.getHeartbeat().requestNow("cron", `job:${job.id}`, task);
-      },
-    });
-
-    agent.setTools(createBuiltinToolsWithCron(cronService));
-    await cronService.initialize();
-  }
 
   return {
     agent,

@@ -63,8 +63,7 @@ export type WakeReason =
 
 export interface WakeRequest {
   reason: WakeReason;
-  source?: string;
-  cronTasks?: HeartbeatTask[];
+  source?: string; // 来源标识，如 "cron:job-123"
 }
 
 export interface HeartbeatResult {
@@ -87,7 +86,6 @@ interface WakeState {
   timer: ReturnType<typeof setTimeout> | null;
   pendingReason: WakeReason;
   pendingSource?: string;
-  pendingCronTasks: HeartbeatTask[];
 }
 
 /**
@@ -104,7 +102,6 @@ class HeartbeatWake {
     scheduled: false,
     timer: null,
     pendingReason: "requested",
-    pendingCronTasks: [],
   };
 
   private handler: HeartbeatHandler | null = null;
@@ -124,15 +121,13 @@ class HeartbeatWake {
    * 多个请求会合并，原因优先级: exec > cron > interval > requested
    */
   request(req: WakeRequest): void {
+    // 原因优先级合并
     this.state.pendingReason = this.mergeReason(
       this.state.pendingReason,
       req.reason,
     );
     if (req.source) {
       this.state.pendingSource = req.source;
-    }
-    if (req.cronTasks) {
-      this.state.pendingCronTasks.push(...req.cronTasks);
     }
 
     this.schedule(this.coalesceMs);
@@ -171,15 +166,11 @@ class HeartbeatWake {
     const request: WakeRequest = {
       reason: this.state.pendingReason,
       source: this.state.pendingSource,
-      cronTasks:
-        this.state.pendingCronTasks.length > 0
-          ? [...this.state.pendingCronTasks]
-          : undefined,
     };
 
+    // 重置 pending 状态
     this.state.pendingReason = "requested";
     this.state.pendingSource = undefined;
-    this.state.pendingCronTasks = [];
     this.state.scheduled = false;
 
     try {
@@ -303,16 +294,11 @@ export class HeartbeatManager {
     this.callbacks.push(callback);
   }
 
-  requestNow(
-    reason: WakeReason = "requested",
-    source?: string,
-    cronTask?: HeartbeatTask,
-  ): void {
-    this.wake.request({
-      reason,
-      source,
-      cronTasks: cronTask ? [cronTask] : undefined,
-    });
+  /**
+   * 请求立即唤醒 (事件驱动)
+   */
+  requestNow(reason: WakeReason = "requested", source?: string): void {
+    this.wake.request({ reason, source });
   }
 
   /**
@@ -358,10 +344,6 @@ export class HeartbeatManager {
     // 2. 解析 HEARTBEAT.md
     const tasks = await this.parseTasks();
     const pending = tasks.filter((t) => !t.completed);
-
-    if (request.cronTasks) {
-      pending.push(...request.cronTasks);
-    }
 
     // 3. 空内容检测 (exec 事件除外)
     if (pending.length === 0 && request.reason !== "exec") {

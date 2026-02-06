@@ -392,13 +392,17 @@ describe("Agent", () => {
       attachMockClient(agent);
       await agent.run("status-session", "hello");
 
-      const status = await agent.getStatus("status-session");
+      const resolvedKey = resolveSessionKey({
+        agentId: "test-agent",
+        sessionId: "status-session",
+      });
+      const status = await agent.getStatus(resolvedKey);
 
       expect(status.model).toBe("test-model");
       expect(status.agentId).toBe("test-agent");
       expect(status.contextTokens).toBe(64000);
       expect(status.session).toBeDefined();
-      expect(status.session?.key).toBe("agent:test-agent:status-session");
+      expect(status.session?.key).toBe(resolvedKey);
       expect(status.session?.messageCount).toBe(2);
       expect(status.session?.userMessages).toBe(1);
       expect(status.session?.assistantMessages).toBe(1);
