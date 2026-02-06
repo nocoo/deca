@@ -2,7 +2,8 @@
  * E2E tests for Agent with real LLM API calls
  *
  * These tests require:
- * - ~/.deca/credentials/anthropic.json with valid API credentials
+ * - ~/.deca/credentials/<provider>.json with valid API credentials
+ *   (glm.json or minimax.json, checked in priority order)
  *
  * Run with: bun test src/e2e/
  */
@@ -17,35 +18,35 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { LLM_PROVIDER_IDS, type ProviderCredential } from "@deca/storage";
 import { Agent } from "../core/agent.js";
 
-interface AnthropicCredential {
-  apiKey: string;
-  baseUrl?: string;
-  models?: {
-    default?: string;
-    haiku?: string;
-    sonnet?: string;
-    opus?: string;
-    reasoning?: string;
-  };
-}
+/**
+ * Load credentials from first available LLM provider.
+ * Checks providers in LLM_PROVIDER_IDS order (glm, minimax).
+ */
+function loadCredentials(): ProviderCredential | null {
+  const credentialsDir = join(homedir(), ".deca", "credentials");
 
-function loadCredentials(): AnthropicCredential | null {
-  const credPath = join(homedir(), ".deca", "credentials", "anthropic.json");
-  if (!existsSync(credPath)) {
-    return null;
+  for (const providerId of LLM_PROVIDER_IDS) {
+    const credPath = join(credentialsDir, `${providerId}.json`);
+    if (existsSync(credPath)) {
+      try {
+        const content = readFileSync(credPath, "utf-8");
+        const cred = JSON.parse(content) as ProviderCredential;
+        console.log(`   Using provider: ${providerId}`);
+        return cred;
+      } catch {
+        // empty - try next provider
+      }
+    }
   }
-  try {
-    const content = readFileSync(credPath, "utf-8");
-    return JSON.parse(content) as AnthropicCredential;
-  } catch {
-    return null;
-  }
+
+  return null;
 }
 
 describe("Agent E2E", () => {
-  let credentials: AnthropicCredential | null;
+  let credentials: ProviderCredential | null;
   let testDir: string;
 
   beforeAll(() => {
@@ -63,7 +64,7 @@ describe("Agent E2E", () => {
   // ==================== Basic Tests ====================
 
   describe("Basic", () => {
-    it("should load credentials from ~/.deca/credentials/anthropic.json", () => {
+    it("should load credentials from ~/.deca/credentials/<provider>.json", () => {
       expect(credentials).not.toBeNull();
       expect(credentials?.apiKey).toBeDefined();
       expect(credentials?.apiKey?.length).toBeGreaterThan(10);
