@@ -405,6 +405,40 @@ debounceSuite.tests.push({
 // Runner
 // ============================================================================
 
+const MAX_BOT_SPAWN_RETRIES = 4;
+const RETRY_DELAY_BASE_MS = 5000;
+
+async function spawnBotWithRetry(
+  suiteDef: TestSuite,
+): Promise<BotProcess | null> {
+  for (let attempt = 1; attempt <= MAX_BOT_SPAWN_RETRIES; attempt++) {
+    try {
+      const bot = await spawnBot({
+        cwd: getApiDir(),
+        mode: "echo",
+        startupTimeout: 15000,
+        allowBots: true,
+        debounce: suiteDef.debounce,
+        debug: DEBUG,
+      });
+      return bot;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (attempt < MAX_BOT_SPAWN_RETRIES) {
+        const delay = RETRY_DELAY_BASE_MS * attempt;
+        console.log(`   ⚠️  Spawn attempt ${attempt} failed: ${msg}`);
+        console.log(`   ⏳ Retrying in ${delay / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error(
+          `   ✗ Failed to start bot after ${attempt} attempts: ${msg}`,
+        );
+      }
+    }
+  }
+  return null;
+}
+
 async function runSuite(
   suiteDef: TestSuite,
   config: E2EConfig,
@@ -412,29 +446,16 @@ async function runSuite(
   console.log(`\n📦 ${suiteDef.name}`);
   console.log(`   (debounce: ${suiteDef.debounce ? "enabled" : "disabled"})\n`);
 
-  // Spawn bot for this suite
-  let bot: BotProcess;
-  try {
-    bot = await spawnBot({
-      cwd: getApiDir(),
-      mode: "echo",
-      startupTimeout: 15000,
-      allowBots: true,
-      debounce: suiteDef.debounce,
-      debug: DEBUG,
-    });
-    console.log(`   ✓ Bot started (PID: ${bot.pid})\n`);
-  } catch (error) {
-    console.error(
-      `   ✗ Failed to start bot: ${error instanceof Error ? error.message : String(error)}`,
-    );
+  const bot = await spawnBotWithRetry(suiteDef);
+  if (!bot) {
     return suiteDef.tests.map((t) => ({
       name: t.name,
       passed: false,
       duration: 0,
-      error: "Bot startup failed",
+      error: "Bot startup failed after retries",
     }));
   }
+  console.log(`   ✓ Bot started (PID: ${bot.pid})\n`);
 
   // Give bot a moment to stabilize
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -492,7 +513,16 @@ async function runTests(): Promise<void> {
   const allResults: TestResult[] = [];
 
   // Run each suite with its own bot configuration
-  for (const suiteDef of suites) {
+  // Add cooldown between suites to avoid Discord rate limiting / SSL issues
+  for (let i = 0; i < suites.length; i++) {
+    const suiteDef = suites[i];
+
+    // Cooldown between suites (not before first)
+    if (i > 0) {
+      console.log("\n   ⏳ Cooldown before next suite (5s)...");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
     const results = await runSuite(suiteDef, config);
     allResults.push(...results);
   }
