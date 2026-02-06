@@ -1,0 +1,4 @@
+[test]
+# Exclude e2e tests from coverage as they require real LLM API
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = ["src/e2e/**", "../storage/**"]
