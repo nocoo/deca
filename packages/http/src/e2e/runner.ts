@@ -9,7 +9,7 @@
  *   bun run packages/http/src/e2e/runner.ts --debug
  */
 
-import { getPackageDir, spawnServer, type ServerProcess } from "./spawner";
+import { type ServerProcess, getPackageDir, spawnServer } from "./spawner";
 
 // ============================================================================
 // Configuration
@@ -100,32 +100,38 @@ basicSuite.tests.push({
 basicSuite.tests.push({
   name: "session ID is preserved across requests",
   fn: async ({ baseUrl }) => {
-    const sessionId = `test-session-${Date.now()}`;
+    const senderId = `test-user-${Date.now()}`;
 
-    // First request
+    // First request with senderId
     const response1 = await fetch(`${baseUrl}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "first", sessionId }),
+      body: JSON.stringify({ message: "first", senderId }),
     });
 
     const data1 = await response1.json();
 
-    if (data1.sessionId !== sessionId) {
-      throw new Error(`Session ID not preserved: expected ${sessionId}, got ${data1.sessionId}`);
+    // Session ID should be normalized userId (lowercase)
+    const expectedSessionId = senderId.toLowerCase();
+    if (data1.sessionId !== expectedSessionId) {
+      throw new Error(
+        `Session ID not preserved: expected ${expectedSessionId}, got ${data1.sessionId}`,
+      );
     }
 
-    // Second request with same session
+    // Second request with same sender
     const response2 = await fetch(`${baseUrl}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "second", sessionId }),
+      body: JSON.stringify({ message: "second", senderId }),
     });
 
     const data2 = await response2.json();
 
-    if (data2.sessionId !== sessionId) {
-      throw new Error(`Session ID not preserved in second request: ${data2.sessionId}`);
+    if (data2.sessionId !== expectedSessionId) {
+      throw new Error(
+        `Session ID not preserved in second request: ${data2.sessionId}`,
+      );
     }
   },
 });
@@ -272,7 +278,9 @@ async function runSuite(suiteDef: TestSuite): Promise<TestResult[]> {
       startupTimeout: 10000,
       debug: DEBUG,
     });
-    console.log(`   ✓ Server started (PID: ${server.pid}, Port: ${server.port})\n`);
+    console.log(
+      `   ✓ Server started (PID: ${server.pid}, Port: ${server.port})\n`,
+    );
   } catch (error) {
     console.error(
       `   ✗ Failed to start server: ${error instanceof Error ? error.message : String(error)}`,
