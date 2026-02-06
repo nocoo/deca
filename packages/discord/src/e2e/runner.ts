@@ -21,6 +21,7 @@ import {
   getMessageReactions,
   waitForBotResponse,
   waitForReaction,
+  waitForReactionRemoval,
 } from "./fetcher";
 import { type BotProcess, getApiDir, spawnBot } from "./spawner";
 import {
@@ -43,6 +44,7 @@ interface E2EConfig {
 }
 
 const DEBUG = process.argv.includes("--debug");
+const CORE_ONLY = process.argv.includes("--core");
 
 async function loadConfig(): Promise<E2EConfig> {
   const credPath = join(homedir(), ".deca", "credentials", "discord.json");
@@ -97,13 +99,14 @@ type TestFn = (ctx: TestContext) => Promise<void>;
 interface TestSuite {
   name: string;
   debounce: boolean;
+  core: boolean;
   tests: { name: string; fn: TestFn }[];
 }
 
 const suites: TestSuite[] = [];
 
-function suite(name: string, debounce: boolean): TestSuite {
-  const s: TestSuite = { name, debounce, tests: [] };
+function suite(name: string, debounce: boolean, core = false): TestSuite {
+  const s: TestSuite = { name, debounce, core, tests: [] };
   suites.push(s);
   return s;
 }
@@ -112,8 +115,8 @@ function suite(name: string, debounce: boolean): TestSuite {
 // Test Suites
 // ============================================================================
 
-// --- Suite 1: Basic Tests (no debounce) ---
-const basicSuite = suite("Basic Bot Functionality", false);
+// --- Suite 1: Basic Tests (no debounce) - CORE ---
+const basicSuite = suite("Basic Bot Functionality", false, true);
 
 basicSuite.tests.push({
   name: "webhook can send messages",
@@ -281,7 +284,6 @@ reactionSuite.tests.push({
     );
 
     if (!hasCheck) {
-      // Get current reactions for error message
       const reactions = await getMessageReactions(
         {
           botToken: config.botToken,
@@ -292,16 +294,20 @@ reactionSuite.tests.push({
       throw new Error(`Expected ✅ reaction, got: [${reactions.join(", ")}]`);
     }
 
-    // Verify 👀 was removed
-    const finalReactions = await getMessageReactions(
+    const eyesRemoved = await waitForReactionRemoval(
       {
         botToken: config.botToken,
         channelId: config.testChannelId,
       },
       sendResult.id,
+      {
+        emoji: "👀",
+        timeout: 3000,
+        interval: 300,
+      },
     );
 
-    if (finalReactions.includes("👀")) {
+    if (!eyesRemoved) {
       throw new Error("👀 reaction should be removed after processing");
     }
   },
@@ -512,12 +518,15 @@ async function runTests(): Promise<void> {
 
   const allResults: TestResult[] = [];
 
-  // Run each suite with its own bot configuration
-  // Add cooldown between suites to avoid Discord rate limiting / SSL issues
-  for (let i = 0; i < suites.length; i++) {
-    const suiteDef = suites[i];
+  const suitesToRun = CORE_ONLY ? suites.filter((s) => s.core) : suites;
 
-    // Cooldown between suites (not before first)
+  if (CORE_ONLY) {
+    console.log("  Mode: CORE only (--core flag)\n");
+  }
+
+  for (let i = 0; i < suitesToRun.length; i++) {
+    const suiteDef = suitesToRun[i];
+
     if (i > 0) {
       console.log("\n   ⏳ Cooldown before next suite (5s)...");
       await new Promise((resolve) => setTimeout(resolve, 5000));

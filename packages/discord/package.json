@@ -16,7 +16,8 @@
     "standalone": "bun run cli.ts",
     "test": "bun test",
     "test:unit": "bun test src/",
-    "test:e2e": "bun run src/e2e/runner.ts",
+    "test:e2e": "bun run src/e2e/runner.ts --core",
+    "test:e2e:full": "bun run src/e2e/runner.ts",
     "lint": "biome lint src",
     "format": "biome format src"
   },
