@@ -318,6 +318,9 @@ async function runTest(
 
     if (DEBUG) console.log(`   [DEBUG] Response: ${response.slice(0, 200)}...`);
 
+    // Wait a bit for any file operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
     const validation = await test.validate(response);
 
     return {
