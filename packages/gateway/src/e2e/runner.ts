@@ -9,6 +9,16 @@
  * 3. Discord integration tests (requires Discord credentials)
  */
 
+import {
+  type DiscordMessageData,
+  fetchChannelMessages,
+  waitForBotResponse,
+} from "@deca/discord/e2e/fetcher";
+import {
+  createTestMessage,
+  generateTestId,
+  sendWebhookMessage,
+} from "@deca/discord/e2e/webhook";
 import { createEchoGateway } from "../index";
 import {
   hasAnthropicCredentials,
@@ -16,16 +26,6 @@ import {
   requireDiscordCredentials,
 } from "./credentials";
 import { spawnGateway } from "./spawner";
-import {
-  generateTestId,
-  createTestMessage,
-  sendWebhookMessage,
-} from "@deca/discord/e2e/webhook";
-import {
-  waitForBotResponse,
-  fetchChannelMessages,
-  type DiscordMessageData,
-} from "@deca/discord/e2e/fetcher";
 
 interface TestResult {
   name: string;
@@ -185,6 +185,116 @@ async function testEventCallbacks(): Promise<TestResult> {
 }
 
 // ============================================================================
+// Dispatcher E2E Tests (in-process, echo mode)
+// ============================================================================
+
+async function testDispatcherProcessesRequests(): Promise<TestResult> {
+  const name = "Dispatcher processes requests through gateway";
+
+  try {
+    const gateway = createEchoGateway({
+      http: { port: 0 },
+      echoPrefix: "Dispatched: ",
+    });
+
+    await gateway.start();
+
+    const response = await gateway.handler?.handle({
+      sessionKey: "e2e:dispatcher:test",
+      content: "hello dispatcher",
+      sender: { id: "e2e-user" },
+    });
+
+    await gateway.stop();
+
+    if (!response?.success) {
+      return { name, passed: false, error: "Response not successful" };
+    }
+
+    if (response.text !== "Dispatched: hello dispatcher") {
+      return {
+        name,
+        passed: false,
+        error: `Unexpected response: ${response.text}`,
+      };
+    }
+
+    return { name, passed: true };
+  } catch (error) {
+    return {
+      name,
+      passed: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function testDispatcherHandlesMultipleRequests(): Promise<TestResult> {
+  const name = "Dispatcher handles multiple concurrent requests";
+
+  try {
+    const gateway = createEchoGateway({
+      http: { port: 0 },
+      echoPrefix: "Echo: ",
+    });
+
+    await gateway.start();
+
+    const requests = [
+      gateway.handler?.handle({
+        sessionKey: "e2e:multi:1",
+        content: "message 1",
+        sender: { id: "user1" },
+      }),
+      gateway.handler?.handle({
+        sessionKey: "e2e:multi:2",
+        content: "message 2",
+        sender: { id: "user2" },
+      }),
+      gateway.handler?.handle({
+        sessionKey: "e2e:multi:3",
+        content: "message 3",
+        sender: { id: "user3" },
+      }),
+    ];
+
+    const responses = await Promise.all(requests);
+
+    await gateway.stop();
+
+    const allSuccessful = responses.every((r) => r?.success);
+    if (!allSuccessful) {
+      return { name, passed: false, error: "Not all responses successful" };
+    }
+
+    const expectedResponses = [
+      "Echo: message 1",
+      "Echo: message 2",
+      "Echo: message 3",
+    ];
+    const actualResponses = responses.map((r) => r?.text);
+
+    for (const expected of expectedResponses) {
+      if (!actualResponses.includes(expected)) {
+        return {
+          name,
+          passed: false,
+          error: `Missing expected response: ${expected}`,
+        };
+      }
+    }
+
+    return { name, passed: true };
+  } catch (error) {
+    return {
+      name,
+      passed: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// ============================================================================
 // Real LLM Tests (requires Anthropic credentials)
 // ============================================================================
 
@@ -226,7 +336,10 @@ async function testRealLLMViaHTTP(): Promise<TestResult> {
       return { name, passed: false, error: `HTTP ${response.status}: ${text}` };
     }
 
-    const data = (await response.json()) as { response?: string; error?: string };
+    const data = (await response.json()) as {
+      response?: string;
+      error?: string;
+    };
 
     if (data.error) {
       return { name, passed: false, error: data.error };
@@ -513,7 +626,10 @@ async function waitForBotReply(
         }
         // Look for response that references our test ID OR is a direct reply
         // The bot response might not contain testId, but it should be newer than our webhook message
-        return msg.content.includes(testId) || isReplyToTestMessage(msg, excludeMessageId);
+        return (
+          msg.content.includes(testId) ||
+          isReplyToTestMessage(msg, excludeMessageId)
+        );
       });
 
       if (response) {
@@ -567,6 +683,12 @@ async function runTests(): Promise<TestResult[]> {
   results.push(await testMultipleChannels());
   results.push(await testEventCallbacks());
 
+  console.log("\n📤 Dispatcher E2E Tests (in-process)\n");
+
+  // Dispatcher integration tests
+  results.push(await testDispatcherProcessesRequests());
+  results.push(await testDispatcherHandlesMultipleRequests());
+
   console.log("\n🔧 Subprocess Tests\n");
 
   // Subprocess tests
@@ -613,7 +735,9 @@ async function main() {
     }
   }
 
-  console.log(`\n📈 Results: ${passed} passed, ${failed} failed, ${skipped} skipped`);
+  console.log(
+    `\n📈 Results: ${passed} passed, ${failed} failed, ${skipped} skipped`,
+  );
 
   if (failed > 0) {
     process.exit(1);
