@@ -197,6 +197,30 @@ describe("parseDiscordSessionKey (legacy compatibility)", () => {
     expect(parsed?.userId).toBe("user123");
   });
 
+  it("parses unified channel format and returns guild format", () => {
+    const key = "agent:mybot:channel:guild456:channel789";
+    const parsed = parseDiscordSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("guild");
+    expect(parsed?.userId).toBe("");
+    expect(parsed?.guildId).toBe("guild456");
+    expect(parsed?.channelId).toBe("channel789");
+  });
+
+  it("parses unified thread format and returns thread format", () => {
+    const key = "agent:mybot:thread:guild456:thread999";
+    const parsed = parseDiscordSessionKey(key);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.agentId).toBe("mybot");
+    expect(parsed?.type).toBe("thread");
+    expect(parsed?.userId).toBe("");
+    expect(parsed?.guildId).toBe("guild456");
+    expect(parsed?.threadId).toBe("thread999");
+  });
+
   it("parses legacy DM session key", () => {
     const key = "discord:mybot:dm:user123";
     const parsed = parseDiscordSessionKey(key);
@@ -240,5 +264,24 @@ describe("parseDiscordSessionKey (legacy compatibility)", () => {
     expect(parseDiscordSessionKey("discord:")).toBeNull();
     expect(parseDiscordSessionKey("discord:agent")).toBeNull();
     expect(parseDiscordSessionKey("discord:agent:invalid")).toBeNull();
+  });
+
+  it("returns null for legacy dm key with wrong part count", () => {
+    expect(parseDiscordSessionKey("discord:mybot:dm")).toBeNull();
+    expect(parseDiscordSessionKey("discord:mybot:dm:user:extra")).toBeNull();
+  });
+
+  it("returns null for legacy guild key with wrong part count", () => {
+    expect(parseDiscordSessionKey("discord:mybot:guild:guild")).toBeNull();
+    expect(parseDiscordSessionKey("discord:mybot:guild:g:c")).toBeNull();
+  });
+
+  it("returns null for legacy thread key with wrong part count", () => {
+    expect(parseDiscordSessionKey("discord:mybot:thread:guild")).toBeNull();
+    expect(parseDiscordSessionKey("discord:mybot:thread:g:t")).toBeNull();
+  });
+
+  it("returns null for unknown legacy type", () => {
+    expect(parseDiscordSessionKey("discord:mybot:unknown:data")).toBeNull();
   });
 });

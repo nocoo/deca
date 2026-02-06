@@ -610,6 +610,104 @@ describe("createMessageListener", () => {
 
     expect(client.off).toHaveBeenCalled();
   });
+
+  it("includes debounce pending count in total pendingCount", () => {
+    const client = createMockClient();
+    const config: ListenerConfig = {
+      handler: createMockHandler(),
+      debounce: { enabled: true, windowMs: 5000 },
+    };
+
+    const cleanup = createMessageListener(client, config);
+    expect(cleanup.pendingCount).toBe(0);
+    cleanup();
+  });
+
+  it("processes message through event listener callback", async () => {
+    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    const client = {
+      user: { id: "bot123", username: "testbot" },
+      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+        if (event === "messageCreate") {
+          messageHandler = handler;
+        }
+      }),
+      off: mock(() => {}),
+    } as unknown as Client;
+
+    const handler = createMockHandler({ text: "Response", success: true });
+    const config: ListenerConfig = { handler, debugMode: false };
+
+    createMessageListener(client, config);
+
+    expect(messageHandler).not.toBeNull();
+
+    const message = createMockMessage({ content: "Hello!" });
+    if (messageHandler) {
+      await messageHandler(message);
+    }
+
+    expect(handler.handle).toHaveBeenCalled();
+  });
+
+  it("ignores messages when shouldProcessMessage returns false", async () => {
+    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    const client = {
+      user: { id: "bot123", username: "testbot" },
+      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+        if (event === "messageCreate") {
+          messageHandler = handler;
+        }
+      }),
+      off: mock(() => {}),
+    } as unknown as Client;
+
+    const handler = createMockHandler();
+    const config: ListenerConfig = { handler };
+
+    createMessageListener(client, config);
+
+    const botMessage = createMockMessage({
+      author: createMockUser({ id: "bot123" }),
+    });
+    if (messageHandler) {
+      await messageHandler(botMessage);
+    }
+
+    expect(handler.handle).not.toHaveBeenCalled();
+  });
+
+  it("queues message when debounce is enabled", async () => {
+    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    const client = {
+      user: { id: "bot123", username: "testbot" },
+      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+        if (event === "messageCreate") {
+          messageHandler = handler;
+        }
+      }),
+      off: mock(() => {}),
+    } as unknown as Client;
+
+    const handler = createMockHandler({ text: "OK", success: true });
+    const config: ListenerConfig = {
+      handler,
+      debounce: { enabled: true, windowMs: 50 },
+      debugMode: false,
+    };
+
+    const cleanup = createMessageListener(client, config);
+
+    const message = createMockMessage({ content: "Hello!" });
+    if (messageHandler) {
+      await messageHandler(message);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(handler.handle).toHaveBeenCalled();
+    cleanup();
+  });
 });
 
 describe("processMessage edge cases", () => {
