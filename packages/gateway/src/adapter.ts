@@ -27,9 +27,10 @@ export function createAgentAdapter(config: AgentAdapterConfig): MessageHandler {
     workspaceDir: config.workspaceDir,
     promptDir: config.promptDir,
     enableMemory: config.enableMemory ?? false,
+    memoryDir: config.memoryDir,
     enableContext: true,
     enableSkills: true,
-    enableHeartbeat: false, // Gateway manages heartbeat separately
+    enableHeartbeat: false,
   };
 
   const agent = new Agent(agentConfig);

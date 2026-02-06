@@ -99,6 +99,9 @@ export interface AgentAdapterConfig {
 
   /** Enable memory (default: false) */
   enableMemory?: boolean;
+
+  /** Memory storage directory */
+  memoryDir?: string;
 }
 
 /**

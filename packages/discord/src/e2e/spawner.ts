@@ -23,6 +23,10 @@ export interface SpawnerConfig {
   debug?: boolean;
   /** Workspace directory for agent file operations */
   workspaceDir?: string;
+  /** Enable memory system */
+  enableMemory?: boolean;
+  /** Memory storage directory */
+  memoryDir?: string;
 }
 
 interface LLMCredential {
@@ -126,6 +130,12 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.workspaceDir) {
       env.WORKSPACE_DIR = config.workspaceDir;
+    }
+    if (config.enableMemory) {
+      env.ENABLE_MEMORY = "true";
+    }
+    if (config.memoryDir) {
+      env.MEMORY_DIR = config.memoryDir;
     }
   }
 
