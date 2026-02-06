@@ -408,4 +408,310 @@ describe("Agent", () => {
       expect(status.session?.assistantMessages).toBe(1);
     });
   });
+
+  describe("reset", () => {
+    it("clears session history", async () => {
+      streamQueue.push({
+        deltas: [],
+        finalContent: [{ type: "text", text: "response" }],
+      });
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+        maxTurns: 1,
+      });
+
+      attachMockClient(agent);
+      await agent.run("reset-session", "hello");
+
+      expect(agent.getHistory("reset-session").length).toBeGreaterThan(0);
+
+      await agent.reset("reset-session");
+
+      expect(agent.getHistory("reset-session")).toEqual([]);
+    });
+  });
+
+  describe("getHistory", () => {
+    it("returns empty array for new session", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      expect(agent.getHistory("nonexistent-session")).toEqual([]);
+    });
+
+    it("returns messages after run", async () => {
+      streamQueue.push({
+        deltas: [],
+        finalContent: [{ type: "text", text: "hi" }],
+      });
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+        maxTurns: 1,
+      });
+
+      attachMockClient(agent);
+      await agent.run("history-session", "test message");
+
+      const history = agent.getHistory("history-session");
+      expect(history.length).toBe(2);
+      expect(history[0].role).toBe("user");
+      expect(history[1].role).toBe("assistant");
+    });
+  });
+
+  describe("listSessions", () => {
+    it("returns empty array when no sessions", async () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const sessions = await agent.listSessions();
+      expect(sessions).toEqual([]);
+    });
+
+    it("returns session keys after runs", async () => {
+      streamQueue.push({
+        deltas: [],
+        finalContent: [{ type: "text", text: "ok" }],
+      });
+      streamQueue.push({
+        deltas: [],
+        finalContent: [{ type: "text", text: "ok" }],
+      });
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+        maxTurns: 1,
+      });
+
+      attachMockClient(agent);
+      await agent.run("session-a", "hello");
+      await agent.run("session-b", "world");
+
+      const sessions = await agent.listSessions();
+      expect(sessions.length).toBe(2);
+    });
+  });
+
+  describe("subsystem accessors", () => {
+    it("returns memory manager", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        memoryDir: path.join(tempDir, "memory"),
+        enableContext: false,
+        enableMemory: true,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const memory = agent.getMemory();
+      expect(memory).toBeDefined();
+      expect(typeof memory.add).toBe("function");
+    });
+
+    it("returns context loader", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: true,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const context = agent.getContext();
+      expect(context).toBeDefined();
+      expect(typeof context.buildContextPrompt).toBe("function");
+    });
+
+    it("returns skill manager", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: true,
+        enableHeartbeat: false,
+      });
+
+      const skills = agent.getSkills();
+      expect(skills).toBeDefined();
+      expect(typeof skills.match).toBe("function");
+    });
+
+    it("returns heartbeat manager", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+      });
+
+      const heartbeat = agent.getHeartbeat();
+      expect(heartbeat).toBeDefined();
+      expect(typeof heartbeat.trigger).toBe("function");
+    });
+  });
+
+  describe("setTools", () => {
+    it("replaces tools list", async () => {
+      streamQueue.push({
+        deltas: [],
+        finalContent: [{ type: "text", text: "ok" }],
+      });
+
+      const customTool = {
+        name: "custom_tool",
+        description: "A custom tool",
+        inputSchema: { type: "object" as const, properties: {} },
+        execute: async () => "custom result",
+      };
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        tools: [],
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+        maxTurns: 1,
+      });
+
+      agent.setTools([customTool]);
+      attachMockClient(agent);
+      await agent.run("tools-session", "test");
+
+      const toolNames = lastStreamParams?.tools.map((t) => t.name) ?? [];
+      expect(toolNames).toContain("custom_tool");
+    });
+  });
+
+  describe("heartbeat methods", () => {
+    it("startHeartbeat starts monitoring", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Test task");
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+        heartbeatInterval: 60000,
+      });
+
+      let callbackCalled = false;
+      agent.startHeartbeat((tasks) => {
+        callbackCalled = true;
+        expect(tasks.length).toBeGreaterThanOrEqual(0);
+      });
+
+      agent.stopHeartbeat();
+      expect(callbackCalled).toBe(false);
+    });
+
+    it("stopHeartbeat stops monitoring", () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+      });
+
+      agent.startHeartbeat();
+      agent.stopHeartbeat();
+    });
+
+    it("triggerHeartbeat returns tasks", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "HEARTBEAT.md"),
+        "- [ ] Pending task\n- [x] Done task",
+      );
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+      });
+
+      const tasks = await agent.triggerHeartbeat();
+      expect(Array.isArray(tasks)).toBe(true);
+    });
+  });
 });
