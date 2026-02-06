@@ -343,4 +343,65 @@ describe("Agent", () => {
     const firstMessage = lastStreamParams?.messages[0];
     expect(firstMessage?.content).toBe("【历史摘要】\nsummary");
   });
+
+  describe("getStatus", () => {
+    it("returns basic status without session key", async () => {
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "test-model",
+        agentId: "test-agent",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        contextTokens: 128000,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+      });
+
+      const status = await agent.getStatus();
+
+      expect(status.model).toBe("test-model");
+      expect(status.agentId).toBe("test-agent");
+      expect(status.contextTokens).toBe(128000);
+      expect(status.session).toBeUndefined();
+    });
+
+    it("returns session stats when session key provided", async () => {
+      streamQueue.push({
+        deltas: ["hi"],
+        finalContent: [{ type: "text", text: "hi" }],
+      });
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "test-model",
+        agentId: "test-agent",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        promptDir: tempDir,
+        contextTokens: 64000,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: false,
+        maxTurns: 1,
+      });
+
+      attachMockClient(agent);
+      await agent.run("status-session", "hello");
+
+      const status = await agent.getStatus("status-session");
+
+      expect(status.model).toBe("test-model");
+      expect(status.agentId).toBe("test-agent");
+      expect(status.contextTokens).toBe(64000);
+      expect(status.session).toBeDefined();
+      expect(status.session?.key).toBe("agent:test-agent:status-session");
+      expect(status.session?.messageCount).toBe(2);
+      expect(status.session?.userMessages).toBe(1);
+      expect(status.session?.assistantMessages).toBe(1);
+    });
+  });
 });

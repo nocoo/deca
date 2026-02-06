@@ -211,4 +211,67 @@ describe("SessionManager", () => {
       expect(files[0]).toContain("%2F"); // Forward slash encoded
     });
   });
+
+  describe("getStats", () => {
+    it("should return zero stats for empty session", async () => {
+      const stats = await sessionManager.getStats("empty-session");
+      expect(stats.messageCount).toBe(0);
+      expect(stats.userMessages).toBe(0);
+      expect(stats.assistantMessages).toBe(0);
+      expect(stats.totalChars).toBe(0);
+    });
+
+    it("should count messages by role", async () => {
+      await sessionManager.append("stats-test", {
+        role: "user",
+        content: "Hello",
+        timestamp: 1,
+      });
+      await sessionManager.append("stats-test", {
+        role: "assistant",
+        content: "Hi there",
+        timestamp: 2,
+      });
+      await sessionManager.append("stats-test", {
+        role: "user",
+        content: "How are you?",
+        timestamp: 3,
+      });
+
+      const stats = await sessionManager.getStats("stats-test");
+      expect(stats.messageCount).toBe(3);
+      expect(stats.userMessages).toBe(2);
+      expect(stats.assistantMessages).toBe(1);
+    });
+
+    it("should calculate total chars from string content", async () => {
+      await sessionManager.append("chars-test", {
+        role: "user",
+        content: "Hello",
+        timestamp: 1,
+      });
+      await sessionManager.append("chars-test", {
+        role: "assistant",
+        content: "World!",
+        timestamp: 2,
+      });
+
+      const stats = await sessionManager.getStats("chars-test");
+      expect(stats.totalChars).toBe(11);
+    });
+
+    it("should calculate total chars from content blocks", async () => {
+      await sessionManager.append("blocks-chars-test", {
+        role: "assistant",
+        content: [
+          { type: "text", text: "Hello" },
+          { type: "text", text: " World" },
+        ],
+        timestamp: 1,
+      });
+
+      const stats = await sessionManager.getStats("blocks-chars-test");
+      expect(stats.totalChars).toBe(11);
+    });
+  });
 });
