@@ -87,6 +87,8 @@ const gateway = createGateway({
   discord: discord
     ? {
         token: discord.botToken,
+        clientId: discord.clientId,
+        guildId: discord.guildId,
         requireMention,
         ignoreBots: true,
         allowlist: discord.guildId ? { guilds: [discord.guildId] } : undefined,

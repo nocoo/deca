@@ -22,7 +22,7 @@ import {
   waitForBotResponse,
   waitForReaction,
 } from "./fetcher";
-import { getApiDir, spawnBot, type BotProcess } from "./spawner";
+import { type BotProcess, getApiDir, spawnBot } from "./spawner";
 import {
   createTestMessage,
   extractTestId,
@@ -38,7 +38,8 @@ interface E2EConfig {
   botToken: string;
   webhookUrl: string;
   testChannelId: string;
-  botUserId?: string;
+  /** clientId doubles as botUserId in Discord */
+  clientId?: string;
 }
 
 const DEBUG = process.argv.includes("--debug");
@@ -64,7 +65,7 @@ async function loadConfig(): Promise<E2EConfig> {
       botToken: creds.botToken,
       webhookUrl: creds.webhookUrl,
       testChannelId: creds.testChannelId,
-      botUserId: creds.botUserId,
+      clientId: creds.clientId,
     };
   } catch (error) {
     if (error instanceof Error && error.message.includes("Missing")) {
@@ -177,7 +178,7 @@ basicSuite.tests.push({
       {
         timeout: 15000,
         interval: 1000,
-        botUserId: config.botUserId,
+        botUserId: config.clientId,
       },
     );
 
@@ -257,7 +258,7 @@ reactionSuite.tests.push({
       {
         timeout: 15000,
         interval: 1000,
-        botUserId: config.botUserId,
+        botUserId: config.clientId,
       },
     );
 
@@ -357,8 +358,8 @@ debounceSuite.tests.push({
     // Bot responses start with "🔊 Echo:" prefix
     const botResponses = result.messages.filter((m) => {
       // Must be a bot message
-      const isBot = config.botUserId
-        ? m.author.id === config.botUserId
+      const isBot = config.clientId
+        ? m.author.id === config.clientId
         : m.author.bot;
       if (!isBot) return false;
 
@@ -452,8 +453,7 @@ async function runSuite(
         console.log(`✓ (${duration}ms)`);
       } catch (error) {
         const duration = Date.now() - start;
-        const errorMsg =
-          error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
         results.push({ name, passed: false, duration, error: errorMsg });
         console.log(`✗ (${duration}ms)`);
         console.log(`      Error: ${errorMsg}`);
@@ -481,7 +481,7 @@ async function runTests(): Promise<void> {
     config = await loadConfig();
     console.log("✓ Loaded credentials");
     console.log(`  Channel: ${config.testChannelId}`);
-    console.log(`  Bot User: ${config.botUserId ?? "(auto-detect)"}`);
+    console.log(`  Bot User: ${config.clientId ?? "(auto-detect)"}`);
   } catch (error) {
     console.error(
       `✗ Failed to load config: ${error instanceof Error ? error.message : String(error)}`,

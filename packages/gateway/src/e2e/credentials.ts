@@ -22,14 +22,15 @@ export interface AnthropicCredentials {
 export interface DiscordCredentials {
   /** Bot token for Discord API */
   botToken: string;
-  /** Application/Client ID for slash commands registration */
+  /**
+   * Application/Client ID for slash commands registration.
+   * Note: For bots, clientId equals the bot's user ID in Discord.
+   */
   clientId?: string;
   /** Webhook URL for sending test messages */
   webhookUrl?: string;
   /** Channel ID for fetching messages */
   testChannelId?: string;
-  /** Bot's user ID (optional) */
-  botUserId?: string;
   /** Guild ID to restrict bot to (security) */
   guildId?: string;
 }
