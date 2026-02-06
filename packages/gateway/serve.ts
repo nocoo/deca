@@ -34,6 +34,11 @@ import {
 } from "@deca/storage";
 import { createGateway } from "./src";
 import { loadDiscordCredentials } from "./src/e2e/credentials";
+import {
+  GatewayLockError,
+  type GatewayLockHandle,
+  acquireGatewayLock,
+} from "./src/lock";
 
 // Resolve directories (relative to this file)
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,9 +60,20 @@ const discord = loadDiscordCredentials();
 const httpPort = Number(process.env.HTTP_PORT) || 7014;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
-const requireMention = process.env.REQUIRE_MENTION === "true"; // default: false
+const requireMention = process.env.REQUIRE_MENTION === "true";
 
 console.log("🚀 Starting Deca Gateway...\n");
+
+let lockHandle: GatewayLockHandle | null = null;
+try {
+  lockHandle = await acquireGatewayLock({ httpPort });
+} catch (err) {
+  if (err instanceof GatewayLockError) {
+    console.error(`❌ ${err.message}`);
+    process.exit(1);
+  }
+  throw err;
+}
 
 if (!provider) {
   console.error("❌ No LLM provider credentials found.");
@@ -111,11 +127,13 @@ const gateway = createGateway({
 process.on("SIGINT", async () => {
   console.log("\n⏳ Shutting down...");
   await gateway.stop();
+  await lockHandle?.release();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   await gateway.stop();
+  await lockHandle?.release();
   process.exit(0);
 });
 

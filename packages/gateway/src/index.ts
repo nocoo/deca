@@ -29,6 +29,17 @@ export {
 // Gateway
 export { createGateway, createEchoGateway } from "./gateway";
 
+// Lock
+export {
+  acquireGatewayLock,
+  checkGatewayRunning,
+  GatewayLockError,
+  formatLockError,
+  type GatewayLockHandle,
+  type GatewayLockOptions,
+  type LockPayload,
+} from "./lock";
+
 // Re-export channel modules for convenience
 export * as discord from "@deca/discord";
 export * as terminal from "@deca/terminal";
