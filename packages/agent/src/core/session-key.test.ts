@@ -3,10 +3,14 @@ import {
   DEFAULT_AGENT_ID,
   DEFAULT_MAIN_KEY,
   buildAgentMainSessionKey,
+  buildChannelSessionKey,
+  buildThreadSessionKey,
+  buildUserSessionKey,
   isSubagentSessionKey,
   normalizeAgentId,
   normalizeMainKey,
   parseAgentSessionKey,
+  parseUnifiedSessionKey,
   resolveAgentIdFromSessionKey,
   resolveSessionKey,
   toAgentStoreSessionKey,
@@ -215,6 +219,177 @@ describe("session-key", () => {
       expect(
         resolveSessionKey({ agentId: "myagent", sessionKey: "mysession" }),
       ).toBe("agent:myagent:mysession");
+    });
+  });
+
+  describe("buildUserSessionKey", () => {
+    it("should build user session key with default agentId", () => {
+      expect(buildUserSessionKey({ userId: "user123" })).toBe(
+        "agent:main:user:user123",
+      );
+    });
+
+    it("should build user session key with custom agentId", () => {
+      expect(buildUserSessionKey({ agentId: "mybot", userId: "user456" })).toBe(
+        "agent:mybot:user:user456",
+      );
+    });
+
+    it("should normalize agentId", () => {
+      expect(buildUserSessionKey({ agentId: "MyBot", userId: "user123" })).toBe(
+        "agent:mybot:user:user123",
+      );
+    });
+  });
+
+  describe("buildChannelSessionKey", () => {
+    it("should build channel session key with default agentId", () => {
+      expect(
+        buildChannelSessionKey({
+          guildId: "guild123",
+          channelId: "channel456",
+        }),
+      ).toBe("agent:main:channel:guild123:channel456");
+    });
+
+    it("should build channel session key with custom agentId", () => {
+      expect(
+        buildChannelSessionKey({
+          agentId: "mybot",
+          guildId: "guild123",
+          channelId: "channel456",
+        }),
+      ).toBe("agent:mybot:channel:guild123:channel456");
+    });
+
+    it("should normalize agentId", () => {
+      expect(
+        buildChannelSessionKey({
+          agentId: "MyBot",
+          guildId: "guild123",
+          channelId: "channel456",
+        }),
+      ).toBe("agent:mybot:channel:guild123:channel456");
+    });
+  });
+
+  describe("buildThreadSessionKey", () => {
+    it("should build thread session key with default agentId", () => {
+      expect(
+        buildThreadSessionKey({ guildId: "guild123", threadId: "thread789" }),
+      ).toBe("agent:main:thread:guild123:thread789");
+    });
+
+    it("should build thread session key with custom agentId", () => {
+      expect(
+        buildThreadSessionKey({
+          agentId: "mybot",
+          guildId: "guild123",
+          threadId: "thread789",
+        }),
+      ).toBe("agent:mybot:thread:guild123:thread789");
+    });
+
+    it("should normalize agentId", () => {
+      expect(
+        buildThreadSessionKey({
+          agentId: "MyBot",
+          guildId: "guild123",
+          threadId: "thread789",
+        }),
+      ).toBe("agent:mybot:thread:guild123:thread789");
+    });
+  });
+
+  describe("parseUnifiedSessionKey", () => {
+    it("should return null for non-agent keys", () => {
+      expect(parseUnifiedSessionKey("other:key")).toBeNull();
+      expect(parseUnifiedSessionKey("")).toBeNull();
+      expect(parseUnifiedSessionKey("agent")).toBeNull();
+    });
+
+    it("should return null for keys with less than 4 parts", () => {
+      expect(parseUnifiedSessionKey("agent:mybot")).toBeNull();
+      expect(parseUnifiedSessionKey("agent:mybot:user")).toBeNull();
+    });
+
+    it("should parse user session key", () => {
+      const result = parseUnifiedSessionKey("agent:mybot:user:user123");
+      expect(result).toEqual({
+        agentId: "mybot",
+        type: "user",
+        userId: "user123",
+      });
+    });
+
+    it("should return null for user key with wrong part count", () => {
+      expect(parseUnifiedSessionKey("agent:mybot:user:u1:extra")).toBeNull();
+    });
+
+    it("should parse channel session key", () => {
+      const result = parseUnifiedSessionKey(
+        "agent:mybot:channel:guild123:channel456",
+      );
+      expect(result).toEqual({
+        agentId: "mybot",
+        type: "channel",
+        guildId: "guild123",
+        channelId: "channel456",
+      });
+    });
+
+    it("should return null for channel key with wrong part count", () => {
+      expect(parseUnifiedSessionKey("agent:mybot:channel:guild123")).toBeNull();
+      expect(
+        parseUnifiedSessionKey("agent:mybot:channel:g1:c1:extra"),
+      ).toBeNull();
+    });
+
+    it("should parse thread session key", () => {
+      const result = parseUnifiedSessionKey(
+        "agent:mybot:thread:guild123:thread789",
+      );
+      expect(result).toEqual({
+        agentId: "mybot",
+        type: "thread",
+        guildId: "guild123",
+        threadId: "thread789",
+      });
+    });
+
+    it("should return null for thread key with wrong part count", () => {
+      expect(parseUnifiedSessionKey("agent:mybot:thread:guild123")).toBeNull();
+      expect(
+        parseUnifiedSessionKey("agent:mybot:thread:g1:t1:extra"),
+      ).toBeNull();
+    });
+
+    it("should return null for unknown type", () => {
+      expect(parseUnifiedSessionKey("agent:mybot:unknown:data")).toBeNull();
+      expect(parseUnifiedSessionKey("agent:mybot:invalid:a:b")).toBeNull();
+    });
+  });
+
+  describe("parseAgentSessionKey edge cases", () => {
+    it("should return null when rest is empty after parsing", () => {
+      // Only whitespace after agent:id:
+      expect(parseAgentSessionKey("agent:test:   ")).toBeNull();
+    });
+
+    it("should handle keys with empty segments", () => {
+      // Filter(Boolean) removes empty segments
+      expect(parseAgentSessionKey("agent::test:main")).toEqual({
+        agentId: "test",
+        rest: "main",
+      });
+    });
+  });
+
+  describe("normalizeAgentId edge cases", () => {
+    it("should return default when normalization results in empty string", () => {
+      // All invalid characters that get stripped
+      expect(normalizeAgentId("@#$%")).toBe(DEFAULT_AGENT_ID);
+      expect(normalizeAgentId("---")).toBe(DEFAULT_AGENT_ID);
     });
   });
 });
