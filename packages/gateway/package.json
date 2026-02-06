@@ -22,7 +22,8 @@
     "@deca/discord": "workspace:*",
     "@deca/http": "workspace:*",
     "@deca/storage": "workspace:*",
-    "@deca/terminal": "workspace:*"
+    "@deca/terminal": "workspace:*",
+    "p-queue": "^9.1.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
