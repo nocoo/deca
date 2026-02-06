@@ -56,7 +56,10 @@ export {
   type ListenerConfig,
   type ListenerCleanup,
 } from "./listener";
-export { createDiscordGateway } from "./gateway";
+export {
+  createDiscordGateway,
+  type DiscordGatewayInstance,
+} from "./gateway";
 export {
   createReconnectManager,
   DEFAULT_RECONNECT_CONFIG,

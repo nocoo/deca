@@ -117,6 +117,12 @@ export interface DiscordChannelConfig {
   /** Discord bot token */
   token: string;
 
+  /** Application/Client ID for slash commands */
+  clientId?: string;
+
+  /** Guild ID for guild-specific command registration (instant, recommended for dev) */
+  guildId?: string;
+
   /** Require bot mention (default: false) */
   requireMention?: boolean;
 
@@ -135,6 +141,9 @@ export interface DiscordChannelConfig {
 
   /** Channel ID for heartbeat notifications (enables proactive messaging) */
   heartbeatChannelId?: string;
+
+  /** Enable slash commands (default: true if clientId is provided) */
+  enableSlashCommands?: boolean;
 }
 
 /**

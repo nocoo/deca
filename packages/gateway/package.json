@@ -25,6 +25,7 @@
     "@deca/terminal": "workspace:*"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "discord.js": "^14.14.1"
   }
 }

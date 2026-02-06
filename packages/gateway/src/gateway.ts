@@ -7,9 +7,12 @@
 
 import type { HeartbeatTask, WakeRequest } from "@deca/agent";
 import {
-  type DiscordGateway,
+  type DiscordGatewayInstance,
+  type SlashCommandsConfig,
   createDiscordGateway,
+  registerCommands,
   sendToChannel,
+  setupSlashCommands,
 } from "@deca/discord";
 import { type HttpServer, createHttpServer } from "@deca/http";
 import { type Terminal, createTerminal } from "@deca/terminal";
@@ -32,9 +35,11 @@ export function createGateway(config: GatewayConfig): Gateway {
   const activeChannels: string[] = [];
 
   // Channel instances
-  let discordGateway: DiscordGateway | null = null;
+  let discordGateway: DiscordGatewayInstance | null = null;
   let terminalInstance: Terminal | null = null;
   let httpServer: HttpServer | null = null;
+  let slashCommandsCleanup: (() => void) | null = null;
+  let startTime = 0;
 
   let isRunning = false;
 
@@ -106,6 +111,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
 
     isRunning = true;
+    startTime = Date.now();
     events.onStart?.();
 
     // Start Discord if configured
@@ -124,6 +130,34 @@ export function createGateway(config: GatewayConfig): Gateway {
 
       await discordGateway.connect();
       activeChannels.push("discord");
+
+      const shouldEnableSlashCommands =
+        discord.enableSlashCommands !== false && discord.clientId;
+      if (shouldEnableSlashCommands && discord.clientId) {
+        await registerCommands(
+          { clientId: discord.clientId, token: discord.token },
+          discord.guildId,
+        );
+
+        const slashConfig: SlashCommandsConfig = {
+          clientId: discord.clientId,
+          token: discord.token,
+          messageHandler: wrapHandler("discord"),
+          agentId: config.agent.agentId,
+          onClearSession: async (sessionKey: string) => {
+            await adapter.agent.reset(sessionKey);
+          },
+          onGetStatus: async () => ({
+            uptime: Date.now() - startTime,
+            guilds: discordGateway?.client.guilds.cache.size ?? 0,
+            pendingMessages: 0,
+          }),
+        };
+        slashCommandsCleanup = setupSlashCommands(
+          discordGateway.client,
+          slashConfig,
+        );
+      }
 
       // Setup heartbeat after Discord is connected
       if (config.agent.enableHeartbeat && discord.heartbeatChannelId) {
@@ -195,6 +229,8 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
 
     if (discordGateway) {
+      slashCommandsCleanup?.();
+      slashCommandsCleanup = null;
       await discordGateway.shutdown();
       discordGateway = null;
     }
@@ -231,7 +267,7 @@ export function createEchoGateway(
   const { discord, terminal, http, events = {} } = config;
 
   const activeChannels: string[] = [];
-  let discordGateway: DiscordGateway | null = null;
+  let discordGateway: DiscordGatewayInstance | null = null;
   let terminalInstance: Terminal | null = null;
   let httpServer: HttpServer | null = null;
   let isRunning = false;

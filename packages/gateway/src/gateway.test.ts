@@ -11,6 +11,7 @@ const mockAgentRun = mock(() =>
 );
 const mockStartHeartbeat = mock(() => {});
 const mockStopHeartbeat = mock(() => {});
+const mockAgentReset = mock(() => Promise.resolve());
 
 mock.module("@deca/agent", () => ({
   Agent: class MockAgent {
@@ -18,19 +19,27 @@ mock.module("@deca/agent", () => ({
     run = mockAgentRun;
     startHeartbeat = mockStartHeartbeat;
     stopHeartbeat = mockStopHeartbeat;
+    reset = mockAgentReset;
   },
 }));
 
 // Mock Discord
 const mockDiscordConnect = mock(() => Promise.resolve());
 const mockDiscordShutdown = mock(() => Promise.resolve());
+const mockRegisterCommands = mock(() => Promise.resolve());
+const mockSlashCommandsCleanup = mock(() => {});
+const mockSetupSlashCommands = mock(() => mockSlashCommandsCleanup);
 
 mock.module("@deca/discord", () => ({
   createDiscordGateway: mock((config: unknown) => ({
     connect: mockDiscordConnect,
     shutdown: mockDiscordShutdown,
+    client: { guilds: { cache: { size: 1 } } },
     config,
   })),
+  registerCommands: mockRegisterCommands,
+  setupSlashCommands: mockSetupSlashCommands,
+  sendToChannel: mock(() => Promise.resolve()),
 }));
 
 // Mock Terminal
@@ -81,8 +90,12 @@ beforeEach(() => {
   mockAgentRun.mockClear();
   mockStartHeartbeat.mockClear();
   mockStopHeartbeat.mockClear();
+  mockAgentReset.mockClear();
   mockDiscordConnect.mockClear();
   mockDiscordShutdown.mockClear();
+  mockRegisterCommands.mockClear();
+  mockSlashCommandsCleanup.mockClear();
+  mockSetupSlashCommands.mockClear();
   mockTerminalStart.mockClear();
   mockTerminalStop.mockClear();
   mockHttpStart.mockClear();
@@ -376,6 +389,152 @@ describe("createGateway", () => {
       await gateway.stop();
 
       expect(mockStopHeartbeat).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("slash commands", () => {
+    it("registers slash commands when clientId is provided", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
+      expect(mockRegisterCommands).toHaveBeenCalledWith(
+        { clientId: "client-123", token: "discord-token" },
+        undefined,
+      );
+      expect(mockSetupSlashCommands).toHaveBeenCalledTimes(1);
+    });
+
+    it("registers guild-specific commands when guildId is provided", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+          guildId: "guild-456",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockRegisterCommands).toHaveBeenCalledWith(
+        { clientId: "client-123", token: "discord-token" },
+        "guild-456",
+      );
+    });
+
+    it("does not register slash commands without clientId", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token" },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockRegisterCommands).not.toHaveBeenCalled();
+      expect(mockSetupSlashCommands).not.toHaveBeenCalled();
+    });
+
+    it("does not register slash commands when explicitly disabled", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+          enableSlashCommands: false,
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      expect(mockRegisterCommands).not.toHaveBeenCalled();
+      expect(mockSetupSlashCommands).not.toHaveBeenCalled();
+    });
+
+    it("cleans up slash commands on stop", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+      await gateway.stop();
+
+      expect(mockSlashCommandsCleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it("passes agentId to slash commands config", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key", agentId: "my-agent" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const config = setupCall[1];
+      expect(config.agentId).toBe("my-agent");
+    });
+
+    it("provides onClearSession callback that calls agent.reset", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const config = setupCall[1];
+
+      await config.onClearSession("test-session-key");
+
+      expect(mockAgentReset).toHaveBeenCalledWith("test-session-key");
+    });
+
+    it("provides onGetStatus callback that returns gateway status", async () => {
+      const gateway = createGateway({
+        agent: { apiKey: "test-key" },
+        discord: {
+          token: "discord-token",
+          clientId: "client-123",
+        },
+      });
+      gateways.push(gateway);
+
+      await gateway.start();
+
+      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const config = setupCall[1];
+
+      const status = await config.onGetStatus();
+
+      expect(status.guilds).toBe(1);
+      expect(status.pendingMessages).toBe(0);
+      expect(typeof status.uptime).toBe("number");
     });
   });
 });
