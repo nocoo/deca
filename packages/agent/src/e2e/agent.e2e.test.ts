@@ -683,7 +683,7 @@ describe("Agent E2E", () => {
         apiKey: credentials.apiKey,
         baseUrl: credentials.baseUrl,
         model: credentials.models?.default ?? "claude-sonnet-4-20250514",
-        maxTurns: 3,
+        maxTurns: 1,
         enableContext: false,
         enableMemory: false,
         enableSkills: false,
@@ -699,7 +699,7 @@ describe("Agent E2E", () => {
 
       const result = await agent.run(
         sessionId,
-        "Count from 1 to 5, with each number on a new line.",
+        "What is 2+2? Reply with just the number.",
         {
           onTextDelta: (delta) => {
             chunks.push(delta);

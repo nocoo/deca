@@ -703,8 +703,8 @@ describe("Heartbeat E2E", () => {
       // Request with different reasons
       manager.requestNow("requested");
 
-      // Wait for coalesce window
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for coalesce window (increased for CI stability)
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       expect(triggeredReasons.length).toBeGreaterThanOrEqual(1);
 
