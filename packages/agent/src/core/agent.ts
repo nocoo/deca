@@ -835,4 +835,8 @@ export class Agent {
   getHeartbeat(): HeartbeatManager {
     return this.heartbeat;
   }
+
+  setTools(tools: Tool[]): void {
+    this.tools = tools;
+  }
 }
