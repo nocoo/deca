@@ -65,8 +65,22 @@ export interface GatewayConfig {
   /** HTTP channel configuration (optional) */
   http?: HttpChannelConfig;
 
+  /** Dispatcher configuration (optional) */
+  dispatcher?: GatewayDispatcherConfig;
+
   /** Event callbacks */
   events?: GatewayEventCallbacks;
+}
+
+/**
+ * Dispatcher configuration for gateway
+ */
+export interface GatewayDispatcherConfig {
+  /** Maximum concurrent requests (default: 1, serial execution) */
+  concurrency?: number;
+
+  /** Per-request timeout in milliseconds (default: no limit) */
+  timeout?: number;
 }
 
 /**

@@ -23,18 +23,27 @@ import {
   createAgentAdapter,
   createEchoAdapter,
 } from "./adapter";
+import {
+  type Dispatcher,
+  createDispatcher,
+  createDispatcherHandler,
+} from "./dispatcher";
 import type { Gateway, GatewayConfig, MessageHandler } from "./types";
 
 /**
  * Create a gateway instance
  */
 export function createGateway(config: GatewayConfig): Gateway {
-  const { discord, terminal, http, events = {} } = config;
+  const {
+    discord,
+    terminal,
+    http,
+    dispatcher: dispatcherConfig,
+    events = {},
+  } = config;
 
-  // Track active channels
   const activeChannels: string[] = [];
 
-  // Channel instances
   let discordGateway: DiscordGatewayInstance | null = null;
   let terminalInstance: Terminal | null = null;
   let httpServer: HttpServer | null = null;
@@ -44,28 +53,13 @@ export function createGateway(config: GatewayConfig): Gateway {
   let isRunning = false;
 
   let adapter: AgentAdapter | null = null;
+  let dispatcher: Dispatcher | null = null;
 
-  /**
-   * Wrap handler with event callbacks
-   */
-  function wrapHandler(channel: string): MessageHandler {
-    return {
-      async handle(request) {
-        if (!adapter) throw new Error("Adapter not initialized");
-        events.onMessage?.(channel, request.sessionKey);
-
-        try {
-          const response = await adapter.handle(request);
-          events.onResponse?.(channel, request.sessionKey, response.success);
-          return response;
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          events.onError?.(err, channel);
-          events.onResponse?.(channel, request.sessionKey, false);
-          throw error;
-        }
-      },
-    };
+  function getChannelHandler(
+    channel: "discord" | "http" | "terminal",
+  ): MessageHandler {
+    if (!dispatcher) throw new Error("Dispatcher not initialized");
+    return createDispatcherHandler(dispatcher, channel);
   }
 
   function formatHeartbeatMessage(tasks: HeartbeatTask[]): string {
@@ -116,11 +110,22 @@ export function createGateway(config: GatewayConfig): Gateway {
 
     adapter = await createAgentAdapter(config.agent);
 
-    // Start Discord if configured
+    dispatcher = createDispatcher({
+      concurrency: dispatcherConfig?.concurrency ?? 1,
+      timeout: dispatcherConfig?.timeout,
+      handler: adapter,
+      events: {
+        onEnqueue: (req) => events.onMessage?.(req.source, req.sessionKey),
+        onComplete: (req, res) =>
+          events.onResponse?.(req.source, req.sessionKey, res.success),
+        onError: (req, err) => events.onError?.(err, req.source),
+      },
+    });
+
     if (discord) {
       discordGateway = createDiscordGateway({
         token: discord.token,
-        handler: wrapHandler("discord"),
+        handler: getChannelHandler("discord"),
         requireMention: discord.requireMention,
         allowlist: discord.allowlist,
         ignoreBots: discord.ignoreBots,
@@ -144,7 +149,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         const slashConfig: SlashCommandsConfig = {
           clientId: discord.clientId,
           token: discord.token,
-          messageHandler: wrapHandler("discord"),
+          messageHandler: getChannelHandler("discord"),
           agentId: config.agent.agentId,
           onClearSession: async (sessionKey: string) => {
             await adapter?.agent.reset(sessionKey);
@@ -179,10 +184,9 @@ export function createGateway(config: GatewayConfig): Gateway {
       }
     }
 
-    // Start HTTP if configured
     if (http) {
       httpServer = createHttpServer({
-        handler: wrapHandler("http"),
+        handler: getChannelHandler("http"),
         port: http.port,
         hostname: http.hostname,
         apiKey: http.apiKey,
@@ -196,10 +200,9 @@ export function createGateway(config: GatewayConfig): Gateway {
       activeChannels.push("http");
     }
 
-    // Start Terminal if configured (must be last as it blocks)
     if (terminal?.enabled !== false && terminal) {
       terminalInstance = createTerminal({
-        handler: wrapHandler("terminal"),
+        handler: getChannelHandler("terminal"),
         userId: terminal.userId,
         prompt: terminal.prompt,
         streaming: true,
@@ -210,7 +213,6 @@ export function createGateway(config: GatewayConfig): Gateway {
 
       activeChannels.push("terminal");
 
-      // Terminal start is blocking, run in background
       terminalInstance.start().catch((error) => {
         events.onError?.(
           error instanceof Error ? error : new Error(String(error)),
@@ -228,10 +230,8 @@ export function createGateway(config: GatewayConfig): Gateway {
       return;
     }
 
-    // Stop heartbeat first
     adapter?.agent.stopHeartbeat?.();
 
-    // Stop channels in reverse order
     if (terminalInstance) {
       terminalInstance.stop();
       terminalInstance = null;
@@ -247,6 +247,11 @@ export function createGateway(config: GatewayConfig): Gateway {
       slashCommandsCleanup = null;
       await discordGateway.shutdown();
       discordGateway = null;
+    }
+
+    if (dispatcher) {
+      await dispatcher.shutdown();
+      dispatcher = null;
     }
 
     await adapter?.shutdown();
