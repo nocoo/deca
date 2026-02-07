@@ -18,7 +18,7 @@ import {
   createGracefulShutdown,
 } from "./graceful-shutdown";
 import { markError, markReceived, markSuccess } from "./reaction";
-import { ReplyThrottler } from "./reply-throttler";
+import { ReplyQueue } from "./reply-queue";
 import { sendReply, showTyping } from "./sender";
 import { resolveDiscordSessionKey } from "./session";
 import type {
@@ -287,14 +287,10 @@ async function executeHandler(
   config: ListenerConfig,
 ): Promise<void> {
   const startTime = Date.now();
-  const throttler = new ReplyThrottler();
-  let hasSentFinal = false;
+  const replyQueue = new ReplyQueue();
 
   const onReply = async (text: string, meta: ReplyMeta): Promise<void> => {
-    if (meta.kind === "final") {
-      hasSentFinal = true;
-    }
-    await throttler.maybeReply(message, text, meta);
+    await replyQueue.enqueue(message, text, meta);
   };
 
   try {
@@ -313,10 +309,10 @@ async function executeHandler(
 
     const response = await config.handler.handle(requestWithCallbacks);
 
+    await replyQueue.finish();
+
     if (response.success && response.text) {
-      if (!hasSentFinal) {
-        await sendReply(message, response.text);
-      }
+      await sendReply(message, response.text);
       await markSuccess(message, botUserId);
     } else if (!response.success) {
       const errorMsg = response.error || "An error occurred";
@@ -324,6 +320,7 @@ async function executeHandler(
       await markError(message, botUserId);
     }
   } catch (error) {
+    replyQueue.reset();
     const errorMsg =
       error instanceof Error ? error.message : "Unknown error occurred";
     try {

@@ -100,6 +100,9 @@ export {
 // Reply Throttling
 export { ReplyThrottler } from "./reply-throttler";
 
+// Reply Queue (batched progress updates)
+export { ReplyQueue } from "./reply-queue";
+
 // Slash Commands
 export {
   buildCommands,
