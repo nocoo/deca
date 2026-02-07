@@ -13,7 +13,11 @@ type StreamConfig = {
 const streamQueue: StreamConfig[] = [];
 let lastStreamParams:
   | {
-      system: string;
+      system: Array<{
+        type: string;
+        text: string;
+        cache_control?: { type: string };
+      }>;
       tools: Array<{ name: string }>;
       messages: Array<{ role: string; content: unknown }>;
     }
@@ -31,7 +35,15 @@ function createStream(config: StreamConfig) {
       }
     },
     async finalMessage() {
-      return { content: config.finalContent };
+      return {
+        content: config.finalContent,
+        usage: {
+          input_tokens: 100,
+          output_tokens: 50,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+        },
+      };
     },
   };
 }
@@ -40,7 +52,11 @@ function attachMockClient(agent: Agent) {
   const client = {
     messages: {
       stream: (params: {
-        system: string;
+        system: Array<{
+          type: string;
+          text: string;
+          cache_control?: { type: string };
+        }>;
         tools: Array<{ name: string }>;
         messages: Array<{ role: string; content: unknown }>;
       }) => {
@@ -139,12 +155,18 @@ describe("Agent", () => {
     const result = await agent.run("session-1", "hello");
 
     expect(result.text).toBe("ok");
-    expect(lastStreamParams?.system).toContain("## 工作区文件");
-    expect(lastStreamParams?.system).toContain("## AGENTS.md");
-    expect(lastStreamParams?.system).toContain("CTX");
-    expect(lastStreamParams?.system).toContain("## 可用技能");
-    expect(lastStreamParams?.system).toContain("记忆");
-    expect(lastStreamParams?.system).toContain("沙箱");
+    // System prompt is now an array of TextBlockParam with cache_control
+    const systemText = lastStreamParams?.system?.[0]?.text ?? "";
+    expect(systemText).toContain("## 工作区文件");
+    expect(systemText).toContain("## AGENTS.md");
+    expect(systemText).toContain("CTX");
+    expect(systemText).toContain("## 可用技能");
+    expect(systemText).toContain("记忆");
+    expect(systemText).toContain("沙箱");
+    // Verify cache_control is set for prompt caching
+    expect(lastStreamParams?.system?.[0]?.cache_control?.type).toBe(
+      "ephemeral",
+    );
 
     const toolNames = lastStreamParams?.tools.map((t) => t.name) ?? [];
     expect(toolNames).toContain("read");

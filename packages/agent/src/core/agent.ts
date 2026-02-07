@@ -135,6 +135,17 @@ export interface RunResult {
   skillTriggered?: string;
   /** 记忆检索结果数（memory_search 返回的条数） */
   memoriesUsed?: number;
+  /** Token 使用统计 */
+  usage?: {
+    /** 输入 tokens */
+    inputTokens: number;
+    /** 输出 tokens */
+    outputTokens: number;
+    /** 创建缓存的 tokens */
+    cacheCreationInputTokens: number;
+    /** 从缓存读取的 tokens */
+    cacheReadInputTokens: number;
+  };
 }
 
 // ============== 默认系统提示 ==============
@@ -425,6 +436,23 @@ export class Agent {
   }
 
   /**
+   * 将 system prompt 转换为带缓存控制的 TextBlockParam 数组
+   * Anthropic 支持 cache_control: { type: 'ephemeral' } 来缓存 system prompt
+   * 缓存 TTL 为 5 分钟，读取成本是写入成本的 10%（节省 90%）
+   */
+  private buildCachedSystemBlocks(
+    systemPrompt: string,
+  ): Anthropic.TextBlockParam[] {
+    return [
+      {
+        type: "text" as const,
+        text: systemPrompt,
+        cache_control: { type: "ephemeral" as const },
+      },
+    ];
+  }
+
+  /**
    * 运行 Agent
    */
   async run(
@@ -517,6 +545,11 @@ export class Agent {
           let turns = 0;
           let totalToolCalls = 0;
           let finalText = "";
+          // Token usage tracking (accumulated across all turns)
+          let totalInputTokens = 0;
+          let totalOutputTokens = 0;
+          let totalCacheCreationTokens = 0;
+          let totalCacheReadTokens = 0;
           const currentMessages = [...history, userMsg];
           const prep = await this.prepareMessagesForRun({
             messages: currentMessages,
@@ -549,11 +582,11 @@ export class Agent {
               messagesForModel = [compactionSummary, ...messagesForModel];
             }
 
-            // 调用 LLM (流式)
+            // 调用 LLM (流式) - 使用 cache_control 缓存 system prompt
             const stream = this.client.messages.stream({
               model: this.model,
               max_tokens: 4096,
-              system: systemPrompt,
+              system: this.buildCachedSystemBlocks(systemPrompt),
               tools: toolsForRun.map((t) => ({
                 name: t.name,
                 description: t.description,
@@ -585,6 +618,13 @@ export class Agent {
 
             // 获取完整响应
             const response = await stream.finalMessage();
+
+            // 累加 token 使用统计（包含 prompt caching）
+            const usage = response.usage;
+            totalInputTokens += usage.input_tokens;
+            totalOutputTokens += usage.output_tokens;
+            totalCacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+            totalCacheReadTokens += usage.cache_read_input_tokens ?? 0;
 
             // 解析响应
             const assistantContent: ContentBlock[] = [];
@@ -721,6 +761,12 @@ export class Agent {
               endedAt,
               turns,
               toolCalls: totalToolCalls,
+              usage: {
+                inputTokens: totalInputTokens,
+                outputTokens: totalOutputTokens,
+                cacheCreationInputTokens: totalCacheCreationTokens,
+                cacheReadInputTokens: totalCacheReadTokens,
+              },
             },
           });
 
@@ -731,6 +777,12 @@ export class Agent {
             toolCalls: totalToolCalls,
             skillTriggered,
             memoriesUsed,
+            usage: {
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              cacheCreationInputTokens: totalCacheCreationTokens,
+              cacheReadInputTokens: totalCacheReadTokens,
+            },
           };
         } catch (err) {
           emitAgentEvent({
