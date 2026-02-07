@@ -34,7 +34,10 @@ import {
   resolvePaths,
 } from "@deca/storage";
 import { createGateway } from "./src";
-import { loadDiscordCredentials } from "./src/e2e/credentials";
+import {
+  loadDiscordCredentials,
+  loadTavilyCredentials,
+} from "./src/e2e/credentials";
 import {
   GatewayLockError,
   type GatewayLockHandle,
@@ -56,6 +59,11 @@ const providerResolver = createProviderResolver(
 
 const provider = await providerResolver.resolve();
 const discord = loadDiscordCredentials();
+const tavily = loadTavilyCredentials();
+
+if (tavily) {
+  process.env.TAVILY_API_KEY = tavily.apiKey;
+}
 
 // Environment overrides
 const httpPort = Number(process.env.HTTP_PORT) || 7014;

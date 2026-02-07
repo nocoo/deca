@@ -116,3 +116,28 @@ export function requireDiscordCredentials(): DiscordCredentials {
   }
   return creds;
 }
+
+export interface TavilyCredentials {
+  /** API key for Tavily Search/Research */
+  apiKey: string;
+}
+
+/**
+ * Load Tavily credentials from ~/.deca/credentials/tavily.json
+ *
+ * @returns Tavily credentials or null if not found
+ */
+export function loadTavilyCredentials(): TavilyCredentials | null {
+  const path = join(CREDENTIALS_DIR, "tavily.json");
+
+  if (!existsSync(path)) {
+    return null;
+  }
+
+  try {
+    const content = readFileSync(path, "utf-8");
+    return JSON.parse(content) as TavilyCredentials;
+  } catch {
+    return null;
+  }
+}
