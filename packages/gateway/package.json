@@ -16,6 +16,7 @@
     "test:behavioral:dispatcher": "bun run behavioral-tests/dispatcher.test.ts",
     "test:behavioral:memory": "bun run behavioral-tests/memory.test.ts",
     "test:behavioral:autonomy": "bun run behavioral-tests/agent-autonomy.test.ts",
+    "test:behavioral:skills": "bun run behavioral-tests/skills.test.ts",
     "lint": "biome lint src behavioral-tests",
     "format": "biome format src behavioral-tests"
   },
