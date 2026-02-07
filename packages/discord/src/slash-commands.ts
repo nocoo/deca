@@ -8,6 +8,7 @@ import {
   type ChatInputCommandInteraction,
   type Client,
   Events,
+  MessageFlags,
   REST,
   Routes,
   SlashCommandBuilder,
@@ -162,7 +163,7 @@ export function setupSlashCommands(
         default:
           await interaction.reply({
             content: "Unknown command",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
       }
     } catch (error) {
@@ -172,12 +173,12 @@ export function setupSlashCommands(
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: `⚠️ Error: ${errorMsg}`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.reply({
           content: `⚠️ Error: ${errorMsg}`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }
@@ -241,12 +242,12 @@ async function handleClearCommand(
     await config.onClearSession(sessionKey);
     await interaction.reply({
       content: "✅ Conversation history cleared",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   } else {
     await interaction.reply({
       content: "⚠️ Session clearing not configured",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }
@@ -282,12 +283,12 @@ async function handleStatusCommand(
 
     await interaction.reply({
       content: lines.join("\n"),
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   } else {
     await interaction.reply({
       content: "✅ Bot is running",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }
