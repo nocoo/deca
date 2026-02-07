@@ -120,11 +120,8 @@ export interface AgentAdapterConfig {
   /** Session storage directory */
   sessionDir?: string;
 
-  /** Workspace directory for agent file operations */
+  /** Workspace directory for agent file operations and personality files (AGENTS.md, SOUL.md, etc.) */
   workspaceDir?: string;
-
-  /** Prompt directory for identity/personality files (AGENTS.md, SOUL.md, etc.) */
-  promptDir?: string;
 
   /** Enable memory (default: false) */
   enableMemory?: boolean;

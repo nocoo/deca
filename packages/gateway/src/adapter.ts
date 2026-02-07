@@ -49,7 +49,6 @@ export async function createAgentAdapter(
     systemPrompt: config.systemPrompt,
     sessionDir: config.sessionDir,
     workspaceDir: config.workspaceDir,
-    promptDir: config.promptDir,
     enableMemory: config.enableMemory ?? false,
     memoryDir: config.memoryDir,
     enableContext: true,

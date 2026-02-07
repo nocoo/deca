@@ -46,7 +46,6 @@ import {
 
 // Resolve directories (relative to this file)
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const promptsDir = join(__dirname, "..", "..", "prompts");
 const workspaceDir = join(__dirname, "..", "..", "workspace");
 
 const paths = resolvePaths();
@@ -146,7 +145,6 @@ const gateway = createGateway({
     baseUrl: provider.baseUrl,
     model: provider.model,
     agentId: "tomato",
-    promptDir: promptsDir,
     workspaceDir: workspaceDir,
   },
   discord: discord

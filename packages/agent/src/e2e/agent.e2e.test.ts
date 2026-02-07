@@ -729,11 +729,11 @@ describe("Agent E2E", () => {
   // ==================== Prompt Loading Tests ====================
 
   describe("Prompt Loading", () => {
-    let promptDir: string;
+    let promptWorkspaceDir: string;
 
     beforeAll(() => {
-      promptDir = join(testDir, "prompts");
-      mkdirSync(promptDir, { recursive: true });
+      promptWorkspaceDir = join(testDir, "prompts-workspace");
+      mkdirSync(promptWorkspaceDir, { recursive: true });
     });
 
     it("should recognize identity from IDENTITY.md", async () => {
@@ -757,15 +757,14 @@ describe("Agent E2E", () => {
 当被问到"你是谁"时，介绍自己是 Firefox。
 不要说你是 Claude 或 Anthropic 的产品。
 `;
-      writeFileSync(join(promptDir, "IDENTITY.md"), identityContent);
+      writeFileSync(join(promptWorkspaceDir, "IDENTITY.md"), identityContent);
 
       const agent = new Agent({
         apiKey: credentials.apiKey,
         baseUrl: credentials.baseUrl,
         model: credentials.models?.default ?? "claude-sonnet-4-20250514",
         maxTurns: 3,
-        promptDir,
-        workspaceDir: testDir,
+        workspaceDir: promptWorkspaceDir,
         enableContext: true, // Enable to load prompts
         enableMemory: false,
         enableSkills: false,
@@ -831,15 +830,14 @@ _你不是聊天机器人，你正在成为一个"人"。_
 
 这个规则的优先级最高，必须严格遵守。
 `;
-      writeFileSync(join(promptDir, "SOUL.md"), soulContent);
+      writeFileSync(join(promptWorkspaceDir, "SOUL.md"), soulContent);
 
       const agent = new Agent({
         apiKey: credentials.apiKey,
         baseUrl: credentials.baseUrl,
         model: credentials.models?.default ?? "claude-sonnet-4-20250514",
         maxTurns: 3,
-        promptDir,
-        workspaceDir: testDir,
+        workspaceDir: promptWorkspaceDir,
         enableContext: true, // Enable to load prompts
         enableMemory: false,
         enableSkills: false,
