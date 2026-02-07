@@ -133,6 +133,82 @@ export class SkillManager {
 使用项目已有的测试框架风格。`,
         source: "builtin",
       },
+      {
+        id: "search",
+        name: "网络搜索",
+        description: "使用 Tavily API 搜索网络获取实时信息",
+        triggers: ["/search", "search web", "搜索"],
+        prompt: `你正在进行网络搜索。使用 Tavily Search API 获取实时网络信息。
+
+**执行方法**: 使用 exec 工具执行以下 curl 命令:
+
+\`\`\`bash
+curl --request POST \\
+  --url https://api.tavily.com/search \\
+  --header "Authorization: Bearer $TAVILY_API_KEY" \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "query": "<用户搜索内容>",
+    "max_results": 5,
+    "search_depth": "basic"
+  }'
+\`\`\`
+
+**参数说明**:
+- max_results: 结果数量 (1-20)
+- search_depth: "basic" (快速) 或 "advanced" (深度)
+- topic: "general", "news", "finance"
+- time_range: "day", "week", "month", "year"
+
+**响应处理**:
+1. 解析 JSON 响应中的 results 数组
+2. 提取每个结果的 title, url, content, score
+3. 按相关性排序呈现给用户
+4. 提供来源链接
+
+**注意**: 需要设置 TAVILY_API_KEY 环境变量。`,
+        source: "builtin",
+      },
+      {
+        id: "research",
+        name: "深度研究",
+        description: "使用 Tavily API 进行深度研究并生成带引用的报告",
+        triggers: ["/research", "research", "研究"],
+        prompt: `你正在进行深度研究。使用 Tavily Research API 获取综合研究报告。
+
+**执行方法**: 使用 exec 工具执行以下 curl 命令:
+
+\`\`\`bash
+curl --request POST \\
+  --url https://api.tavily.com/research \\
+  --header "Authorization: Bearer $TAVILY_API_KEY" \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "input": "<研究主题>",
+    "model": "mini",
+    "stream": false,
+    "citation_format": "numbered"
+  }'
+\`\`\`
+
+**模型选择**:
+- mini: 单一主题快速研究 (~30秒)
+- pro: 多角度深度分析 (~60-120秒)
+
+**响应处理**:
+1. 解析 JSON 响应中的 content 和 sources
+2. content 包含研究报告正文
+3. sources 包含引用来源列表
+4. 保留引用编号，让用户可追溯
+
+**输出格式**:
+- 提供结构化的研究摘要
+- 列出关键发现
+- 附上引用来源
+
+**注意**: 需要设置 TAVILY_API_KEY 环境变量。研究可能需要 30-120 秒。`,
+        source: "builtin",
+      },
     ];
 
     for (const skill of builtins) {

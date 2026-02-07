@@ -73,6 +73,20 @@ async function loadLLMCredentials(): Promise<LLMCredential | null> {
   return null;
 }
 
+interface TavilyCredential {
+  apiKey: string;
+}
+
+async function loadTavilyCredentials(): Promise<TavilyCredential | null> {
+  const credPath = join(homedir(), ".deca", "credentials", "tavily.json");
+  try {
+    const content = await Bun.file(credPath).text();
+    return JSON.parse(content) as TavilyCredential;
+  } catch {
+    return null;
+  }
+}
+
 export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   const mode = config.mode ?? "echo";
   const startupTimeout = config.startupTimeout ?? 10000;
@@ -151,6 +165,12 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.httpPort) {
       env.HTTP_PORT = String(config.httpPort);
+    }
+
+    // Load Tavily credentials for search/research skills
+    const tavilyCreds = await loadTavilyCredentials();
+    if (tavilyCreds) {
+      env.TAVILY_API_KEY = tavilyCreds.apiKey;
     }
   }
 
