@@ -17,6 +17,79 @@
 3. 原子化提交
 4. Gateway 是唯一组装点
 
+## 四层测试 (L1-L4)
+
+### L1: Unit Test (单元测试)
+- **特点**: Mock 依赖，快速，隔离
+- **运行时机**: pre-commit
+
+```bash
+# 全部单元测试
+bun run test:unit
+
+# 特定模块
+bun --filter @deca/agent test:unit
+bun --filter @deca/discord test:unit
+
+# 单个文件
+bun test packages/agent/src/core/session.test.ts
+```
+
+### L2: Lint (代码检查)
+- **特点**: Biome 静态分析
+- **运行时机**: pre-commit
+
+```bash
+# 全部 lint
+bun run lint
+
+# 特定模块
+bun --filter @deca/agent lint
+```
+
+### L3: E2E Test (端到端测试)
+- **特点**: Echo 模式，验证通道集成，无真实 LLM
+- **运行时机**: pre-push
+
+```bash
+# 全部 E2E
+bun --filter '@deca/*' test:e2e
+
+# 特定模块
+bun --filter @deca/agent test:e2e      # Memory + Cron
+bun --filter @deca/discord test:e2e    # Discord 通道
+bun --filter @deca/gateway test:e2e    # Gateway 集成
+bun --filter @deca/http test:e2e       # HTTP API
+bun --filter @deca/terminal test:e2e   # Terminal REPL
+bun --filter @deca/storage test:e2e    # Storage 层
+```
+
+### L4: Behavioral Test (行为测试)
+- **特点**: 真实 LLM + 真实 Discord，验证 Agent 行为
+- **运行时机**: 手动/CI
+- **依赖**: `~/.deca/credentials/` 下的凭证文件
+
+```bash
+# 全部行为测试
+bun --filter @deca/gateway test:behavioral
+
+# 特定行为测试
+bun --filter @deca/gateway test:behavioral:memory
+
+# Debug 模式 (显示 Bot 输出)
+cd packages/gateway && bun run behavioral-tests/tools.test.ts --debug
+cd packages/gateway && bun run behavioral-tests/session.test.ts --debug
+```
+
+**行为测试文件** (`packages/gateway/behavioral-tests/`):
+| 文件 | 验证内容 |
+|------|----------|
+| `tools.test.ts` | Agent 工具使用 (write, read, edit, exec, list, grep) |
+| `session.test.ts` | Session 隔离和持久化 |
+| `memory.test.ts` | 记忆系统 |
+| `cron.test.ts` | 定时任务 |
+| `skills.test.ts` | Skill 加载 |
+
 ## Retrospective
 
 ### 2026-02-07: claude_code 工具行为测试
