@@ -2,8 +2,8 @@ import type { Message } from "discord.js";
 import { sendReply } from "./sender";
 import type { ReplyMeta } from "./types";
 
-const DEFAULT_MIN_INTERVAL_MS = 2000;
-const DEFAULT_MAX_PROGRESS = 3;
+const DEFAULT_MIN_INTERVAL_MS = 5000;
+const DEFAULT_MAX_PROGRESS = 2;
 
 interface ThrottlerConfig {
   minIntervalMs?: number;
