@@ -58,6 +58,13 @@ export interface SlashCommandsConfig {
       messageCount: number;
       totalChars: number;
     };
+    lastUsage?: {
+      inputTokens: number;
+      outputTokens: number;
+      cacheCreationInputTokens: number;
+      cacheReadInputTokens: number;
+      timestamp: number;
+    };
   }>;
 }
 
@@ -279,6 +286,22 @@ async function handleStatusCommand(
 
     if (status.session) {
       lines.push(`🧵 Session: ${status.session.messageCount} messages`);
+    }
+
+    // Show cache stats from last run
+    if (status.lastUsage) {
+      const u = status.lastUsage;
+      const cacheHit = u.cacheReadInputTokens > 0;
+      const cacheRatio =
+        u.inputTokens > 0
+          ? ((u.cacheReadInputTokens / u.inputTokens) * 100).toFixed(0)
+          : "0";
+      const ageSeconds = Math.round((Date.now() - u.timestamp) / 1000);
+      const ageStr =
+        ageSeconds < 60 ? `${ageSeconds}s` : `${Math.round(ageSeconds / 60)}m`;
+      lines.push(
+        `📦 Cache: ${cacheHit ? `✅ HIT (${cacheRatio}%)` : "❌ MISS"} · ${u.inputTokens}→${u.outputTokens} tokens · ${ageStr} ago`,
+      );
     }
 
     await interaction.reply({

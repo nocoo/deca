@@ -201,6 +201,15 @@ export class Agent {
   private enableSkills: boolean;
   private enableHeartbeat: boolean;
 
+  // Last run usage stats (for cache monitoring)
+  private lastUsage: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheCreationInputTokens: number;
+    cacheReadInputTokens: number;
+    timestamp: number;
+  } | null = null;
+
   constructor(config: AgentConfig) {
     this.client = new Anthropic({
       apiKey: config.apiKey,
@@ -770,6 +779,15 @@ export class Agent {
             },
           });
 
+          // Save last usage for monitoring (getStatus)
+          this.lastUsage = {
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            cacheCreationInputTokens: totalCacheCreationTokens,
+            cacheReadInputTokens: totalCacheReadTokens,
+            timestamp: Date.now(),
+          };
+
           return {
             runId,
             text: finalText,
@@ -898,11 +916,19 @@ export class Agent {
       assistantMessages: number;
       totalChars: number;
     };
+    lastUsage?: {
+      inputTokens: number;
+      outputTokens: number;
+      cacheCreationInputTokens: number;
+      cacheReadInputTokens: number;
+      timestamp: number;
+    };
   }> {
     const base = {
       model: this.model,
       agentId: this.agentId,
       contextTokens: this.contextTokens,
+      lastUsage: this.lastUsage ?? undefined,
     };
 
     if (!sessionKey) {

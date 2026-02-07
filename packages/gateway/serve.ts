@@ -97,6 +97,12 @@ if (verbose) {
         phase: string;
         turns?: number;
         toolCalls?: number;
+        usage?: {
+          inputTokens: number;
+          outputTokens: number;
+          cacheCreationInputTokens: number;
+          cacheReadInputTokens: number;
+        };
       };
       if (data.phase === "start") {
         console.log(`${prefix} ▶️  Run started`);
@@ -104,6 +110,22 @@ if (verbose) {
         console.log(
           `${prefix} ⏹️  Run ended (turns: ${data.turns}, tools: ${data.toolCalls})`,
         );
+        // Log token usage and cache stats
+        if (data.usage) {
+          const u = data.usage;
+          const totalInput = u.inputTokens;
+          const cacheHit = u.cacheReadInputTokens > 0;
+          const cacheRatio =
+            totalInput > 0
+              ? ((u.cacheReadInputTokens / totalInput) * 100).toFixed(1)
+              : "0";
+          console.log(
+            `${prefix} 💰 Tokens: in=${u.inputTokens} out=${u.outputTokens}`,
+          );
+          console.log(
+            `${prefix} 📦 Cache: created=${u.cacheCreationInputTokens} read=${u.cacheReadInputTokens} (${cacheRatio}% ${cacheHit ? "HIT ✓" : "MISS"})`,
+          );
+        }
       }
     } else if (evt.stream === "error") {
       console.log(`${prefix} ❌ Error: ${JSON.stringify(evt.data)}`);

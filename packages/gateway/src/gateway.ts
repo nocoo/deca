@@ -183,6 +183,7 @@ export function createGateway(config: GatewayConfig): Gateway {
                     totalChars: agentStatus.session.totalChars,
                   }
                 : undefined,
+              lastUsage: agentStatus.lastUsage,
             };
           },
         };

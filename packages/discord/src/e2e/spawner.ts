@@ -48,6 +48,8 @@ export interface BotProcess {
   isRunning: () => boolean;
   /** Process ID */
   pid: number;
+  /** Get captured stdout (for checking logs) */
+  getOutput: () => string;
 }
 
 /**
@@ -135,6 +137,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     ...(process.env as Record<string, string>),
     DISCORD_TOKEN: discordToken,
     FORCE_COLOR: "0",
+    VERBOSE: "true", // Always enable verbose for cache stats logging
   };
 
   if (useGateway && llmCreds) {
@@ -185,6 +188,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
   }
 
   let isRunning = true;
+  let capturedOutput = ""; // Capture all stdout for getOutput()
 
   const proc = spawn({
     cmd: ["bun", "run", script, ...args],
@@ -242,7 +246,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
       return;
     }
 
-    // Read stdout to detect ready state
+    // Read stdout to detect ready state AND capture output
     const reader = proc.stdout?.getReader();
     if (!reader) {
       clearTimeout(timeout);
@@ -250,7 +254,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
       return;
     }
 
-    let output = "";
+    let ready = false;
 
     const checkOutput = async () => {
       try {
@@ -259,31 +263,33 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
           if (done) break;
 
           const text = new TextDecoder().decode(value);
-          output += text;
+          capturedOutput += text; // Always capture for getOutput()
 
-          // Check for ready message (Discord standalone or Gateway mode)
-          if (
-            output.includes("Connected to Discord") ||
-            output.includes("✅ Connected to Discord") ||
-            output.includes("✅ Connected as") ||
-            output.includes("✅ Gateway started")
-          ) {
-            clearTimeout(timeout);
-            reader.releaseLock();
-            resolve();
-            return;
-          }
+          if (!ready) {
+            // Check for ready message (Discord standalone or Gateway mode)
+            if (
+              capturedOutput.includes("Connected to Discord") ||
+              capturedOutput.includes("✅ Connected to Discord") ||
+              capturedOutput.includes("✅ Connected as") ||
+              capturedOutput.includes("✅ Gateway started")
+            ) {
+              clearTimeout(timeout);
+              ready = true;
+              resolve();
+              // Continue reading to capture all output
+            }
 
-          // Check for error
-          if (
-            output.includes("Error:") ||
-            output.includes("error:") ||
-            output.includes("❌")
-          ) {
-            clearTimeout(timeout);
-            reader.releaseLock();
-            reject(new Error(`Bot startup error: ${output}`));
-            return;
+            // Check for error
+            if (
+              capturedOutput.includes("Error:") ||
+              capturedOutput.includes("error:") ||
+              capturedOutput.includes("❌")
+            ) {
+              clearTimeout(timeout);
+              reader.releaseLock();
+              reject(new Error(`Bot startup error: ${capturedOutput}`));
+              return;
+            }
           }
         }
       } catch {
@@ -339,6 +345,7 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     },
     isRunning: () => isRunning,
     pid: proc.pid,
+    getOutput: () => capturedOutput,
   };
 }
 
