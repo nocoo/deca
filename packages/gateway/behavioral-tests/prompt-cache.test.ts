@@ -7,20 +7,13 @@
  * 1. Sending first message → expect cache MISS (cacheCreationInputTokens > 0)
  * 2. Sending second message → expect cache HIT (cacheReadInputTokens > 0)
  *
- * Evidence is gathered from:
- * - VERBOSE log output (📦 Cache: created=X read=Y)
- * - /status Discord command shows cache stats
+ * Uses HTTP API for simplicity and reliability.
+ * Evidence is gathered from captured stdout (VERBOSE logging).
  */
 
 import { mkdirSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
-import {
-  fetchChannelMessages,
-  sendWebhookMessage,
-  waitForReaction,
-} from "@deca/discord/e2e";
 import {
   type BotProcess,
   getGatewayDir,
@@ -28,84 +21,8 @@ import {
 } from "@deca/discord/e2e/spawner";
 
 const DEBUG = process.argv.includes("--debug");
-
-interface Config {
-  botToken: string;
-  webhookUrl: string;
-  testChannelId: string;
-  botUserId?: string;
-}
-
 const TEST_DIR = join(process.cwd(), "tmp", "cache-tests");
-
-async function loadConfig(): Promise<Config> {
-  const credPath = join(homedir(), ".deca", "credentials", "discord.json");
-  const content = await Bun.file(credPath).text();
-  const creds = JSON.parse(content);
-
-  if (!creds.botToken || !creds.webhookUrl || !creds.testChannelId) {
-    throw new Error("Missing required credentials");
-  }
-
-  return {
-    botToken: creds.botToken,
-    webhookUrl: creds.webhookUrl,
-    testChannelId: creds.testChannelId,
-    botUserId: creds.botUserId,
-  };
-}
-
-const PROCESSING_PREFIXES = ["⏳", "Processing", "Thinking"];
-
-function isProcessingMessage(content: string): boolean {
-  const trimmed = content.trim();
-  return PROCESSING_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
-}
-
-async function waitForAgentResponse(
-  config: Config,
-  afterTimestamp: number,
-  timeout = 60000,
-): Promise<string | null> {
-  const startTime = Date.now();
-  const interval = 2000;
-
-  while (Date.now() - startTime < timeout) {
-    const result = await fetchChannelMessages(
-      { botToken: config.botToken, channelId: config.testChannelId },
-      20,
-    );
-
-    if (!result.success || !result.messages) {
-      await new Promise((resolve) => setTimeout(resolve, interval));
-      continue;
-    }
-
-    const botResponses = result.messages
-      .filter((msg) => {
-        const msgTime = new Date(msg.timestamp).getTime();
-        const isBotUser = config.botUserId
-          ? msg.author.id === config.botUserId
-          : msg.author.bot;
-        return msgTime > afterTimestamp && isBotUser;
-      })
-      .filter((msg) => !isProcessingMessage(msg.content))
-      .sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
-
-    if (botResponses.length > 0) {
-      // Wait a bit for response to stabilize
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      return botResponses[botResponses.length - 1].content;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-
-  return null;
-}
+const HTTP_PORT = 7099; // Use unique port to avoid conflicts
 
 interface CacheStats {
   created: number;
@@ -137,6 +54,39 @@ function parseCacheStats(output: string): CacheStats[] {
   return stats;
 }
 
+async function sendHttpMessage(
+  message: string,
+): Promise<{ success: boolean; response?: string; error?: string }> {
+  try {
+    const response = await fetch(`http://127.0.0.1:${HTTP_PORT}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, senderId: "cache-test" }),
+    });
+
+    if (!response.ok) {
+      return { success: false, error: `HTTP ${response.status}` };
+    }
+
+    const data = (await response.json()) as {
+      success: boolean;
+      response: string;
+      error?: string;
+    };
+
+    if (!data.success) {
+      return { success: false, error: data.error };
+    }
+
+    return { success: true, response: data.response };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 async function runTest(): Promise<void> {
   console.log("🧪 Prompt Cache Behavioral Test\n");
 
@@ -144,7 +94,6 @@ async function runTest(): Promise<void> {
   rmSync(TEST_DIR, { recursive: true, force: true });
   mkdirSync(TEST_DIR, { recursive: true });
 
-  const config = await loadConfig();
   let bot: BotProcess | null = null;
 
   try {
@@ -155,58 +104,40 @@ async function runTest(): Promise<void> {
       mode: "agent",
       allowBots: true,
       workspaceDir: TEST_DIR,
+      httpPort: HTTP_PORT,
       debug: DEBUG,
       startupTimeout: 30000,
     });
     console.log(`✅ Bot started (PID: ${bot.pid})\n`);
 
-    // Wait for Discord connection to stabilize
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Wait for HTTP server to be ready
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // ========== Message 1: Expect cache MISS ==========
     console.log("📤 Sending first message (expect cache MISS)...");
-    const msg1Time = Date.now();
 
-    const result1 = await sendWebhookMessage({
-      webhookUrl: config.webhookUrl,
-      content: "Hello! What's 2+2?",
-    });
+    const result1 = await sendHttpMessage("Hello! What's 2+2?");
 
     if (!result1.success) {
       throw new Error(`Failed to send message 1: ${result1.error}`);
     }
+    console.log(`✅ Got response 1: "${result1.response?.slice(0, 50)}..."\n`);
 
-    // Wait for message to be received
-    const messageId1 = result1.messageId;
-    if (!messageId1) {
-      throw new Error("No message ID returned for message 1");
-    }
-    await waitForReaction(
-      { botToken: config.botToken, channelId: config.testChannelId },
-      messageId1,
-      "👀",
-      30000,
-    );
+    // Wait for logs to flush
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Wait for response
-    const response1 = await waitForAgentResponse(config, msg1Time);
-    if (!response1) {
-      throw new Error("No response received for message 1");
-    }
-    console.log(`✅ Got response 1: "${response1.slice(0, 50)}..."\n`);
-
-    // Check cache stats from first message
+    // Check cache stats
     let output = bot.getOutput();
     let cacheStats = parseCacheStats(output);
 
     if (DEBUG) {
-      console.log("📋 Log output so far:");
+      console.log("📋 Log output after msg 1:");
       console.log(output);
       console.log("");
     }
 
     if (cacheStats.length === 0) {
-      console.log("⚠️  No cache stats found in log (might need more time)");
+      console.log("⚠️  No cache stats found yet");
     } else {
       const firstStats = cacheStats[cacheStats.length - 1];
       console.log(
@@ -224,37 +155,18 @@ async function runTest(): Promise<void> {
 
     // ========== Message 2: Expect cache HIT ==========
     console.log("📤 Sending second message (expect cache HIT)...");
-    const msg2Time = Date.now();
 
-    const result2 = await sendWebhookMessage({
-      webhookUrl: config.webhookUrl,
-      content: "And what's 3+3?",
-    });
+    const result2 = await sendHttpMessage("And what's 3+3?");
 
     if (!result2.success) {
       throw new Error(`Failed to send message 2: ${result2.error}`);
     }
+    console.log(`✅ Got response 2: "${result2.response?.slice(0, 50)}..."\n`);
 
-    // Wait for message to be received
-    const messageId2 = result2.messageId;
-    if (!messageId2) {
-      throw new Error("No message ID returned for message 2");
-    }
-    await waitForReaction(
-      { botToken: config.botToken, channelId: config.testChannelId },
-      messageId2,
-      "👀",
-      30000,
-    );
+    // Wait for logs to flush
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Wait for response
-    const response2 = await waitForAgentResponse(config, msg2Time);
-    if (!response2) {
-      throw new Error("No response received for message 2");
-    }
-    console.log(`✅ Got response 2: "${response2.slice(0, 50)}..."\n`);
-
-    // Check cache stats from second message
+    // Check cache stats
     output = bot.getOutput();
     cacheStats = parseCacheStats(output);
 
@@ -264,45 +176,37 @@ async function runTest(): Promise<void> {
       console.log("");
     }
 
-    if (cacheStats.length < 2) {
-      console.log(
-        `⚠️  Only found ${cacheStats.length} cache stat entries (expected 2+)`,
-      );
-    } else {
+    // Summary
+    console.log("========== Summary ==========");
+    console.log(`Total cache stat entries found: ${cacheStats.length}`);
+
+    if (cacheStats.length >= 2) {
       const secondStats = cacheStats[cacheStats.length - 1];
       console.log(
-        `📊 Second message cache: created=${secondStats.created} read=${secondStats.read} (${secondStats.ratio}%)`,
+        `📊 Second message: created=${secondStats.created} read=${secondStats.read} (${secondStats.ratio}%)`,
       );
 
       if (secondStats.read > 0) {
-        console.log("✅ Second message: Cache HIT! Prompt caching is working!");
+        console.log("\n✅ TEST PASSED: Prompt caching is working!");
         console.log(
-          `   Saved ~${Math.round(secondStats.read * 0.9)} tokens worth of cost (90% savings on cached tokens)`,
+          `   Saved ~${Math.round(secondStats.read * 0.9)} tokens worth of cost (90% savings)`,
         );
       } else {
+        console.log("\n❌ TEST FAILED: Cache MISS on second message");
         console.log(
-          "❌ Second message: Cache MISS - prompt caching may not be working",
-        );
-        console.log(
-          "   Possible reasons: prompt too short (<1024 tokens), cache expired (>5min), or API issue",
+          "   Possible reasons: prompt < 1024 tokens, cache expired, or API issue",
         );
       }
+    } else if (cacheStats.length === 0) {
+      console.log("\n⚠️  TEST INCONCLUSIVE: No cache stats in logs");
+      console.log("   Check if VERBOSE=true is set and gateway is logging");
+    } else {
+      console.log("\n⚠️  TEST INCONCLUSIVE: Only one cache entry found");
     }
-
-    // Summary
-    console.log("\n========== Summary ==========");
-    console.log(`Total cache stat entries found: ${cacheStats.length}`);
 
     const hits = cacheStats.filter((s) => s.isHit).length;
     const misses = cacheStats.filter((s) => !s.isHit).length;
-    console.log(`Cache HITs: ${hits}, Cache MISSes: ${misses}`);
-
-    if (hits > 0) {
-      console.log("\n✅ TEST PASSED: Prompt caching is working!");
-    } else {
-      console.log("\n⚠️  TEST INCONCLUSIVE: No cache hits detected");
-      console.log("   Run with --debug to see full log output");
-    }
+    console.log(`\nCache HITs: ${hits}, Cache MISSes: ${misses}`);
   } finally {
     // Cleanup
     if (bot) {
