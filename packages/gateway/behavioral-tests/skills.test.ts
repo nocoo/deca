@@ -3,11 +3,13 @@
 /**
  * Behavioral Test: Built-in Skills
  *
- * Tests the 4 built-in skills:
+ * Tests the 6 built-in skills:
  * - code-review: /review trigger
  * - explain: /explain trigger
  * - refactor: /refactor trigger
  * - test: /test trigger
+ * - search: /search trigger (requires TAVILY_API_KEY)
+ * - research: /research trigger (requires TAVILY_API_KEY)
  *
  * Verification Strategy:
  * Each skill injects a specific prompt that guides Agent behavior.
@@ -344,6 +346,79 @@ function createSkillTests(): SkillTestCase[] {
         return { passed: true };
       },
     },
+
+    {
+      name: "skill: /search triggers web search",
+      prompt: "/search what is TypeScript",
+      timeout: 120000,
+      validate: (response) => {
+        const lower = response.toLowerCase();
+
+        const searchIndicators = [
+          "typescript",
+          "javascript",
+          "microsoft",
+          "programming",
+          "language",
+          "type",
+          "compile",
+          "superset",
+          "静态类型",
+          "编程语言",
+          "微软",
+        ];
+
+        const hasSearchContent = searchIndicators.some((indicator) =>
+          lower.includes(indicator.toLowerCase()),
+        );
+
+        if (!hasSearchContent) {
+          return {
+            passed: false,
+            error: `Response lacks search result indicators: ${response.slice(0, 300)}`,
+          };
+        }
+
+        return { passed: true };
+      },
+    },
+
+    {
+      name: "skill: /research triggers deep research",
+      prompt: "/research what are the main features of Bun runtime",
+      timeout: 180000,
+      validate: (response) => {
+        const lower = response.toLowerCase();
+
+        const researchIndicators = [
+          "bun",
+          "runtime",
+          "javascript",
+          "bundler",
+          "fast",
+          "performance",
+          "node",
+          "npm",
+          "zig",
+          "运行时",
+          "性能",
+          "速度",
+        ];
+
+        const hasResearchContent = researchIndicators.some((indicator) =>
+          lower.includes(indicator.toLowerCase()),
+        );
+
+        if (!hasResearchContent) {
+          return {
+            passed: false,
+            error: `Response lacks research indicators: ${response.slice(0, 300)}`,
+          };
+        }
+
+        return { passed: true };
+      },
+    },
   ];
 }
 
@@ -462,7 +537,7 @@ async function main() {
   console.log(`\n${"=".repeat(60)}`);
   console.log("Running Skill Tests\n");
   console.log(
-    "Testing 4 built-in skills: code-review, explain, refactor, test\n",
+    "Testing 6 built-in skills: code-review, explain, refactor, test, search, research\n",
   );
 
   const results: {
