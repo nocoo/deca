@@ -11,6 +11,7 @@ const VALID_CREDENTIALS: (keyof CredentialStore)[] = [
   "minimax",
   "discord",
   "github",
+  "tavily",
 ];
 
 /**

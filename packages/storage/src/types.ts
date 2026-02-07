@@ -145,6 +145,9 @@ export interface CredentialStore {
   github?: {
     token: string;
   };
+  tavily?: {
+    apiKey: string;
+  };
 }
 
 export interface CredentialManager {
