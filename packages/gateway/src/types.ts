@@ -129,10 +129,7 @@ export interface AgentAdapterConfig {
   /** Memory storage directory */
   memoryDir?: string;
 
-  /** Enable heartbeat (default: false) */
-  enableHeartbeat?: boolean;
-
-  /** Heartbeat interval in milliseconds (default: 30 minutes) */
+  /** Heartbeat interval in milliseconds (default: 30 minutes, 0 to disable) */
   heartbeatIntervalMs?: number;
 
   /** Enable cron scheduler (default: false) */
@@ -170,9 +167,6 @@ export interface DiscordChannelConfig {
 
   /** Debug mode - show session ID and timing info before processing (default: false) */
   debugMode?: boolean;
-
-  /** Channel ID for heartbeat notifications (enables proactive messaging) */
-  heartbeatChannelId?: string;
 
   /** Enable slash commands (default: true if clientId is provided) */
   enableSlashCommands?: boolean;

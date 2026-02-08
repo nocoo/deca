@@ -53,7 +53,7 @@ export async function createAgentAdapter(
     memoryDir: config.memoryDir,
     enableContext: true,
     enableSkills: true,
-    enableHeartbeat: config.enableHeartbeat ?? false,
+    enableHeartbeat: true,
     heartbeatInterval: config.heartbeatIntervalMs,
     tools: cronService ? createBuiltinToolsWithCron(cronService) : undefined,
   };
