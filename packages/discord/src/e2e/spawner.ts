@@ -37,6 +37,8 @@ export interface SpawnerConfig {
   mainChannelId?: string;
   /** Main user ID - used for unified session key in main channel */
   mainUserId?: string;
+  /** Discord debug mode - show Processing... message with session key (default: false) */
+  discordDebugMode?: boolean;
 }
 
 interface LLMCredential {
@@ -185,6 +187,9 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.mainUserId) {
       env.MAIN_USER_ID = config.mainUserId;
+    }
+    if (config.discordDebugMode) {
+      env.DISCORD_DEBUG_MODE = "true";
     }
 
     // Load Tavily credentials for search/research skills

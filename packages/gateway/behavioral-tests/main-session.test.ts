@@ -231,6 +231,7 @@ function startBot(config: Config): Promise<BotProcess> {
     workspaceDir: process.cwd(),
     mainChannelId: config.mainChannelId,
     mainUserId: config.mainUserId,
+    discordDebugMode: true, // Enable to check session keys in debug messages
     debug: DEBUG,
   });
 }
@@ -254,8 +255,10 @@ async function main() {
   const bot = await startBot(config);
   console.log(`✓ Bot started (PID: ${bot.pid})`);
   if (config.mainUserId) {
+    const fullKey = `agent:deca:user:${config.mainUserId}`;
     console.log(`  Main User ID: ${config.mainUserId}`);
-    console.log(`  Expected session key: agent:deca:user:${config.mainUserId}`);
+    console.log(`  Expected session key: ${fullKey}`);
+    console.log(`  Debug display: ...${fullKey.slice(-12)}`);
   }
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
@@ -287,11 +290,13 @@ async function main() {
         );
       }
 
-      // Session key should show "agent:deca:user:{userId}" for user session
-      // This is the same session key used by Terminal and HTTP
-      const expectedPattern = config.mainUserId
+      // Session key is displayed as "...{last12chars}" in debug messages
+      // Full key: agent:deca:user:{userId}, shown as: ...{userId-last12}
+      // We check for the last 12 chars of the full session key
+      const fullKey = config.mainUserId
         ? `agent:deca:user:${config.mainUserId}`
-        : "agent:deca:user:";
+        : "";
+      const expectedPattern = fullKey ? `...${fullKey.slice(-12)}` : "...";
 
       const hasUserSession = debugMessages.some((msg) =>
         msg.includes(expectedPattern),
@@ -397,9 +402,11 @@ async function main() {
       }
 
       // Check if ANY debug message shows user session
-      const expectedPattern = config.mainUserId
+      // Session key is displayed as "...{last12chars}" in debug messages
+      const fullKey = config.mainUserId
         ? `agent:deca:user:${config.mainUserId}`
-        : "agent:deca:user:";
+        : "";
+      const expectedPattern = fullKey ? `...${fullKey.slice(-12)}` : "...";
 
       const hasUserSession = debugMessages.some((msg) =>
         msg.includes(expectedPattern),
