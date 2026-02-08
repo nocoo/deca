@@ -176,6 +176,9 @@ export interface DiscordChannelConfig {
 
   /** Enable slash commands (default: true if clientId is provided) */
   enableSlashCommands?: boolean;
+
+  /** Main channel ID - messages in this channel route to main session for debugging */
+  mainChannelId?: string;
 }
 
 /**

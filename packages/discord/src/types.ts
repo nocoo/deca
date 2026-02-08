@@ -138,6 +138,9 @@ export interface DiscordGatewayConfig {
 
   /** Debug mode - show session ID and timing info before processing (default: true) */
   debugMode?: boolean;
+
+  /** Main channel ID - messages in this channel route to main session for debugging */
+  mainChannelId?: string;
 }
 
 /**

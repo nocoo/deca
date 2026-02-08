@@ -27,12 +27,16 @@ export interface DiscordCredentials {
    * Note: For bots, clientId equals the bot's user ID in Discord.
    */
   clientId?: string;
-  /** Webhook URL for sending test messages */
+  /** Webhook URL for sending test messages (channel session) */
   webhookUrl?: string;
   /** Channel ID for fetching messages */
   testChannelId?: string;
   /** Guild ID to restrict bot to (security) */
   guildId?: string;
+  /** Main webhook URL - messages here route to main session for debugging */
+  mainWebhookUrl?: string;
+  /** Main channel ID - messages here route to main session */
+  mainChannelId?: string;
 }
 
 const CREDENTIALS_DIR = join(homedir(), ".deca", "credentials");

@@ -141,6 +141,14 @@ export interface CredentialStore {
   discord?: {
     botToken: string;
     applicationId?: string;
+    /** Webhook URL for testing (channel session) */
+    webhookUrl?: string;
+    /** Test channel ID for testing */
+    testChannelId?: string;
+    /** Main webhook URL - messages here route to main session */
+    mainWebhookUrl?: string;
+    /** Main channel ID - messages here route to main session */
+    mainChannelId?: string;
   };
   github?: {
     token: string;

@@ -67,6 +67,9 @@ export interface ListenerConfig {
 
   /** Debug mode - show session ID and timing info before processing (default: true) */
   debugMode?: boolean;
+
+  /** Main channel ID - messages in this channel route to main session for debugging */
+  mainChannelId?: string;
 }
 
 /**
@@ -236,7 +239,12 @@ export async function processMessage(
   }
 
   // Build request
-  const request = buildMessageRequest(message, content, config.agentId);
+  const request = buildMessageRequest(
+    message,
+    content,
+    config.agentId,
+    config.mainChannelId,
+  );
 
   await executeHandler(message, request, botUserId, config);
 }
@@ -272,7 +280,12 @@ async function processDebouncedMessage(
   }
 
   // Build request using first message for context
-  const request = buildMessageRequest(firstMessage, content, config.agentId);
+  const request = buildMessageRequest(
+    firstMessage,
+    content,
+    config.agentId,
+    config.mainChannelId,
+  );
 
   await executeHandler(firstMessage, request, botUserId, config);
 }
@@ -364,16 +377,23 @@ function buildMessageRequest(
   message: Message,
   content: string,
   agentId?: string,
+  mainChannelId?: string,
 ): MessageRequest {
   const channelType = resolveChannelType(message);
-  const sessionKey = resolveDiscordSessionKey({
-    type: channelType,
-    userId: message.author.id,
-    agentId,
-    guildId: message.guild?.id,
-    channelId: message.channel.id,
-    threadId: isThread(message) ? message.channel.id : undefined,
-  });
+
+  // Check if this is the main channel - route to main session
+  const isMainChannel = mainChannelId && message.channel.id === mainChannelId;
+
+  const sessionKey = isMainChannel
+    ? `agent:${agentId ?? "main"}:main`
+    : resolveDiscordSessionKey({
+        type: channelType,
+        userId: message.author.id,
+        agentId,
+        guildId: message.guild?.id,
+        channelId: message.channel.id,
+        threadId: isThread(message) ? message.channel.id : undefined,
+      });
 
   return {
     sessionKey,

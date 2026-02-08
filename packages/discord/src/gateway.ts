@@ -79,6 +79,7 @@ export function createDiscordGateway(
       ignoreBots: config.ignoreBots,
       debounce: config.debounce,
       debugMode: config.debugMode,
+      mainChannelId: config.mainChannelId,
     });
   }
 
