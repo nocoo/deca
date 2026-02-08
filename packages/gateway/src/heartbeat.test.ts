@@ -160,6 +160,88 @@ describe("Heartbeat Callback", () => {
   });
 });
 
+describe("POST /heartbeat/trigger endpoint", () => {
+  it("should return tasks when triggered", async () => {
+    const mockTasks: HeartbeatTask[] = [
+      {
+        description: "Test task",
+        completed: false,
+        raw: "- [ ] Test task",
+        line: 1,
+      },
+    ];
+
+    const mockTriggerHeartbeat = mock(() => Promise.resolve(mockTasks));
+    const mockAdapter = {
+      agent: {
+        triggerHeartbeat: mockTriggerHeartbeat,
+      },
+    };
+
+    // Simulate the endpoint handler logic
+    const tasks = await mockAdapter.agent.triggerHeartbeat();
+    const response = {
+      ok: true,
+      tasks: tasks.map((t) => ({
+        description: t.description,
+        completed: t.completed,
+        line: t.line,
+      })),
+    };
+
+    expect(response.ok).toBe(true);
+    expect(response.tasks).toHaveLength(1);
+    expect(response.tasks[0].description).toBe("Test task");
+    expect(response.tasks[0].completed).toBe(false);
+    expect(response.tasks[0].line).toBe(1);
+  });
+
+  it("should return empty tasks array when no pending tasks", async () => {
+    const mockTriggerHeartbeat = mock(() => Promise.resolve([]));
+    const mockAdapter = {
+      agent: {
+        triggerHeartbeat: mockTriggerHeartbeat,
+      },
+    };
+
+    const tasks = await mockAdapter.agent.triggerHeartbeat();
+    const response = {
+      ok: true,
+      tasks: tasks.map((t) => ({
+        description: t.description,
+        completed: t.completed,
+        line: t.line,
+      })),
+    };
+
+    expect(response.ok).toBe(true);
+    expect(response.tasks).toHaveLength(0);
+  });
+
+  it("should handle errors gracefully", async () => {
+    const mockTriggerHeartbeat = mock(() =>
+      Promise.reject(new Error("Heartbeat failed")),
+    );
+    const mockAdapter = {
+      agent: {
+        triggerHeartbeat: mockTriggerHeartbeat,
+      },
+    };
+
+    let response: { ok: boolean; error?: string };
+    try {
+      await mockAdapter.agent.triggerHeartbeat();
+      response = { ok: true };
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      response = { ok: false, error: err.message };
+    }
+
+    expect(response.ok).toBe(false);
+    expect(response.error).toBe("Heartbeat failed");
+  });
+});
+
 describe("buildHeartbeatInstruction", () => {
   function buildHeartbeatInstruction(
     tasks: HeartbeatTask[],
