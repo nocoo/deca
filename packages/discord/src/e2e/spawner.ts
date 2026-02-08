@@ -33,6 +33,8 @@ export interface SpawnerConfig {
   cronStoragePath?: string;
   /** HTTP server port (default: 3000) */
   httpPort?: number;
+  /** Main channel ID - messages here route to main session */
+  mainChannelId?: string;
 }
 
 interface LLMCredential {
@@ -168,6 +170,9 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.httpPort) {
       env.HTTP_PORT = String(config.httpPort);
+    }
+    if (config.mainChannelId) {
+      env.MAIN_CHANNEL_ID = config.mainChannelId;
     }
 
     // Load Tavily credentials for search/research skills
