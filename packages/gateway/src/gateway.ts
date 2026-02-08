@@ -62,31 +62,77 @@ export function createGateway(config: GatewayConfig): Gateway {
     return createDispatcherHandler(dispatcher, channel);
   }
 
-  function formatHeartbeatMessage(tasks: HeartbeatTask[]): string {
-    const taskList = tasks
-      .map((t, i) => `${i + 1}. ${t.description}`)
-      .join("\n");
-    return `📋 **Heartbeat** (${tasks.length} pending tasks)\n${taskList}`;
+  function buildHeartbeatInstruction(
+    tasks: HeartbeatTask[],
+    request: WakeRequest,
+  ): string {
+    const taskList = tasks.map((t) => t.description).join(", ");
+    return `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}`;
+  }
+
+  /**
+   * Send heartbeat result to Discord DM and main channel
+   */
+  async function sendHeartbeatResult(text: string): Promise<void> {
+    if (!discordGateway || !discord) return;
+
+    const client = discordGateway.client;
+
+    // Send to main channel (webhook channel) if configured
+    if (discord.mainChannelId) {
+      try {
+        const channel = client.channels.cache.get(discord.mainChannelId);
+        if (channel?.isTextBased()) {
+          await sendToChannel(channel as TextBasedChannel, text);
+        }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        events.onError?.(err, "heartbeat");
+      }
+    }
+
+    // Send to main user's DM if configured
+    if (discord.mainUserId) {
+      try {
+        const user = await client.users.fetch(discord.mainUserId);
+        const dmChannel = await user.createDM();
+        await sendToChannel(dmChannel, text);
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        events.onError?.(err, "heartbeat");
+      }
+    }
   }
 
   function setupHeartbeatCallback(): void {
-    if (!discord?.heartbeatChannelId || !discordGateway || !adapter) {
+    if (!adapter || !dispatcher) {
       return;
     }
 
-    const channelId = discord.heartbeatChannelId;
+    const heartbeatDispatcher = dispatcher;
 
     adapter.agent.startHeartbeat(
-      async (tasks: HeartbeatTask[], _request: WakeRequest) => {
+      async (tasks: HeartbeatTask[], request: WakeRequest) => {
         if (tasks.length === 0) {
           return;
         }
 
         try {
-          const channel = discordGateway?.client.channels.cache.get(channelId);
-          if (channel?.isTextBased()) {
-            const message = formatHeartbeatMessage(tasks);
-            await sendToChannel(channel as TextBasedChannel, message);
+          const instruction = buildHeartbeatInstruction(tasks, request);
+
+          // Dispatch through dispatcher (like cron does)
+          // Use main session key for heartbeat
+          const response = await heartbeatDispatcher.dispatch({
+            source: "heartbeat",
+            sessionKey: "main",
+            content: instruction,
+            sender: { id: "heartbeat", username: "heartbeat-scheduler" },
+            priority: 5,
+          });
+
+          // Send result to Discord DM and main channel
+          if (response.success && response.text && discordGateway) {
+            await sendHeartbeatResult(response.text);
           }
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
@@ -196,9 +242,8 @@ export function createGateway(config: GatewayConfig): Gateway {
       }
 
       // Setup heartbeat after Discord is connected
-      if (config.agent.enableHeartbeat && discord.heartbeatChannelId) {
-        setupHeartbeatCallback();
-      }
+      // Heartbeat is always enabled, sends results to DM and main channel
+      setupHeartbeatCallback();
     }
 
     if (http) {

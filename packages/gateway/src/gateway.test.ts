@@ -349,10 +349,10 @@ describe("createGateway", () => {
   });
 
   describe("heartbeat", () => {
-    it("starts heartbeat when enabled with Discord channel", async () => {
+    it("starts heartbeat when Discord is connected", async () => {
       const gateway = createGateway({
-        agent: { apiKey: "test-key", enableHeartbeat: true },
-        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token" },
       });
       gateways.push(gateway);
 
@@ -361,33 +361,33 @@ describe("createGateway", () => {
       expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
     });
 
-    it("does not start heartbeat when heartbeatChannelId is missing", async () => {
+    it("starts heartbeat with mainUserId for DM delivery", async () => {
       const gateway = createGateway({
-        agent: { apiKey: "test-key", enableHeartbeat: true },
-        discord: { token: "discord-token" },
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token", mainUserId: "user-123" },
       });
       gateways.push(gateway);
 
       await gateway.start();
 
-      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+      expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
     });
 
-    it("does not start heartbeat when enableHeartbeat is false", async () => {
+    it("starts heartbeat with mainChannelId for channel delivery", async () => {
       const gateway = createGateway({
-        agent: { apiKey: "test-key", enableHeartbeat: false },
-        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token", mainChannelId: "channel-123" },
       });
       gateways.push(gateway);
 
       await gateway.start();
 
-      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+      expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
     });
 
     it("does not start heartbeat without Discord channel", async () => {
       const gateway = createGateway({
-        agent: { apiKey: "test-key", enableHeartbeat: true },
+        agent: { apiKey: "test-key" },
         http: { port: 3000 },
       });
       gateways.push(gateway);
@@ -399,8 +399,8 @@ describe("createGateway", () => {
 
     it("stops heartbeat when gateway stops", async () => {
       const gateway = createGateway({
-        agent: { apiKey: "test-key", enableHeartbeat: true },
-        discord: { token: "discord-token", heartbeatChannelId: "channel-123" },
+        agent: { apiKey: "test-key" },
+        discord: { token: "discord-token" },
       });
       gateways.push(gateway);
 
