@@ -137,8 +137,15 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     args.push("--allow-bots");
   }
 
+  // Copy parent env but remove test-related variables
+  // so child process can acquire lock properly
+  const { VITEST, VITEST_POOL_ID, VITEST_WORKER_ID, NODE_ENV, ...cleanEnv } =
+    process.env as Record<string, string>;
+
   const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
+    ...cleanEnv,
+    // Only preserve NODE_ENV if not "test"
+    ...(NODE_ENV && NODE_ENV !== "test" ? { NODE_ENV } : {}),
     DISCORD_TOKEN: discordToken,
     FORCE_COLOR: "0",
     VERBOSE: "true", // Always enable verbose for cache stats logging
