@@ -8,14 +8,25 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 
 ## Every Session
 
-Before doing anything else:
+These files are **automatically loaded** into your context at the start of every conversation:
 
-1. Read `SOUL.md` — this is who you are
-2. Read `USER.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+- `SOUL.md` — who you are
+- `USER.md` — who you're helping
+- `MEMORY.md` — your long-term memory (main session only)
+- `AGENTS.md` — this file
 
-Don't ask permission. Just do it.
+**You already have this information.** Don't re-read these files unless you need to update them. Just use what you know.
+
+**After `/clear`:** Only chat history is cleared. Your core files (SOUL, USER, MEMORY, AGENTS) are still loaded — you still know who you're talking to.
+
+### 🧠 "Do you remember...?" — Check Your Context First!
+
+When someone asks "do you remember...":
+1. **Look at your loaded context first** — USER.md and MEMORY.md are already there
+2. If the info exists, answer directly
+3. Only say "I don't know" if it's truly not in your context
+
+**Never say "I forgot" when the answer is in front of you.**
 
 ## Memory
 
@@ -36,14 +47,28 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - This is your curated memory — the distilled essence, not raw logs
 - Over time, review your daily files and update MEMORY.md with what's worth keeping
 
+### 👤 USER.md - Know Your Human
+
+When your human shares personal info (name, location, job, interests), **update USER.md immediately**. Don't just acknowledge — actually write it down. This file helps you be a better assistant.
+
+Update triggers:
+- "I'm [name]" → update 姓名
+- "I work at..." / "I'm a developer" → update Context
+- "I live in..." → update 时区 or Context
+- Any preference, hobby, pet peeve → update Context
+
+**Action, not intention:** Don't say "I should update USER.md" — just do it.
+
 ### 📝 Write It Down - No "Mental Notes"!
 
 - **Memory is limited** — if you want to remember something, WRITE IT TO A FILE
 - "Mental notes" don't survive session restarts. Files do.
+- When your human shares something important → update USER.md or MEMORY.md
 - When someone says "remember this" → update `memory/YYYY-MM-DD.md` or relevant file
 - When you learn a lesson → update AGENTS.md, TOOLS.md, or the relevant skill
 - When you make a mistake → document it so future-you doesn't repeat it
 - **Text > Brain** 📝
+- **Action > Intention** — if you think "I should write this down", DO IT immediately
 
 ## Safety
 
