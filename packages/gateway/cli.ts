@@ -25,7 +25,13 @@
  *   ANTHROPIC_API_KEY=xxx bun run packages/gateway/cli.ts
  */
 
-import { createEchoGateway, createGateway } from "./src";
+import {
+  GatewayLockError,
+  type GatewayLockHandle,
+  acquireGatewayLock,
+  createEchoGateway,
+  createGateway,
+} from "./src";
 
 // Configuration from environment
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -46,6 +52,18 @@ const mainChannelId = process.env.MAIN_CHANNEL_ID;
 const mainUserId = process.env.MAIN_USER_ID;
 
 console.log("🚀 Starting Deca Gateway...\n");
+
+// Acquire gateway lock to prevent multiple instances
+let lockHandle: GatewayLockHandle | null = null;
+try {
+  lockHandle = await acquireGatewayLock({ httpPort });
+} catch (err) {
+  if (err instanceof GatewayLockError) {
+    console.error(`❌ ${err.message}`);
+    process.exit(1);
+  }
+  throw err;
+}
 
 // Determine mode
 if (echoMode) {
@@ -109,11 +127,13 @@ const gateway = echoMode
 process.on("SIGINT", async () => {
   console.log("\n⏳ Shutting down...");
   await gateway.stop();
+  await lockHandle?.release();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   await gateway.stop();
+  await lockHandle?.release();
   process.exit(0);
 });
 
