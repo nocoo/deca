@@ -155,7 +155,7 @@ describe("createTerminal", () => {
         output,
       });
 
-      expect(terminal.sessionKey).toMatch(/^agent:main:user:/);
+      expect(terminal.sessionKey).toMatch(/^agent:deca:user:/);
     });
 
     it("uses custom session key", () => {

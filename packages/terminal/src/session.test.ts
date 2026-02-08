@@ -5,12 +5,12 @@ import { DEFAULT_USER_ID } from "./types";
 describe("generateSessionKey", () => {
   it("generates key with default values", () => {
     const key = generateSessionKey();
-    expect(key).toBe(`agent:main:user:${DEFAULT_USER_ID}`);
+    expect(key).toBe(`agent:deca:user:${DEFAULT_USER_ID}`);
   });
 
   it("generates key with custom userId", () => {
     const key = generateSessionKey({ userId: "user123" });
-    expect(key).toBe("agent:main:user:user123");
+    expect(key).toBe("agent:deca:user:user123");
   });
 
   it("generates key with custom agentId", () => {
@@ -35,7 +35,7 @@ describe("generateSessionKey", () => {
 
   it("uses default agentId for empty string", () => {
     const key = generateSessionKey({ agentId: "", userId: "user" });
-    expect(key).toBe("agent:main:user:user");
+    expect(key).toBe("agent:deca:user:user");
   });
 });
 

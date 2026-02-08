@@ -7,7 +7,7 @@
 
 import { DEFAULT_USER_ID } from "./types";
 
-const DEFAULT_AGENT_ID = "main";
+const DEFAULT_AGENT_ID = "deca";
 
 /**
  * Session key parameters
