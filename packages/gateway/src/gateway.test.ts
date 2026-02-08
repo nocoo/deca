@@ -72,12 +72,16 @@ mock.module("@deca/terminal", () => ({
 // Mock HTTP
 const mockHttpStart = mock(() => Promise.resolve());
 const mockHttpStop = mock(() => {});
+const mockHttpAppPost = mock(() => {});
 
 mock.module("@deca/http", () => ({
   createHttpServer: mock((config: unknown) => ({
     start: mockHttpStart,
     stop: mockHttpStop,
     config,
+    app: {
+      post: mockHttpAppPost,
+    },
   })),
 }));
 

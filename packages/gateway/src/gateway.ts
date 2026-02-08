@@ -258,6 +258,29 @@ export function createGateway(config: GatewayConfig): Gateway {
         },
       });
 
+      // Add heartbeat trigger endpoint (no auth required)
+      httpServer.app.post("/heartbeat/trigger", async (c) => {
+        if (!adapter) {
+          return c.json({ ok: false, error: "adapter_not_ready" }, 503);
+        }
+
+        try {
+          const tasks = await adapter.agent.triggerHeartbeat();
+          return c.json({
+            ok: true,
+            tasks: tasks.map((t) => ({
+              description: t.description,
+              completed: t.completed,
+              line: t.line,
+            })),
+          });
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          events.onError?.(err, "heartbeat");
+          return c.json({ ok: false, error: err.message }, 500);
+        }
+      });
+
       await httpServer.start();
       activeChannels.push("http");
     }
