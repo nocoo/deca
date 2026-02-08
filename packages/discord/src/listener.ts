@@ -65,7 +65,7 @@ export interface ListenerConfig {
     windowMs?: number;
   };
 
-  /** Debug mode - show session ID and timing info before processing (default: true) */
+  /** Debug mode - show session ID and timing info before processing (default: false) */
   debugMode?: boolean;
 
   /** Main channel ID - messages in this channel route to user session for debugging */
@@ -312,7 +312,7 @@ async function executeHandler(
   };
 
   try {
-    if (config.debugMode !== false) {
+    if (config.debugMode === true) {
       const debugInfo = formatDebugMessage(request.sessionKey, startTime);
       await onReply(debugInfo, { kind: "ack" });
     }

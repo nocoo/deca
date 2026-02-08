@@ -10,6 +10,7 @@
  *   ANTHROPIC_MODEL    - Custom model ID (optional)
  *   DISCORD_TOKEN      - Discord bot token (optional)
  *   DISCORD_ALLOW_BOTS - Allow bot messages (default: false)
+ *   DISCORD_DEBUG_MODE - Show debug messages before processing (default: false)
  *   HTTP_PORT          - HTTP server port (default: 3000)
  *   HTTP_API_KEY       - HTTP API key (optional)
  *   TERMINAL           - Enable terminal REPL (default: false)
@@ -39,6 +40,7 @@ const anthropicBaseUrl = process.env.ANTHROPIC_BASE_URL;
 const anthropicModel = process.env.ANTHROPIC_MODEL;
 const discordToken = process.env.DISCORD_TOKEN;
 const discordAllowBots = process.env.DISCORD_ALLOW_BOTS === "true";
+const discordDebugMode = process.env.DISCORD_DEBUG_MODE === "true";
 const httpPort = Number(process.env.HTTP_PORT) || 3000;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
@@ -78,6 +80,7 @@ const discordConfig = discordToken
   ? {
       token: discordToken,
       ignoreBots: !discordAllowBots,
+      debugMode: discordDebugMode,
       mainChannelId,
       mainUserId,
     }

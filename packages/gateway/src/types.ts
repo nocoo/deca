@@ -168,7 +168,7 @@ export interface DiscordChannelConfig {
     users?: string[];
   };
 
-  /** Debug mode - show session ID and timing info before processing (default: true) */
+  /** Debug mode - show session ID and timing info before processing (default: false) */
   debugMode?: boolean;
 
   /** Channel ID for heartbeat notifications (enables proactive messaging) */

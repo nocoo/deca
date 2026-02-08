@@ -429,20 +429,18 @@ describe("processMessage", () => {
       expect(secondCall[0]).toBe("Response");
     });
 
-    it("sends debug message by default (debugMode undefined)", async () => {
+    it("skips debug message by default (debugMode undefined)", async () => {
       const handler = createMockHandler({ text: "Response", success: true });
       const message = createMockMessage();
 
       await processMessage(message, "bot123", { handler });
 
-      // Should have 2 replies: debug message + actual response
-      expect(message.reply).toHaveBeenCalledTimes(2);
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock
-        .calls[0];
-      expect(firstCall[0]).toContain("Processing...");
+      // Should only have 1 reply: actual response (no debug message)
+      expect(message.reply).toHaveBeenCalledTimes(1);
+      expect(message.reply).toHaveBeenCalledWith("Response");
     });
 
-    it("skips debug message when debugMode is false", async () => {
+    it("skips debug message when debugMode is explicitly false", async () => {
       const handler = createMockHandler({ text: "Response", success: true });
       const message = createMockMessage();
 
