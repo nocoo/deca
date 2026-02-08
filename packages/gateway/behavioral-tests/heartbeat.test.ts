@@ -166,13 +166,13 @@ async function sendAndWait(
   const hasEyes = await waitForReaction(
     { botToken: config.botToken, channelId: config.testChannelId },
     messageId,
-    { emoji: "eye", timeout: 15000, interval: 500 },
+    { emoji: "👀", timeout: 15000, interval: 500 },
   );
 
   if (!hasEyes) {
     return {
       success: false,
-      error: "Bot did not acknowledge (no eye reaction)",
+      error: "Bot did not acknowledge (no 👀 reaction)",
     };
   }
 
@@ -206,7 +206,10 @@ async function triggerHeartbeat(port: number): Promise<TriggerResponse> {
   }
 }
 
-function startBot(httpPort: number): Promise<BotProcess> {
+function startBot(
+  httpPort: number,
+  mainChannelId: string,
+): Promise<BotProcess> {
   return spawnBot({
     cwd: getGatewayDir(),
     mode: "agent",
@@ -215,6 +218,7 @@ function startBot(httpPort: number): Promise<BotProcess> {
     startupTimeout: 30000,
     workspaceDir: TEST_DIR,
     httpPort,
+    mainChannelId,
     debug: DEBUG,
   });
 }
@@ -246,7 +250,7 @@ async function main() {
   let bot: BotProcess | null = null;
 
   try {
-    bot = await startBot(HTTP_PORT);
+    bot = await startBot(HTTP_PORT, config.testChannelId);
     console.log(` Bot started (PID: ${bot.pid})`);
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
