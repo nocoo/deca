@@ -110,3 +110,23 @@ cd packages/gateway && bun run behavioral-tests/session.test.ts --debug
 **问题**: 搜索代码时意外匹配到 `references/` 目录下的参考项目代码，导致混淆。
 
 **规则**: `references/` 目录存放参考项目代码，仅用于调研学习，不属于本项目代码。搜索时应排除此目录，除非明确要求调研参考项目。
+
+### 2026-02-08: 多实例 Gateway 导致 Discord 重复回复
+
+**问题**: Discord E2E 测试频道出现重复回复（同一消息被两个 bot 实例响应）。
+
+**根因**: 
+1. `cli.ts` 缺少 lock 机制，而 `serve.ts` 有 lock
+2. `spawner.ts` 继承了父进程的测试环境变量 (`VITEST`, `NODE_ENV=test`)，导致子进程的 lock 被跳过
+3. 旧的 Gateway 进程残留（在添加 lock 之前启动），与新进程同时连接 Discord
+
+**解决**:
+1. 在 `cli.ts` 中添加 `acquireGatewayLock()` 调用
+2. 在 `spawner.ts` 中清除测试环境变量，让子进程能正确获取 lock
+3. 杀掉残留的旧进程
+
+**经验**:
+1. 所有 Gateway 入口点（`cli.ts`, `serve.ts`）都必须使用 lock 机制
+2. Spawner 启动子进程时需要清理测试相关环境变量，否则子进程会继承"测试模式"行为
+3. 调试重复响应问题时，先用 `ps aux | grep` 检查是否有多个进程在运行
+4. Lock 文件位置: `~/.deca/run/gateway.lock`
