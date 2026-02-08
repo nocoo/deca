@@ -80,6 +80,7 @@ export function createDiscordGateway(
       debounce: config.debounce,
       debugMode: config.debugMode,
       mainChannelId: config.mainChannelId,
+      mainUserId: config.mainUserId,
     });
   }
 

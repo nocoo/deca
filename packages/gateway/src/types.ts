@@ -179,6 +179,9 @@ export interface DiscordChannelConfig {
 
   /** Main channel ID - messages in this channel route to main session for debugging */
   mainChannelId?: string;
+
+  /** User ID for unified session - used when routing mainChannel to user session */
+  mainUserId?: string;
 }
 
 /**

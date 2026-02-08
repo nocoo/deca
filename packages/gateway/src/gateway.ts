@@ -145,6 +145,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         ignoreBots: discord.ignoreBots,
         debugMode: discord.debugMode,
         mainChannelId: discord.mainChannelId,
+        mainUserId: discord.mainUserId,
         events: {
           onError: (error) => events.onError?.(error, "discord"),
         },
@@ -335,6 +336,7 @@ export function createEchoGateway(
         ignoreBots: discord.ignoreBots,
         debugMode: discord.debugMode,
         mainChannelId: discord.mainChannelId,
+        mainUserId: discord.mainUserId,
       });
       await discordGateway.connect();
       activeChannels.push("discord");

@@ -35,6 +35,8 @@ export interface SpawnerConfig {
   httpPort?: number;
   /** Main channel ID - messages here route to main session */
   mainChannelId?: string;
+  /** Main user ID - used for unified session key in main channel */
+  mainUserId?: string;
 }
 
 interface LLMCredential {
@@ -173,6 +175,9 @@ export async function spawnBot(config: SpawnerConfig): Promise<BotProcess> {
     }
     if (config.mainChannelId) {
       env.MAIN_CHANNEL_ID = config.mainChannelId;
+    }
+    if (config.mainUserId) {
+      env.MAIN_USER_ID = config.mainUserId;
     }
 
     // Load Tavily credentials for search/research skills

@@ -68,8 +68,11 @@ export interface ListenerConfig {
   /** Debug mode - show session ID and timing info before processing (default: true) */
   debugMode?: boolean;
 
-  /** Main channel ID - messages in this channel route to main session for debugging */
+  /** Main channel ID - messages in this channel route to user session for debugging */
   mainChannelId?: string;
+
+  /** User ID for unified session - used when routing mainChannel to user session */
+  mainUserId?: string;
 }
 
 /**
@@ -244,6 +247,7 @@ export async function processMessage(
     content,
     config.agentId,
     config.mainChannelId,
+    config.mainUserId,
   );
 
   await executeHandler(message, request, botUserId, config);
@@ -285,6 +289,7 @@ async function processDebouncedMessage(
     content,
     config.agentId,
     config.mainChannelId,
+    config.mainUserId,
   );
 
   await executeHandler(firstMessage, request, botUserId, config);
@@ -378,14 +383,19 @@ function buildMessageRequest(
   content: string,
   agentId?: string,
   mainChannelId?: string,
+  mainUserId?: string,
 ): MessageRequest {
   const channelType = resolveChannelType(message);
 
-  // Check if this is the main channel - route to main session
+  // Check if this is the main channel - route to user session (DM-style)
   const isMainChannel = mainChannelId && message.channel.id === mainChannelId;
 
+  // Use configured mainUserId if available, otherwise fall back to message author
+  const effectiveUserId =
+    isMainChannel && mainUserId ? mainUserId : message.author.id;
+
   const sessionKey = isMainChannel
-    ? `agent:${agentId ?? "main"}:main`
+    ? `agent:${agentId ?? "deca"}:user:${effectiveUserId}`
     : resolveDiscordSessionKey({
         type: channelType,
         userId: message.author.id,

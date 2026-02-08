@@ -33,10 +33,12 @@ export interface DiscordCredentials {
   testChannelId?: string;
   /** Guild ID to restrict bot to (security) */
   guildId?: string;
-  /** Main webhook URL - messages here route to main session for debugging */
+  /** Main webhook URL - messages here route to user session for debugging */
   mainWebhookUrl?: string;
-  /** Main channel ID - messages here route to main session */
+  /** Main channel ID - messages here route to user session */
   mainChannelId?: string;
+  /** User ID for unified session key across all channels */
+  userId?: string;
 }
 
 const CREDENTIALS_DIR = join(homedir(), ".deca", "credentials");

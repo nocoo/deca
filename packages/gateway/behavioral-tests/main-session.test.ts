@@ -3,11 +3,12 @@
 /**
  * Main Session Behavioral Test
  *
- * Tests that messages sent to the main channel are routed to the main session.
- * This enables debugging Agent behavior through a dedicated Discord channel.
+ * Tests that messages sent to the main channel are routed to the user session.
+ * This enables debugging Agent behavior through a dedicated Discord channel,
+ * where messages route to the same session as Terminal and HTTP.
  *
  * Key behaviors tested:
- * 1. Messages to main channel use session key `agent:deca:main`
+ * 1. Messages to main channel use session key `agent:deca:user:{userId}`
  * 2. Main session persists across messages (same conversation context)
  * 3. Session is correctly identified in debug output
  */
@@ -33,6 +34,8 @@ interface Config {
   mainWebhookUrl: string;
   mainChannelId: string;
   botUserId?: string;
+  /** Main user ID for unified session routing */
+  mainUserId?: string;
 }
 
 async function loadConfig(): Promise<Config> {
@@ -51,6 +54,7 @@ async function loadConfig(): Promise<Config> {
     mainWebhookUrl: creds.mainWebhookUrl,
     mainChannelId: creds.mainChannelId,
     botUserId: creds.clientId,
+    mainUserId: creds.userId,
   };
 }
 
@@ -226,6 +230,7 @@ function startBot(config: Config): Promise<BotProcess> {
     startupTimeout: 30000,
     workspaceDir: process.cwd(),
     mainChannelId: config.mainChannelId,
+    mainUserId: config.mainUserId,
     debug: DEBUG,
   });
 }
@@ -248,14 +253,18 @@ async function main() {
   console.log("\n📡 Starting Agent Bot with mainChannelId...");
   const bot = await startBot(config);
   console.log(`✓ Bot started (PID: ${bot.pid})`);
+  if (config.mainUserId) {
+    console.log(`  Main User ID: ${config.mainUserId}`);
+    console.log(`  Expected session key: agent:deca:user:${config.mainUserId}`);
+  }
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
   console.log(`\n${"=".repeat(60)}`);
   console.log("Main Session Routing Tests\n");
 
-  // Test 1: Session key is main session
+  // Test 1: Session key is user session (unified with Terminal/HTTP)
   {
-    const testName = "routing: main channel uses main session key";
+    const testName = "routing: main channel uses user session key";
     process.stdout.write(`  ${testName}... `);
 
     const result = await sendAndWait(config, "Hello! What session am I in?");
@@ -278,20 +287,23 @@ async function main() {
         );
       }
 
-      // Session key should show "agent:main:main" for main session
-      // Check if ANY debug message shows main session
-      const hasMainSession = debugMessages.some(
-        (msg) =>
-          msg.includes("agent:main:main") || msg.includes("agent:deca:main"),
+      // Session key should show "agent:deca:user:{userId}" for user session
+      // This is the same session key used by Terminal and HTTP
+      const expectedPattern = config.mainUserId
+        ? `agent:deca:user:${config.mainUserId}`
+        : "agent:deca:user:";
+
+      const hasUserSession = debugMessages.some((msg) =>
+        msg.includes(expectedPattern),
       );
 
-      if (hasMainSession) {
+      if (hasUserSession) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
         console.log("✗");
         console.log(
-          `    Error: Expected session key with 'main', got: ${debugMessages.join(" | ")}`,
+          `    Error: Expected session key with '${expectedPattern}', got: ${debugMessages.join(" | ")}`,
         );
         results.push({
           name: testName,
@@ -357,15 +369,15 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  // Test 3: Verify it's actually main session (not channel session)
+  // Test 3: Verify it's user session (not channel session)
   {
-    const testName = "isolation: main session is distinct from channel session";
+    const testName = "isolation: user session is distinct from channel session";
     process.stdout.write(`  ${testName}... `);
 
-    // Ask agent to confirm session - main session should have consistent identity
+    // Ask agent to confirm session - user session should have consistent identity
     const result = await sendAndWait(
       config,
-      'Are you in the "main" session? Check your session key and tell me.',
+      "Check your session key and tell me what type it is (user or channel).",
     );
 
     if (!result.success) {
@@ -373,8 +385,8 @@ async function main() {
       console.log(`    Error: ${result.error}`);
       results.push({ name: testName, passed: false, error: result.error });
     } else {
-      // The debug message should show the main session
-      // There might be multiple debug messages, find the one with main session
+      // The debug message should show the user session
+      // There might be multiple debug messages, find the one with user session
       const debugMessages =
         result.allMessages?.filter((msg) => msg.includes("Session:")) ?? [];
 
@@ -384,33 +396,35 @@ async function main() {
         );
       }
 
-      // Check if ANY debug message shows main session
-      const hasMainSession = debugMessages.some(
-        (msg) => msg.includes("agent:main:main") || msg.includes(":main\n"),
+      // Check if ANY debug message shows user session
+      const expectedPattern = config.mainUserId
+        ? `agent:deca:user:${config.mainUserId}`
+        : "agent:deca:user:";
+
+      const hasUserSession = debugMessages.some((msg) =>
+        msg.includes(expectedPattern),
       );
 
-      // Also check no channel session
-      const hasChannelSession = debugMessages.some(
-        (msg) => msg.includes("channel:") || msg.includes("user:"),
+      // Check it's NOT a channel session
+      const hasChannelSession = debugMessages.some((msg) =>
+        msg.includes("channel:"),
       );
 
-      if (hasMainSession && !hasChannelSession) {
+      if (hasUserSession && !hasChannelSession) {
         console.log("✓");
         results.push({ name: testName, passed: true });
-      } else if (hasMainSession) {
-        // Main session found but also channel session - partial success
+      } else if (hasUserSession) {
+        // User session found but also channel session - partial success
         console.log("✓ (with extra debug)");
         results.push({ name: testName, passed: true });
       } else {
         console.log("✗");
-        console.log(
-          "    Error: Should be main session, not channel/user session",
-        );
+        console.log("    Error: Should be user session, not channel session");
         console.log(`    Debug messages: ${debugMessages.join(" | ")}`);
         results.push({
           name: testName,
           passed: false,
-          error: `Not main session: ${debugMessages.join(" | ")}`,
+          error: `Not user session: ${debugMessages.join(" | ")}`,
         });
       }
     }
@@ -425,9 +439,9 @@ async function main() {
   const total = results.length;
 
   if (passed === total) {
-    console.log(`✅ All ${total} main session tests passed`);
+    console.log(`✅ All ${total} user session routing tests passed`);
   } else {
-    console.log(`❌ ${passed}/${total} main session tests passed`);
+    console.log(`❌ ${passed}/${total} user session routing tests passed`);
     console.log("\nFailed:");
     for (const r of results.filter((r) => !r.passed)) {
       console.log(`  - ${r.name}: ${r.error}`);

@@ -18,7 +18,8 @@
  *   WORKSPACE_DIR      - Workspace directory for agent file operations (optional)
  *   ENABLE_CRON        - Enable cron scheduler (default: false)
  *   CRON_STORAGE_PATH  - Cron storage path (optional)
- *   MAIN_CHANNEL_ID    - Main channel ID for debugging (routes to main session)
+ *   MAIN_CHANNEL_ID    - Main channel ID for debugging (routes to user session)
+ *   MAIN_USER_ID       - User ID for unified session across channels
  *
  * Usage:
  *   ANTHROPIC_API_KEY=xxx bun run packages/gateway/cli.ts
@@ -42,6 +43,7 @@ const workspaceDir = process.env.WORKSPACE_DIR;
 const enableCron = process.env.ENABLE_CRON === "true";
 const cronStoragePath = process.env.CRON_STORAGE_PATH;
 const mainChannelId = process.env.MAIN_CHANNEL_ID;
+const mainUserId = process.env.MAIN_USER_ID;
 
 console.log("🚀 Starting Deca Gateway...\n");
 
@@ -59,6 +61,7 @@ const discordConfig = discordToken
       token: discordToken,
       ignoreBots: !discordAllowBots,
       mainChannelId,
+      mainUserId,
     }
   : undefined;
 
