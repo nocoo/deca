@@ -45,7 +45,7 @@ interface LLMCredential {
   models?: { default?: string };
 }
 
-const LLM_PROVIDERS = ["minimax", "glm"] as const;
+const LLM_PROVIDERS = ["glm", "minimax"] as const;
 
 async function loadLLMCredentials(): Promise<LLMCredential> {
   const credDir = join(homedir(), ".deca", "credentials");
