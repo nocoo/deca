@@ -3,13 +3,14 @@
 /**
  * Behavioral Test: Built-in Skills
  *
- * Tests the 6 built-in skills:
+ * Tests the 5 built-in skills:
  * - code-review: /review trigger
  * - explain: /explain trigger
  * - refactor: /refactor trigger
  * - test: /test trigger
- * - search: /search trigger (requires TAVILY_API_KEY)
  * - research: /research trigger (requires TAVILY_API_KEY)
+ *
+ * NOTE: /search was removed - now uses web_search tool instead
  *
  * Verification Strategy:
  * Each skill injects a specific prompt that guides Agent behavior.
@@ -341,41 +342,7 @@ function createSkillTests(): SkillTestCase[] {
       },
     },
 
-    {
-      name: "skill: /search triggers web search",
-      prompt: "/search what is TypeScript",
-      timeout: 120000,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-
-        const searchIndicators = [
-          "typescript",
-          "javascript",
-          "microsoft",
-          "programming",
-          "language",
-          "type",
-          "compile",
-          "superset",
-          "静态类型",
-          "编程语言",
-          "微软",
-        ];
-
-        const hasSearchContent = searchIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
-        );
-
-        if (!hasSearchContent) {
-          return {
-            passed: false,
-            error: `Response lacks search result indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
-        return { passed: true };
-      },
-    },
+    // NOTE: /search skill removed - now uses web_search tool instead
 
     {
       name: "skill: /research triggers deep research",
@@ -531,7 +498,7 @@ async function main() {
   console.log(`\n${"=".repeat(60)}`);
   console.log("Running Skill Tests\n");
   console.log(
-    "Testing 6 built-in skills: code-review, explain, refactor, test, search, research\n",
+    "Testing 5 built-in skills: code-review, explain, refactor, test, research\n",
   );
 
   const results: {

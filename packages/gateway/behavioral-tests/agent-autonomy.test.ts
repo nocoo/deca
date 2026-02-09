@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -333,6 +334,20 @@ async function main() {
   let bot: BotProcess;
   try {
     console.log("\n📡 Starting Agent Bot...");
+
+    // Clean up session file to avoid context pollution from previous runs
+    const sessionDir = join(process.cwd(), ".deca", "sessions");
+    const guildId = "1467737355384258695";
+    const testChannelId = config.testChannelId;
+    const sessionFile = join(
+      sessionDir,
+      `agent%3Adeca%3Achannel%3A${guildId}%3A${testChannelId}.jsonl`,
+    );
+    if (existsSync(sessionFile)) {
+      rmSync(sessionFile);
+      console.log("✓ Cleaned up previous session file");
+    }
+
     bot = await spawnBot({
       cwd: getGatewayDir(),
       mode: "agent",
