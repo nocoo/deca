@@ -1,8 +1,31 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+
+/**
+ * Clean up session files for specific users before running tests.
+ * This ensures a clean slate for each test run.
+ */
+function cleanupSessionFiles(userIds: string[]): void {
+  const sessionDir = join(getGatewayDir(), ".deca", "sessions");
+
+  for (const userId of userIds) {
+    const sessionKey = `agent:deca:user:${userId.toLowerCase()}`;
+    const filename = `${encodeURIComponent(sessionKey)}.jsonl`;
+    const filepath = join(sessionDir, filename);
+
+    if (existsSync(filepath)) {
+      try {
+        unlinkSync(filepath);
+        console.log(`✓ Cleaned session: ${userId}`);
+      } catch {
+        console.warn(`⚠ Failed to clean session: ${userId}`);
+      }
+    }
+  }
+}
 
 import {
   fetchChannelMessages,
@@ -39,7 +62,7 @@ async function loadConfig(): Promise<Config> {
     botToken: creds.botToken,
     webhookUrl: creds.webhookUrl,
     testChannelId: creds.testChannelId,
-    botUserId: creds.botUserId,
+    botUserId: creds.clientId,
   };
 }
 
@@ -212,6 +235,10 @@ async function main() {
   }
   mkdirSync(TEST_DIR, { recursive: true });
   console.log(`✓ Test directory: ${TEST_DIR}`);
+
+  // Clean up session files for test users to ensure a fresh start
+  console.log("\n🧹 Cleaning up previous session data...");
+  cleanupSessionFiles(["user-A", "user-B"]);
 
   const results: { name: string; passed: boolean; error?: string }[] = [];
   const testMarker = `SESSION_${Date.now()}`;
