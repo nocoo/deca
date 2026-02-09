@@ -30,6 +30,9 @@ import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
+const ONLY_NAMES = process.argv
+  .filter((a) => a.startsWith("--only="))
+  .flatMap((a) => a.slice("--only=".length).split(","));
 
 interface Config {
   botToken: string;
@@ -409,7 +412,20 @@ async function main() {
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  const tests = createTests();
+  let tests = createTests();
+
+  // Filter tests if --only= is specified
+  if (ONLY_NAMES.length > 0) {
+    tests = tests.filter((t) => ONLY_NAMES.includes(t.name));
+    if (tests.length === 0) {
+      console.error(`✗ No tests matched: ${ONLY_NAMES.join(", ")}`);
+      process.exit(1);
+    }
+    console.log(
+      `Filtered to ${tests.length} tests: ${tests.map((t) => t.name).join(", ")}\n`,
+    );
+  }
+
   const categories = [...new Set(tests.map((t) => t.category))];
 
   console.log(
