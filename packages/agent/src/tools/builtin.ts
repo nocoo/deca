@@ -308,13 +308,16 @@ export const grepTool: Tool<{ pattern: string; path?: string }> = {
     const searchPath = path.resolve(ctx.workspaceDir, input.path ?? ".");
 
     try {
+      // Escape single quotes in pattern for safe shell interpolation
+      const safePattern = input.pattern.replace(/'/g, "'\\''");
       // grep 参数说明:
       // -r: 递归搜索
       // -n: 显示行号
       // --include: 只搜索指定扩展名的文件
+      // --exclude-dir: 排除 node_modules, .git 等目录
       // head -50: 只返回前 50 条结果
       const { stdout } = await execAsync(
-        `grep -rn --include="*.ts" --include="*.js" --include="*.json" --include="*.md" "${input.pattern}" "${searchPath}" | head -50`,
+        `grep -rn --include='*.ts' --include='*.js' --include='*.json' --include='*.md' --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=.deca '${safePattern}' '${searchPath}' | head -50`,
         { cwd: ctx.workspaceDir, timeout: 10000 },
       );
       return stdout || "未找到匹配";
