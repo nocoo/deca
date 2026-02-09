@@ -212,6 +212,18 @@ async function main() {
   console.log(`✓ Test directory: ${TEST_DIR}`);
   console.log(`✓ Cron storage: ${CRON_STORAGE_PATH}`);
 
+  // Clean up session file to avoid context pollution
+  const sessionDir = join(process.cwd(), ".deca", "sessions");
+  const guildId = "1467737355384258695";
+  const testChannelSessionFile = join(
+    sessionDir,
+    `agent%3Adeca%3Achannel%3A${guildId}%3A${config.testChannelId}.jsonl`,
+  );
+  if (existsSync(testChannelSessionFile)) {
+    rmSync(testChannelSessionFile);
+    console.log("✓ Cleaned up session file");
+  }
+
   const results: { name: string; passed: boolean; error?: string }[] = [];
   const testMarker = `CRONTEST_${Date.now()}`;
 
@@ -398,13 +410,20 @@ async function main() {
   }
 
   // Test 5: cron remove
+  // Get jobId from storage first
+  const storageBeforeRemove = readCronStorage();
+  const jobToRemove = (
+    storageBeforeRemove?.jobs as { id: string; name: string }[]
+  )?.find((j) => j.name === jobName);
+  const jobIdToRemove = jobToRemove?.id ?? "unknown";
+
   {
     const testName = "cron remove: delete the job";
     process.stdout.write(`  ${testName}... `);
 
     const result = await sendAndWait(
       config,
-      `Use the cron tool with action 'remove' to remove the job named "${jobName}". Confirm when done.`,
+      `Use the cron tool with action 'remove' and jobId '${jobIdToRemove}'. Confirm when done.`,
     );
 
     if (!result.success) {
@@ -525,11 +544,17 @@ async function main() {
     }
   }
 
-  // Cleanup: remove persistence test job
-  await sendAndWait(
-    config,
-    `Use the cron tool to remove the job named "${persistJobName}".`,
-  );
+  // Cleanup: remove persistence test job by ID
+  const storageBeforeCleanup = readCronStorage();
+  const persistJob = (
+    storageBeforeCleanup?.jobs as { id: string; name: string }[]
+  )?.find((j) => j.name === persistJobName);
+  if (persistJob) {
+    await sendAndWait(
+      config,
+      `Use the cron tool with action 'remove' and jobId '${persistJob.id}'.`,
+    );
+  }
 
   console.log("\n🛑 Stopping bot...");
   await bot.stop();
