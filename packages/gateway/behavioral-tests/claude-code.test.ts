@@ -22,6 +22,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -206,37 +207,26 @@ function createTests(): TestCase[] {
           };
         }
 
-        const weatherKeywords = [
-          "weather",
-          "temperature",
-          "天气",
-          "温度",
-          "°",
-          "celsius",
-          "fahrenheit",
-          "cloudy",
-          "sunny",
-          "rain",
-          "beijing",
-          "北京",
-        ];
-        const hasWeatherInfo = weatherKeywords.some((kw) =>
-          response.toLowerCase().includes(kw.toLowerCase()),
+        // Use LLM judge for semantic weather content check
+        const weatherCheck = await verify(
+          response,
+          "Response should contain weather information about Beijing, such as temperature, weather conditions (sunny/cloudy/rain), or other meteorological data.",
         );
 
-        if (!hasWeatherInfo) {
+        if (!weatherCheck.passed) {
           return {
             passed: false,
-            error: `Response doesn't contain weather info: ${response.slice(0, 300)}`,
+            error: `Response doesn't contain weather info: ${weatherCheck.reasoning}`,
           };
         }
 
         if (existsSync(filepath)) {
           const content = readFileSync(filepath, "utf-8");
-          const fileHasWeather = weatherKeywords.some((kw) =>
-            content.toLowerCase().includes(kw.toLowerCase()),
+          const fileCheck = await verify(
+            content,
+            "Content should contain weather information about Beijing.",
           );
-          if (fileHasWeather) {
+          if (fileCheck.passed) {
             return { passed: true };
           }
         }
@@ -433,6 +423,7 @@ async function main() {
   }
 
   console.log(`\n📁 Workspace: ${CLAUDE_CODE_WORKSPACE}`);
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 

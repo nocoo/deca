@@ -14,6 +14,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -206,16 +207,12 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasNoResult =
-        response.includes("未找到") ||
-        response.includes("no ") ||
-        response.includes("No ") ||
-        response.includes("not found") ||
-        response.includes("没有") ||
-        response.includes("empty") ||
-        response.includes("0 result");
+      const judgeResult = await verify(
+        response,
+        "Response should indicate that the memory search returned no results or found nothing.",
+      );
 
-      if (hasNoResult) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -226,7 +223,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Unexpected response: ${response.slice(0, 150)}`,
+          error: `Unexpected response: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -248,16 +245,12 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasNotFound =
-        response.includes("未找到") ||
-        response.includes("not found") ||
-        response.includes("Not found") ||
-        response.includes("error") ||
-        response.includes("Error") ||
-        response.includes("doesn't exist") ||
-        response.includes("does not exist");
+      const judgeResult = await verify(
+        response,
+        "Response should indicate that the memory with the given ID was not found, does not exist, or returned an error.",
+      );
 
-      if (hasNotFound) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -268,7 +261,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Unexpected response: ${response.slice(0, 150)}`,
+          error: `Unexpected response: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -313,20 +306,12 @@ async function main() {
           console.log(`   [DEBUG] Step 2 response: ${response.slice(0, 200)}`);
         }
 
-        const foundMemory =
-          response.includes(uniqueSecret1) ||
-          response.includes("secret") ||
-          response.includes("found") ||
-          response.includes("result") ||
-          response.includes("mem_");
+        const judgeResult = await verify(
+          response,
+          `Response should indicate that a memory search found results related to "${uniqueSecret1}". It should NOT say "no results" or "not found".`,
+        );
 
-        const noResults =
-          response.includes("未找到") ||
-          response.includes("no result") ||
-          response.includes("No result") ||
-          response.includes("没有");
-
-        if (foundMemory && !noResults) {
+        if (judgeResult.passed) {
           console.log("✓");
           results.push({ name: testName, passed: true });
         } else {
@@ -338,7 +323,7 @@ async function main() {
           results.push({
             name: testName,
             passed: false,
-            error: `Memory not found: ${response.slice(0, 150)}`,
+            error: `Memory not found: ${judgeResult.reasoning}`,
           });
         }
       }
@@ -469,18 +454,12 @@ async function main() {
     } else {
       const response = result.response ?? "";
 
-      const found =
-        response.includes(uniqueSecret1) ||
-        response.includes("found") ||
-        response.includes("result") ||
-        response.includes("mem_");
+      const judgeResult = await verify(
+        response,
+        `Response should indicate that a memory search found results related to "${uniqueSecret1}". It should NOT say "no results" or "not found".`,
+      );
 
-      const notFound =
-        response.includes("未找到") ||
-        response.includes("no result") ||
-        response.includes("No result");
-
-      if (found && !notFound) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -490,7 +469,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Memory lost after restart: ${response.slice(0, 150)}`,
+          error: `Memory lost after restart: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -513,18 +492,12 @@ async function main() {
     } else {
       const response = result.response ?? "";
 
-      const found =
-        response.includes(uniqueSecret2) ||
-        response.includes("found") ||
-        response.includes("result") ||
-        response.includes("mem_");
+      const judgeResult = await verify(
+        response,
+        `Response should indicate that a memory search found results related to "${uniqueSecret2}". It should NOT say "no results" or "not found".`,
+      );
 
-      const notFound =
-        response.includes("未找到") ||
-        response.includes("no result") ||
-        response.includes("No result");
-
-      if (found && !notFound) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -534,7 +507,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Memory lost after restart: ${response.slice(0, 150)}`,
+          error: `Memory lost after restart: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -557,17 +530,12 @@ async function main() {
     } else {
       const response = result.response ?? "";
 
-      const hasAlpha =
-        response.includes("ALPHA") || response.includes(uniqueSecret1);
-      const hasBeta =
-        response.includes("BETA") || response.includes(uniqueSecret2);
-      const hasMultiple =
-        response.includes("2") ||
-        response.includes("two") ||
-        response.includes("multiple") ||
-        (hasAlpha && hasBeta);
+      const judgeResult = await verify(
+        response,
+        "Response should indicate that the search found multiple (at least 2) distinct memories or secrets, ideally mentioning both ALPHA and BETA variants.",
+      );
 
-      if (hasMultiple || (hasAlpha && hasBeta)) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -577,7 +545,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Could not distinguish memories: ${response.slice(0, 150)}`,
+          error: `Could not distinguish memories: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -603,6 +571,7 @@ async function main() {
 
   console.log(`\n📁 Test files: ${TEST_DIR}`);
   console.log(`📁 Memory file: ${join(MEMORY_DIR, "index.json")}`);
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 

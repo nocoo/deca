@@ -15,6 +15,7 @@ import {
   spawnBot,
 } from "@deca/discord/e2e/spawner";
 
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -251,14 +252,12 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasZeroJobs =
-        response.includes("0") ||
-        response.includes("no job") ||
-        response.includes("No job") ||
-        response.includes("empty") ||
-        response.includes("none");
+      const judgeResult = await verify(
+        response,
+        "Response should indicate that there are zero scheduled jobs or the job list is empty.",
+      );
 
-      if (hasZeroJobs) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -269,7 +268,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Unexpected response: ${response.slice(0, 150)}`,
+          error: `Unexpected response: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -293,13 +292,10 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasAdded =
-        response.includes("added") ||
-        response.includes("Added") ||
-        response.includes("created") ||
-        response.includes("Created") ||
-        response.includes("scheduled") ||
-        response.includes(jobName);
+      const judgeResult = await verify(
+        response,
+        `Response should confirm that a cron job named "${jobName}" was successfully added/created/scheduled.`,
+      );
 
       // Also verify storage file
       const storage = readCronStorage();
@@ -307,7 +303,7 @@ async function main() {
         (j: unknown) => (j as { name?: string }).name === jobName,
       );
 
-      if (hasAdded && jobInStorage) {
+      if (judgeResult.passed && jobInStorage) {
         console.log("✓");
         if (DEBUG) {
           console.log(
@@ -318,12 +314,12 @@ async function main() {
       } else {
         console.log("✗");
         console.log(
-          `    Error: Job not properly added. Response: ${response.slice(0, 150)}, InStorage: ${jobInStorage}`,
+          `    Error: Job not properly added. Response check: ${judgeResult.passed}, InStorage: ${jobInStorage}`,
         );
         results.push({
           name: testName,
           passed: false,
-          error: `Job add failed. hasAdded=${hasAdded}, jobInStorage=${jobInStorage}`,
+          error: `Job add failed. judgePass=${judgeResult.passed}, jobInStorage=${jobInStorage}`,
         });
       }
     }
@@ -346,25 +342,33 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasJob =
-        response.includes(jobName) ||
-        response.includes("test-job") ||
-        response.includes("1 job") ||
-        response.includes("one job");
+      // First check for exact job name (deterministic)
+      const hasExactName = response.includes(jobName);
 
-      if (hasJob) {
+      if (hasExactName) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
-        console.log("✗");
-        console.log(
-          `    Error: Job not in list. Response: ${response.slice(0, 150)}`,
+        // Fall back to LLM judge for semantic check
+        const judgeResult = await verify(
+          response,
+          "Response should list at least one scheduled cron job, indicating a test job exists.",
         );
-        results.push({
-          name: testName,
-          passed: false,
-          error: `Job not found in list: ${response.slice(0, 150)}`,
-        });
+
+        if (judgeResult.passed) {
+          console.log("✓");
+          results.push({ name: testName, passed: true });
+        } else {
+          console.log("✗");
+          console.log(
+            `    Error: Job not in list. Response: ${response.slice(0, 150)}`,
+          );
+          results.push({
+            name: testName,
+            passed: false,
+            error: `Job not found in list: ${judgeResult.reasoning}`,
+          });
+        }
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -386,12 +390,12 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasCount =
-        response.includes("1") ||
-        response.includes("one") ||
-        response.includes("job");
+      const judgeResult = await verify(
+        response,
+        "Response should indicate that there is at least 1 scheduled cron job (e.g., mentioning 1 job, one job, or similar).",
+      );
 
-      if (hasCount) {
+      if (judgeResult.passed) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
@@ -402,7 +406,7 @@ async function main() {
         results.push({
           name: testName,
           passed: false,
-          error: `Status check failed: ${response.slice(0, 150)}`,
+          error: `Status check failed: ${judgeResult.reasoning}`,
         });
       }
     }
@@ -432,11 +436,10 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasRemoved =
-        response.includes("removed") ||
-        response.includes("Removed") ||
-        response.includes("deleted") ||
-        response.includes("Deleted");
+      const judgeResult = await verify(
+        response,
+        "Response should confirm that the cron job was successfully removed/deleted.",
+      );
 
       // Verify storage
       const storage = readCronStorage();
@@ -444,18 +447,18 @@ async function main() {
         (j: unknown) => (j as { name?: string }).name === jobName,
       );
 
-      if (hasRemoved && !jobStillExists) {
+      if (judgeResult.passed && !jobStillExists) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
         console.log("✗");
         console.log(
-          `    Error: Remove failed. Response: ${response.slice(0, 150)}, stillExists: ${jobStillExists}`,
+          `    Error: Remove failed. Judge: ${judgeResult.passed}, stillExists: ${jobStillExists}`,
         );
         results.push({
           name: testName,
           passed: false,
-          error: `Remove failed. hasRemoved=${hasRemoved}, stillExists=${jobStillExists}`,
+          error: `Remove failed. judgePass=${judgeResult.passed}, stillExists=${jobStillExists}`,
         });
       }
     }
@@ -524,22 +527,30 @@ async function main() {
       results.push({ name: testName, passed: false, error: result.error });
     } else {
       const response = result.response ?? "";
-      const hasJob =
-        response.includes(persistJobName) ||
-        response.includes("persist") ||
-        response.includes("1 job");
+      // Check for exact name first (deterministic)
+      const hasExactName = response.includes(persistJobName);
 
-      if (hasJob) {
+      if (hasExactName) {
         console.log("✓");
         results.push({ name: testName, passed: true });
       } else {
-        console.log("✗");
-        console.log(`    Response: ${response.slice(0, 200)}`);
-        results.push({
-          name: testName,
-          passed: false,
-          error: `Job not found after restart: ${response.slice(0, 150)}`,
-        });
+        const judgeResult = await verify(
+          response,
+          "Response should list at least one scheduled cron job that survived a restart.",
+        );
+
+        if (judgeResult.passed) {
+          console.log("✓");
+          results.push({ name: testName, passed: true });
+        } else {
+          console.log("✗");
+          console.log(`    Response: ${response.slice(0, 200)}`);
+          results.push({
+            name: testName,
+            passed: false,
+            error: `Job not found after restart: ${judgeResult.reasoning}`,
+          });
+        }
       }
     }
   }
@@ -576,6 +587,7 @@ async function main() {
 
   console.log(`\n📁 Test files: ${TEST_DIR}`);
   console.log(`📁 Cron storage: ${CRON_STORAGE_PATH}`);
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 

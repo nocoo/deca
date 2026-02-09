@@ -20,6 +20,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 
 interface Config {
   botToken: string;
@@ -163,73 +164,38 @@ async function main() {
   console.log(response);
   console.log("─".repeat(60));
 
-  // Analyze response
-  const lower = response.toLowerCase();
-
-  // Signs that Agent searched
-  const searchIndicators = [
-    "搜索",
-    "查询",
-    "search",
-    "tavily",
-    "找到",
-    "结果",
-    "根据",
-    "显示",
-    "资料",
-    "信息",
-    "2024",
-    "2025",
-    "2026",
-    "anthropic",
-    "claude",
-  ];
-
-  // Signs that Agent guessed (bad)
-  const guessIndicators = [
-    "我不知道",
-    "没有信息",
-    "不了解",
-    "不清楚",
-    "无法确认",
-    "我的知识",
-    "训练数据",
-  ];
-
-  const hasSearchIndicators = searchIndicators.some((ind) =>
-    lower.includes(ind),
+  // Analyze response using LLM judge
+  const searchedResult = await verify(
+    response,
+    "Response should demonstrate that the agent proactively searched for information about Opus 4.6 (e.g., using a search tool, referencing search results, citing sources, or providing specific factual details that could only come from a web search). It should NOT simply say 'I don't know' or admit ignorance without trying to search.",
   );
-  const hasGuessIndicators = guessIndicators.some((ind) => lower.includes(ind));
+
+  const infoResult = await verify(
+    response,
+    "Response should contain actual information about Opus (a Claude/Anthropic model), such as its capabilities, release date, features, or comparisons with other models.",
+  );
 
   console.log("\n📊 Analysis:");
-  console.log(`  Search indicators found: ${hasSearchIndicators}`);
-  console.log(`  Guess indicators found: ${hasGuessIndicators}`);
-
-  // Check if response contains actual search results
-  const hasActualInfo =
-    lower.includes("opus") &&
-    (lower.includes("model") ||
-      lower.includes("模型") ||
-      lower.includes("版本") ||
-      lower.includes("发布") ||
-      lower.includes("特性") ||
-      lower.includes("功能"));
-
-  console.log(`  Contains actual info about Opus: ${hasActualInfo}`);
+  console.log(
+    `  Proactively searched: ${searchedResult.passed} — ${searchedResult.reasoning}`,
+  );
+  console.log(
+    `  Contains actual info: ${infoResult.passed} — ${infoResult.reasoning}`,
+  );
 
   await bot.stop();
   console.log("\n🛑 Bot stopped");
 
-  if (hasSearchIndicators && hasActualInfo) {
+  cleanupJudge();
+
+  if (searchedResult.passed && infoResult.passed) {
     console.log("\n✅ TEST PASSED: Agent proactively searched for information");
     process.exit(0);
-  } else if (hasGuessIndicators) {
-    console.log(
-      "\n⚠️ TEST PARTIAL: Agent admitted not knowing but may not have searched",
-    );
+  } else if (!searchedResult.passed) {
+    console.log("\n⚠️ TEST PARTIAL: Agent may not have proactively searched");
     process.exit(1);
   } else {
-    console.log("\n❌ TEST FAILED: Agent did not search and may have guessed");
+    console.log("\n❌ TEST FAILED: Agent did not provide actual information");
     process.exit(1);
   }
 }

@@ -67,6 +67,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -352,21 +353,8 @@ async function main() {
     } else {
       const response = result.response ?? "";
       const leakedSecret = response.includes(userASecret);
-      const indicatesNoKnowledge =
-        response.toLowerCase().includes("don't know") ||
-        response.toLowerCase().includes("no secret") ||
-        response.toLowerCase().includes("no project") ||
-        response.toLowerCase().includes("no codename") ||
-        response.toLowerCase().includes("haven't") ||
-        response.toLowerCase().includes("not aware") ||
-        response.toLowerCase().includes("what secret") ||
-        response.toLowerCase().includes("what codename") ||
-        response.toLowerCase().includes("what project");
 
-      if (!leakedSecret && indicatesNoKnowledge) {
-        console.log("✓");
-        results.push({ name: testName, passed: true });
-      } else if (leakedSecret) {
+      if (leakedSecret) {
         console.log("✗");
         console.log("    Error: User A secret leaked to User B!");
         results.push({
@@ -375,13 +363,23 @@ async function main() {
           error: "Session isolation failed - secret leaked",
         });
       } else {
-        console.log("⚠ (ambiguous)");
-        console.log(`    Response: ${response.slice(0, 150)}`);
-        results.push({
-          name: testName,
-          passed: true,
-          error: "Ambiguous but no leak detected",
-        });
+        const judgeResult = await verify(
+          response,
+          "Response should indicate that the responder does NOT know any project codename — e.g., saying 'I don't know', 'no codename', 'haven't been told', or similar.",
+        );
+
+        if (judgeResult.passed) {
+          console.log("✓");
+          results.push({ name: testName, passed: true });
+        } else {
+          console.log("⚠ (ambiguous)");
+          console.log(`    Response: ${response.slice(0, 150)}`);
+          results.push({
+            name: testName,
+            passed: true,
+            error: "Ambiguous but no leak detected",
+          });
+        }
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -594,6 +592,7 @@ async function main() {
     }
   }
 
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 
