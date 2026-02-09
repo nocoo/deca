@@ -315,5 +315,177 @@ describe("bootstrap", () => {
       expect(fileNames).toContain(DEFAULT_HEARTBEAT_FILENAME);
       expect(fileNames).toContain(DEFAULT_BOOTSTRAP_FILENAME);
     });
+
+    describe("workspace/ subdirectory resolution", () => {
+      it("should load files from workspace/ subdirectory when it contains SOUL.md", async () => {
+        const workspaceSubdir = path.join(tempDir, "workspace");
+        await fs.mkdir(workspaceSubdir);
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_SOUL_FILENAME),
+          "# Soul from workspace/",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_AGENTS_FILENAME),
+          "# Agents from workspace/",
+        );
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        const soulFile = result.find((f) => f.name === DEFAULT_SOUL_FILENAME);
+        expect(soulFile?.missing).toBe(false);
+        expect(soulFile?.content).toBe("# Soul from workspace/");
+        expect(soulFile?.path).toBe(
+          path.join(workspaceSubdir, DEFAULT_SOUL_FILENAME),
+        );
+
+        const agentsFile = result.find(
+          (f) => f.name === DEFAULT_AGENTS_FILENAME,
+        );
+        expect(agentsFile?.missing).toBe(false);
+        expect(agentsFile?.content).toBe("# Agents from workspace/");
+      });
+
+      it("should prefer workspace/ over root when both have files", async () => {
+        // Put AGENTS.md in root
+        await fs.writeFile(
+          path.join(tempDir, DEFAULT_AGENTS_FILENAME),
+          "# Root AGENTS",
+        );
+
+        // Put SOUL.md and AGENTS.md in workspace/
+        const workspaceSubdir = path.join(tempDir, "workspace");
+        await fs.mkdir(workspaceSubdir);
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_SOUL_FILENAME),
+          "# Workspace SOUL",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_AGENTS_FILENAME),
+          "# Workspace AGENTS",
+        );
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        // Should load from workspace/, NOT from root
+        const agentsFile = result.find(
+          (f) => f.name === DEFAULT_AGENTS_FILENAME,
+        );
+        expect(agentsFile?.content).toBe("# Workspace AGENTS");
+        expect(agentsFile?.path).toContain("workspace");
+      });
+
+      it("should fall back to root when workspace/ has no probe files", async () => {
+        // Put AGENTS.md only in root
+        await fs.writeFile(
+          path.join(tempDir, DEFAULT_AGENTS_FILENAME),
+          "# Root AGENTS",
+        );
+
+        // Create empty workspace/ subdirectory
+        const workspaceSubdir = path.join(tempDir, "workspace");
+        await fs.mkdir(workspaceSubdir);
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        const agentsFile = result.find(
+          (f) => f.name === DEFAULT_AGENTS_FILENAME,
+        );
+        expect(agentsFile?.content).toBe("# Root AGENTS");
+        expect(agentsFile?.path).toBe(
+          path.join(path.resolve(tempDir), DEFAULT_AGENTS_FILENAME),
+        );
+      });
+
+      it("should fall back to root when workspace/ does not exist", async () => {
+        await fs.writeFile(
+          path.join(tempDir, DEFAULT_SOUL_FILENAME),
+          "# Root SOUL",
+        );
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        const soulFile = result.find((f) => f.name === DEFAULT_SOUL_FILENAME);
+        expect(soulFile?.content).toBe("# Root SOUL");
+        expect(soulFile?.path).toBe(
+          path.join(path.resolve(tempDir), DEFAULT_SOUL_FILENAME),
+        );
+      });
+
+      it("should load all workspace/ files when IDENTITY.md triggers probe", async () => {
+        // Only IDENTITY.md in workspace/ (no SOUL.md, no AGENTS.md)
+        const workspaceSubdir = path.join(tempDir, "workspace");
+        await fs.mkdir(workspaceSubdir);
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_IDENTITY_FILENAME),
+          "# Identity",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_TOOLS_FILENAME),
+          "# Tools",
+        );
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        const identityFile = result.find(
+          (f) => f.name === DEFAULT_IDENTITY_FILENAME,
+        );
+        expect(identityFile?.missing).toBe(false);
+        expect(identityFile?.content).toBe("# Identity");
+
+        const toolsFile = result.find((f) => f.name === DEFAULT_TOOLS_FILENAME);
+        expect(toolsFile?.missing).toBe(false);
+        expect(toolsFile?.content).toBe("# Tools");
+      });
+
+      it("should match the real project layout: root has AGENTS.md, workspace/ has all persona files", async () => {
+        // Simulate the exact Deca project layout
+        await fs.writeFile(
+          path.join(tempDir, DEFAULT_AGENTS_FILENAME),
+          "# OpenCode AGENTS (root)",
+        );
+
+        const workspaceSubdir = path.join(tempDir, "workspace");
+        await fs.mkdir(workspaceSubdir);
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_SOUL_FILENAME),
+          "# Tomato Soul",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_IDENTITY_FILENAME),
+          "# Tomato Identity",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_AGENTS_FILENAME),
+          "# Tomato AGENTS",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_TOOLS_FILENAME),
+          "# Tomato Tools",
+        );
+        await fs.writeFile(
+          path.join(workspaceSubdir, DEFAULT_USER_FILENAME),
+          "# User",
+        );
+
+        const result = await loadWorkspaceBootstrapFiles(tempDir);
+
+        // All files should come from workspace/, not root
+        const soulFile = result.find((f) => f.name === DEFAULT_SOUL_FILENAME);
+        expect(soulFile?.content).toBe("# Tomato Soul");
+
+        const identityFile = result.find(
+          (f) => f.name === DEFAULT_IDENTITY_FILENAME,
+        );
+        expect(identityFile?.content).toBe("# Tomato Identity");
+
+        const agentsFile = result.find(
+          (f) => f.name === DEFAULT_AGENTS_FILENAME,
+        );
+        expect(agentsFile?.content).toBe("# Tomato AGENTS");
+
+        // Root AGENTS.md should NOT be loaded
+        expect(agentsFile?.path).toContain("workspace");
+      });
+    });
   });
 });
