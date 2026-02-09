@@ -14,6 +14,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -29,7 +30,7 @@ interface AutonomyTestCase {
   name: string;
   task: string;
   expectedCapabilities: string[];
-  validate: (response: string) => { passed: boolean; error?: string };
+  validate: (response: string) => Promise<{ passed: boolean; error?: string }>;
 }
 
 async function loadConfig(): Promise<Config> {
@@ -170,29 +171,12 @@ function createAutonomyTests(): AutonomyTestCase[] {
 
 Figure out how to get this information yourself.`,
       expectedCapabilities: ["exec", "git commands", "synthesis"],
-      validate: (response) => {
-        const hasBranch =
-          response.includes("main") || response.includes("master");
-        const hasCleanStatus =
-          response.includes("clean") ||
-          response.includes("uncommitted") ||
-          response.includes("modified");
-        const hasCommitInfo =
-          response.includes("commit") || response.includes("docs");
-        const checks = [
-          { name: "branch", passed: hasBranch },
-          { name: "status", passed: hasCleanStatus },
-          { name: "commits", passed: hasCommitInfo },
-        ];
-
-        const failed = checks.filter((c) => !c.passed);
-        if (failed.length > 0) {
-          return {
-            passed: false,
-            error: `Missing: ${failed.map((c) => c.name).join(", ")}. Response: ${response.slice(0, 300)}`,
-          };
-        }
-        return { passed: true };
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should contain: (1) which git branch the repository is on, (2) whether the working directory is clean or has uncommitted changes, (3) information about recent commits.",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -205,35 +189,12 @@ Figure out how to get this information yourself.`,
 
 Use whatever tools you need to figure this out.`,
       expectedCapabilities: ["list", "read", "synthesis"],
-      validate: (response) => {
-        const hasType =
-          response.includes("TypeScript") ||
-          response.includes("JavaScript") ||
-          response.includes("Node") ||
-          response.includes("Bun");
-        const hasMonorepo =
-          response.includes("monorepo") ||
-          response.includes("packages") ||
-          response.includes("workspace");
-        const hasPackageNames =
-          response.includes("agent") ||
-          response.includes("discord") ||
-          response.includes("gateway");
-
-        const checks = [
-          { name: "project-type", passed: hasType },
-          { name: "monorepo-structure", passed: hasMonorepo },
-          { name: "package-names", passed: hasPackageNames },
-        ];
-
-        const failed = checks.filter((c) => !c.passed);
-        if (failed.length > 0) {
-          return {
-            passed: false,
-            error: `Missing: ${failed.map((c) => c.name).join(", ")}. Response: ${response.slice(0, 300)}`,
-          };
-        }
-        return { passed: true };
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should identify: (1) the project type/language (TypeScript/JavaScript/Bun/Node), (2) that it is a monorepo with multiple packages, (3) names of key packages such as agent, discord, gateway.",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -247,31 +208,12 @@ Find where the MemoryManager class is defined and tell me:
 
 Investigate the codebase yourself.`,
       expectedCapabilities: ["grep", "read", "analysis"],
-      validate: (response) => {
-        const hasFilePath =
-          response.includes("memory.ts") || response.includes("packages/agent");
-        const hasMethods =
-          (response.includes("add") || response.includes("search")) &&
-          (response.includes("load") || response.includes("save"));
-        const hasStorage =
-          response.includes("JSON") ||
-          response.includes("file") ||
-          response.includes("index.json");
-
-        const checks = [
-          { name: "file-location", passed: hasFilePath },
-          { name: "methods", passed: hasMethods },
-          { name: "storage-mechanism", passed: hasStorage },
-        ];
-
-        const failed = checks.filter((c) => !c.passed);
-        if (failed.length > 0) {
-          return {
-            passed: false,
-            error: `Missing: ${failed.map((c) => c.name).join(", ")}. Response: ${response.slice(0, 300)}`,
-          };
-        }
-        return { passed: true };
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should describe: (1) the file path where MemoryManager is defined (in packages/agent), (2) its main public methods (such as add, search, load, save), (3) how it stores data (e.g., JSON files, file-based storage).",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -287,33 +229,12 @@ Investigate the codebase yourself.`,
 
 Report back: the branch name, the file count, and confirm the file was created.`,
       expectedCapabilities: ["exec", "list", "write", "multi-step"],
-      validate: (response) => {
-        const mentionsBranch = response.includes("main");
-        const mentionsCount =
-          response.match(/\d+\s*(\.ts|TypeScript|files)/) ||
-          response.includes("files");
-        const mentionsCreated =
-          response.includes("created") ||
-          response.includes("Created") ||
-          response.includes("wrote") ||
-          response.includes("written") ||
-          response.includes("saved") ||
-          response.includes("summary file");
-
-        const checks = [
-          { name: "branch-check", passed: mentionsBranch },
-          { name: "file-count", passed: Boolean(mentionsCount) },
-          { name: "file-created", passed: mentionsCreated },
-        ];
-
-        const failed = checks.filter((c) => !c.passed);
-        if (failed.length > 0) {
-          return {
-            passed: false,
-            error: `Missing: ${failed.map((c) => c.name).join(", ")}. Response: ${response.slice(0, 300)}`,
-          };
-        }
-        return { passed: true };
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should report: (1) the current git branch name (e.g., main), (2) the count of .ts files found in packages/agent/src, (3) confirmation that the summary file was created/written.",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
   ];
@@ -405,7 +326,7 @@ async function main() {
         capabilities: test.expectedCapabilities,
       });
     } else {
-      const validation = test.validate(result.response ?? "");
+      const validation = await test.validate(result.response ?? "");
 
       if (validation.passed) {
         console.log(`✓ (${duration}ms)`);
@@ -458,6 +379,7 @@ async function main() {
   );
   console.log(`\n⏱️  Average task completion time: ${avgDuration}ms`);
 
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 
