@@ -316,7 +316,7 @@ async function main() {
       // Ask agent to create a task in HEARTBEAT.md
       const setupResult = await sendAndWait(
         config,
-        `Please add a task to HEARTBEAT.md: "Respond with greeting ${testMarker}". Just add it, don't execute it yet.`,
+        `Use the write tool to create a file at "${HEARTBEAT_PATH}" with this exact content:\n\n# Tasks\n\n- [ ] Respond with greeting ${testMarker}\n\nJust confirm when done.`,
       );
 
       if (!setupResult.success) {

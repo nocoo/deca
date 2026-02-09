@@ -248,7 +248,7 @@ function createToolTests(): ToolTestCase[] {
       setup: async () => {
         mkdirSync(TEST_DIR, { recursive: true });
         writeFileSync(
-          join(TEST_DIR, "grep-test.txt"),
+          join(TEST_DIR, "grep-test.md"),
           `Line 1: hello\nLine 2: ${testMarker}_GREP_TARGET\nLine 3: world`,
         );
       },
@@ -271,7 +271,7 @@ function createToolTests(): ToolTestCase[] {
     {
       name: "exec: git status in external directory",
       prompt:
-        'Use the exec tool to run "git status" in directory /Users/nocoo/workspace/personal/obsidian. Tell me which branch it is on and if it has uncommitted changes.',
+        'Use the exec tool to run this exact command: "cd /Users/nocoo/workspace/personal/obsidian && git status". Tell me which branch it is on and if it has uncommitted changes.',
       validate: async (response) => {
         const hasBranchInfo =
           response.includes("main") ||
@@ -302,7 +302,7 @@ function createToolTests(): ToolTestCase[] {
     {
       name: "exec: git log in external directory",
       prompt:
-        'Use the exec tool to run "git log --oneline -3" in directory /Users/nocoo/workspace/personal/obsidian. Tell me the first commit message.',
+        'Use the exec tool to run this exact command: "cd /Users/nocoo/workspace/personal/obsidian && git log --oneline -3". Tell me the first commit message.',
       validate: async (response) => {
         const hasCommitInfo =
           response.includes("docs") ||

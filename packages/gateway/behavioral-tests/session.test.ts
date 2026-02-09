@@ -1,6 +1,12 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, rmSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  unlinkSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -24,6 +30,30 @@ function cleanupSessionFiles(userIds: string[]): void {
         console.warn(`⚠ Failed to clean session: ${userId}`);
       }
     }
+  }
+}
+
+/**
+ * Clean up channel session files to prevent context overflow
+ * from previous test runs polluting the session history.
+ */
+function cleanupChannelSessions(): void {
+  const sessionDir = join(getGatewayDir(), ".deca", "sessions");
+  if (!existsSync(sessionDir)) return;
+
+  const channelPrefix = encodeURIComponent("agent:deca:channel:");
+  try {
+    const files = readdirSync(sessionDir);
+    for (const file of files) {
+      if (file.startsWith(channelPrefix) && file.endsWith(".jsonl")) {
+        unlinkSync(join(sessionDir, file));
+        console.log(
+          `✓ Cleaned channel session: ${decodeURIComponent(file.replace(".jsonl", ""))}`,
+        );
+      }
+    }
+  } catch {
+    console.warn("⚠ Failed to clean channel sessions");
   }
 }
 
@@ -230,9 +260,10 @@ async function main() {
   mkdirSync(TEST_DIR, { recursive: true });
   console.log(`✓ Test directory: ${TEST_DIR}`);
 
-  // Clean up session files for test users to ensure a fresh start
+  // Clean up session files for test users and channel sessions to ensure a fresh start
   console.log("\n🧹 Cleaning up previous session data...");
   cleanupSessionFiles(["user-A", "user-B"]);
+  cleanupChannelSessions();
 
   const results: { name: string; passed: boolean; error?: string }[] = [];
   const testMarker = `SESSION_${Date.now()}`;
@@ -246,8 +277,8 @@ async function main() {
   console.log(`\n${"=".repeat(60)}`);
   console.log("Phase 1: HTTP User Isolation Tests\n");
 
-  const userASecret = `${testMarker}_USER_A_SECRET`;
-  const userBSecret = `${testMarker}_USER_B_SECRET`;
+  const userASecret = `${testMarker}_USER_A_CODENAME`;
+  const userBSecret = `${testMarker}_USER_B_CODENAME`;
 
   {
     const testName = "http: user A sets context";
@@ -256,7 +287,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-A",
-      `Remember this secret code for me: "${userASecret}". Just confirm you understood.`,
+      `Remember this project codename for me: "${userASecret}". Just confirm you understood.`,
     );
 
     if (!result.success) {
@@ -278,7 +309,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-A",
-      "What is the secret code I told you earlier? Reply with just the code.",
+      "What is the project codename I told you earlier? Reply with just the codename.",
     );
 
     if (!result.success) {
@@ -311,7 +342,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-B",
-      "What is the secret code? If you don't know any secret code, say 'I don't know any secret code'.",
+      "What is the project codename? If you don't know any project codename, say 'I don't know any project codename'.",
     );
 
     if (!result.success) {
@@ -324,9 +355,13 @@ async function main() {
       const indicatesNoKnowledge =
         response.toLowerCase().includes("don't know") ||
         response.toLowerCase().includes("no secret") ||
+        response.toLowerCase().includes("no project") ||
+        response.toLowerCase().includes("no codename") ||
         response.toLowerCase().includes("haven't") ||
         response.toLowerCase().includes("not aware") ||
-        response.toLowerCase().includes("what secret");
+        response.toLowerCase().includes("what secret") ||
+        response.toLowerCase().includes("what codename") ||
+        response.toLowerCase().includes("what project");
 
       if (!leakedSecret && indicatesNoKnowledge) {
         console.log("✓");
@@ -359,7 +394,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-B",
-      `Remember this different secret for me: "${userBSecret}". Just confirm.`,
+      `Remember this different project codename for me: "${userBSecret}". Just confirm.`,
     );
 
     if (!result.success) {
@@ -380,7 +415,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-B",
-      "What is MY secret code? Reply with just the code.",
+      "What is MY project codename? Reply with just the codename.",
     );
 
     if (!result.success) {
@@ -408,7 +443,7 @@ async function main() {
   console.log(`\n${"=".repeat(60)}`);
   console.log("Phase 2: Discord Channel Sharing Tests\n");
 
-  const channelSecret = `${testMarker}_CHANNEL_SECRET`;
+  const channelSecret = `${testMarker}_CHANNEL_CODENAME`;
 
   {
     const testName = "discord: set channel context";
@@ -416,7 +451,7 @@ async function main() {
 
     const result = await sendDiscordAndWait(
       config,
-      `Everyone in this channel should remember: the shared password is "${channelSecret}". Confirm you got it.`,
+      `Remember this project codename for our channel: "${channelSecret}". Just confirm you got it.`,
     );
 
     if (!result.success) {
@@ -437,7 +472,7 @@ async function main() {
 
     const result = await sendDiscordAndWait(
       config,
-      "What is the shared password for this channel? Reply with just the password.",
+      "What is the project codename I just told you? Reply with just the codename.",
     );
 
     if (!result.success) {
@@ -484,7 +519,7 @@ async function main() {
     const result = await sendHttpAndWait(
       httpPort,
       "user-A",
-      "What was the secret code I told you before? Reply with just the code.",
+      "What was the project codename I told you before? Reply with just the codename.",
     );
 
     if (!result.success) {
@@ -516,7 +551,7 @@ async function main() {
 
     const result = await sendDiscordAndWait(
       config,
-      "What was the shared password for this channel? Reply with just the password.",
+      "What was the project codename for this channel? Reply with just the codename.",
     );
 
     if (!result.success) {
