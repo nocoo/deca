@@ -44,8 +44,8 @@ bun run behavioral-tests/<test-name>.test.ts
 
 | 状态 | 套件数 | 百分比 |
 |------|--------|--------|
-| ✅ 全部通过 | 9 | 75% |
-| ⏱️ 超时 | 3 | 25% |
+| ✅ 全部通过 | 10 | 83% |
+| ⏱️ 超时 | 2 | 17% |
 
 ### 详细结果
 
@@ -59,9 +59,9 @@ bun run behavioral-tests/<test-name>.test.ts
 | heartbeat | ✅ PASS | 4/4 | 心跳机制正常 |
 | proactive-search | ✅ PASS | 1/1 | 主动搜索正常 |
 | cron | ✅ PASS | 7/7 | **已修复** - 定时任务正常 |
+| cross-channel | ✅ PASS | 10/10 | **已修复** - 跨频道会话正常 |
 | skills | ⏱️ TIMEOUT | 4/6+ | 超时于 /search 测试 |
 | autonomy | ⏱️ TIMEOUT | 2/4+ | 超时于 code-investigation |
-| cross-channel | ⏱️ TIMEOUT | 2/10+ | Discord 阶段超时 |
 | claude-code | ⏱️ TIMEOUT | 1/2+ | 超时于 weather fetch |
 
 ---
@@ -208,6 +208,7 @@ pkill -9 -f "bun.*cli.ts"; rm -f ~/.deca/gateway.lock
 
 | 日期 | 总通过率 | 备注 |
 |------|----------|------|
+| 2026-02-09 (v4) | 83% (10/12 套件) | cross-channel 修复后，增加到 10 个套件全绿 |
 | 2026-02-09 (v3) | 75% (9/12 套件) | cron 修复后，增加到 9 个套件全绿 |
 | 2026-02-09 (v2) | 62% (8/13 套件) | botUserId 修复后，核心测试全部通过 |
 | 2026-02-09 (v1) | ~80% (52/65+) | 初次全量运行记录 |
