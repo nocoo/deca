@@ -13,9 +13,8 @@
  * NOTE: /search was removed - now uses web_search tool instead
  *
  * Verification Strategy:
- * Each skill injects a specific prompt that guides Agent behavior.
- * We verify by checking for characteristic keywords in the response
- * that indicate the skill was activated and followed.
+ * Uses LLM-as-Judge (via judge.ts) to semantically verify agent responses
+ * against natural language criteria, replacing brittle keyword matching.
  */
 
 import {
@@ -38,6 +37,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -53,7 +53,7 @@ interface SkillTestCase {
   name: string;
   setup?: () => Promise<void>;
   prompt: string;
-  validate: (response: string) => { passed: boolean; error?: string };
+  validate: (response: string) => Promise<{ passed: boolean; error?: string }>;
   timeout?: number;
 }
 
@@ -155,89 +155,28 @@ function createSkillTests(): SkillTestCase[] {
     {
       name: "skill: /review triggers code-review",
       prompt: `/review this code:\n\`\`\`javascript\n${BUGGY_CODE}\n\`\`\``,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-        const reviewIndicators = [
-          "bug",
-          "issue",
-          "problem",
-          "error",
-          "off-by-one",
-          "boundary",
-          "undefined",
-          "i <=",
-          "i <= items.length",
-          "security",
-          "improvement",
-          "suggest",
-          "recommend",
-          "consider",
-          "should",
-          "better",
-          "fix",
-          "质量",
-          "问题",
-          "建议",
-          "改进",
-          "漏洞",
-          "边界",
-        ];
-
-        const hasReviewContent = reviewIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should be a code review that identifies the off-by-one bug (i <= items.length should be i < items.length) and provides improvement suggestions",
         );
-
-        if (!hasReviewContent) {
-          return {
-            passed: false,
-            error: `Response lacks code review indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
-        return { passed: true };
+        return result.passed
+          ? { passed: true }
+          : { passed: false, error: result.reasoning };
       },
     },
 
     {
       name: "skill: /explain triggers explain",
       prompt: `/explain this code:\n\`\`\`javascript\n${SIMPLE_CODE}\n\`\`\``,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-        const explainIndicators = [
-          "function",
-          "return",
-          "parameter",
-          "argument",
-          "string",
-          "concatenat",
-          "greet",
-          "hello",
-          "name",
-          "takes",
-          "accepts",
-          "creates",
-          "produces",
-          "outputs",
-          "功能",
-          "函数",
-          "参数",
-          "返回",
-          "字符串",
-          "拼接",
-        ];
-
-        const hasExplainContent = explainIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should explain what the greet function does — it takes a name parameter and returns a greeting string by concatenating 'Hello, ' with the name",
         );
-
-        if (!hasExplainContent) {
-          return {
-            passed: false,
-            error: `Response lacks explanation indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
-        return { passed: true };
+        return result.passed
+          ? { passed: true }
+          : { passed: false, error: result.reasoning };
       },
     },
 
@@ -248,97 +187,39 @@ function createSkillTests(): SkillTestCase[] {
         writeFileSync(join(TEST_DIR, "refactor-target.js"), BUGGY_CODE);
       },
       prompt: `/refactor the code in ${join(TEST_DIR, "refactor-target.js")}. Fix the bug and improve readability.`,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-
-        const refactorIndicators = [
-          "refactor",
-          "改",
-          "修改",
-          "重构",
-          "<",
-          "< items.length",
-          "const",
-          "let",
-          "for...of",
-          "foreach",
-          "reduce",
-          "readab",
-          "improve",
-          "clean",
-          "modern",
-          "简化",
-          "改善",
-          "可读",
-        ];
-
-        const hasRefactorContent = refactorIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should describe refactoring the calculateTotal function — fixing the loop boundary bug and improving code style (e.g., using const/let, modern iteration)",
         );
 
-        if (!hasRefactorContent) {
-          return {
-            passed: false,
-            error: `Response lacks refactor indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
+        // Supplementary check: see if the file was actually modified
         const filePath = join(TEST_DIR, "refactor-target.js");
         if (existsSync(filePath)) {
           const content = readFileSync(filePath, "utf-8");
           const wasModified = !content.includes("i <= items.length");
-          if (wasModified) {
-            if (DEBUG) console.log("   [DEBUG] File was modified (bonus)");
+          if (wasModified && DEBUG) {
+            console.log("   [DEBUG] File was modified (bonus)");
           }
         }
 
-        return { passed: true };
+        return result.passed
+          ? { passed: true }
+          : { passed: false, error: result.reasoning };
       },
     },
 
     {
       name: "skill: /test triggers test writing",
       prompt: `/test write tests for this function:\n\`\`\`javascript\n${SIMPLE_CODE}\n\`\`\``,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-
-        const testIndicators = [
-          "test",
-          "describe",
-          "it(",
-          "expect",
-          "assert",
-          "should",
-          "equal",
-          "tobe",
-          "return",
-          "hello",
-          "测试",
-          "用例",
-          "覆盖",
-          "边界",
-        ];
-
-        const hasTestContent = testIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should contain test cases for the greet function, with test assertions/expectations, presented in code blocks",
         );
-
-        if (!hasTestContent) {
-          return {
-            passed: false,
-            error: `Response lacks test indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
-        const hasCodeBlock = response.includes("```");
-        if (!hasCodeBlock) {
-          return {
-            passed: false,
-            error: "Response should contain code block with test examples",
-          };
-        }
-
-        return { passed: true };
+        return result.passed
+          ? { passed: true }
+          : { passed: false, error: result.reasoning };
       },
     },
 
@@ -348,36 +229,14 @@ function createSkillTests(): SkillTestCase[] {
       name: "skill: /research triggers deep research",
       prompt: "/research what are the main features of Bun runtime",
       timeout: 180000,
-      validate: (response) => {
-        const lower = response.toLowerCase();
-
-        const researchIndicators = [
-          "bun",
-          "runtime",
-          "javascript",
-          "bundler",
-          "fast",
-          "performance",
-          "node",
-          "npm",
-          "zig",
-          "运行时",
-          "性能",
-          "速度",
-        ];
-
-        const hasResearchContent = researchIndicators.some((indicator) =>
-          lower.includes(indicator.toLowerCase()),
+      validate: async (response) => {
+        const result = await verify(
+          response,
+          "Response should describe Bun runtime features such as JavaScript/TypeScript execution, bundling, package management, or performance characteristics",
         );
-
-        if (!hasResearchContent) {
-          return {
-            passed: false,
-            error: `Response lacks research indicators: ${response.slice(0, 300)}`,
-          };
-        }
-
-        return { passed: true };
+        return result.passed
+          ? { passed: true }
+          : { passed: false, error: result.reasoning };
       },
     },
   ];
@@ -440,7 +299,7 @@ async function runSkillTest(
 
     if (DEBUG) console.log(`   [DEBUG] Response: ${response.slice(0, 200)}...`);
 
-    const validation = test.validate(response);
+    const validation = await test.validate(response);
 
     return {
       ...validation,
@@ -543,6 +402,7 @@ async function main() {
   }
 
   console.log(`\n📁 Test files: ${TEST_DIR}`);
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 
