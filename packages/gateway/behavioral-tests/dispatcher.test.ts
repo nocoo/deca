@@ -14,6 +14,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
 
@@ -41,13 +42,6 @@ async function loadConfig(): Promise<Config> {
     testChannelId: creds.testChannelId,
     botUserId: creds.clientId,
   };
-}
-
-const PROCESSING_PREFIXES = ["⏳", "Processing", "Thinking"];
-
-function isProcessingMessage(content: string): boolean {
-  const trimmed = content.trim();
-  return PROCESSING_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
 }
 
 async function waitForMultipleResponses(

@@ -15,6 +15,8 @@ import {
   spawnBot,
 } from "@deca/discord/e2e/spawner";
 
+import { isProcessingMessage } from "./utils";
+
 const DEBUG = process.argv.includes("--debug");
 
 interface Config {
@@ -42,22 +44,6 @@ async function loadConfig(): Promise<Config> {
     testChannelId: creds.testChannelId,
     botUserId: creds.clientId,
   };
-}
-
-const PROCESSING_PREFIXES = ["⏳", "Processing", "Thinking"];
-
-function isProcessingMessage(content: string): boolean {
-  const trimmed = content.trim();
-  if (PROCESSING_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) {
-    return true;
-  }
-  if (trimmed.startsWith("```") && trimmed.includes("⏳")) {
-    return true;
-  }
-  if (trimmed.includes("⏳ Processing")) {
-    return true;
-  }
-  return false;
 }
 
 async function waitForAgentResponse(
