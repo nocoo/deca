@@ -59,24 +59,21 @@ bun run behavioral-tests/<test-name>.test.ts
 |------|------|----------|----------|
 | skills 测试超时 | ✅ 已修复 | skills | 移除 `/search` 测试（已改为 tool） |
 | autonomy 测试超时 | ✅ 已修复 | autonomy | 添加 session 清理 |
-| claude-code 测试超时 | ⏳ 待定 | claude-code | 依赖外部 Claude CLI |
+| claude-code 测试超时 | ✅ 已修复 | claude-code | 添加 session 清理 |
 
-**P2 说明**: claude-code 测试仍可能超时，因为依赖外部 Claude CLI 进程。可选方案：
-1. 增加超时时间
-2. 标记为 `@slow` 跳过日常 CI
+**P2 说明**: 所有 P2 超时问题均已修复。根因均为 session 历史污染或过时的测试用例。
 
 ---
 
 ## 最近运行结果
 
-**运行日期**: 2026-02-09 (P0 + P1 + P2 修复完成后)
+**运行日期**: 2026-02-09 (P0 + P1 + P2 全部修复)
 
 ### 汇总
 
 | 状态 | 套件数 | 百分比 |
 |------|--------|--------|
-| ✅ 全部通过 | 11 | 92% |
-| ⏱️ 待验证 | 1 | 8% |
+| ✅ 全部通过 | 12 | 100% |
 
 ### 详细结果
 
@@ -93,7 +90,7 @@ bun run behavioral-tests/<test-name>.test.ts
 | cross-channel | ✅ PASS | 10/10 | P0 修复 - session 清理 |
 | skills | ✅ PASS | 5/5 | P2 修复 - 移除 /search 测试 |
 | autonomy | ✅ PASS | 4/4 | P2 修复 - session 清理 |
-| claude-code | ⏳ 待验证 | ?/2 | 依赖外部 Claude CLI |
+| claude-code | ✅ PASS | 2/2 | P2 修复 - session 清理 |
 
 ---
 
@@ -209,6 +206,16 @@ if (existsSync(sessionFile)) rmSync(sessionFile);
 
 ---
 
+### P2-3: claude-code 测试 session 污染 (2026-02-09)
+
+**问题**: claude-code 测试因历史 session 数据干扰而超时
+
+**修复**: 添加 session 文件清理
+
+**Commit**: `ffe155c`
+
+---
+
 ## Discord Credentials 说明
 
 ```json
@@ -223,21 +230,6 @@ if (existsSync(sessionFile)) rmSync(sessionFile);
 ```
 
 **重要**: `clientId` 是 Bot 的 Discord ID，应作为 `botUserId` 传递给 spawner。
-
----
-
-## 超时问题分析
-
-部分测试因 LLM 响应时间过长而超时（180s），这通常是因为：
-
-1. **复杂任务**: 如 `/search`、`/refactor` 等需要多轮工具调用
-2. **外部依赖**: 如 `claude-code` 需要启动 Claude CLI
-3. **Discord 延迟**: 跨频道测试需要等待 Discord 消息传递
-
-**建议**:
-- 增加单个测试的超时时间
-- 或拆分为更小的测试用例
-- 跳过已知耗时较长的测试
 
 ---
 
@@ -292,7 +284,8 @@ pkill -9 -f "bun.*cli.ts"; rm -f ~/.deca/gateway.lock
 
 | 日期 | 通过率 | P0 | P1 | P2 | 备注 |
 |------|--------|----|----|----|----- |
-| 2026-02-09 (final) | 92% (11/12) | ✅ 全部修复 | ✅ 全部修复 | ✅ 基本修复 | skills + autonomy 修复 |
+| 2026-02-09 (final) | 100% (12/12) | ✅ 全部修复 | ✅ 全部修复 | ✅ 全部修复 | 全绿 |
+| 2026-02-09 (v5) | 92% (11/12) | ✅ | ✅ | 部分 | skills + autonomy 修复 |
 | 2026-02-09 (v4) | 83% (10/12) | ✅ | ✅ | ⏳ 待定 | P0+P1 清零 |
 | 2026-02-09 (v3) | 75% (9/12) | ✅ | 部分 | - | cron 修复 |
 | 2026-02-09 (v2) | 62% (8/13) | 部分 | - | - | botUserId 修复 |
