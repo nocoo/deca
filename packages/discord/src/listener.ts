@@ -334,6 +334,7 @@ async function executeHandler(
       await markSuccess(message, botUserId);
     } else if (response.success && !response.text) {
       // Agent returned successfully but with empty text (e.g. refusal, no content)
+      await sendReply(message, "（没有生成回复）");
       await markSuccess(message, botUserId);
     } else if (!response.success) {
       const errorMsg = response.error || "An error occurred";
