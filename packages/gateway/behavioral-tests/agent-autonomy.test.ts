@@ -43,7 +43,7 @@ async function loadConfig(): Promise<Config> {
     botToken: creds.botToken,
     webhookUrl: creds.webhookUrl,
     testChannelId: creds.testChannelId,
-    botUserId: creds.botUserId,
+    botUserId: creds.clientId,
   };
 }
 
