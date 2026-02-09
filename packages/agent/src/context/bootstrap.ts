@@ -142,10 +142,51 @@ async function resolveMemoryBootstrapEntries(
   return deduped;
 }
 
+/**
+ * Resolve the actual directory containing bootstrap files.
+ *
+ * If `dir` itself contains at least one bootstrap file (SOUL.md, AGENTS.md, IDENTITY.md),
+ * use `dir`. Otherwise, check `dir/workspace/` as a fallback — this handles the common
+ * case where workspaceDir points to the project root but persona files live in a
+ * `workspace/` subdirectory.
+ */
+async function resolveBootstrapDir(dir: string): Promise<string> {
+  const resolvedDir = path.resolve(dir);
+  const probeFiles = [
+    DEFAULT_SOUL_FILENAME,
+    DEFAULT_AGENTS_FILENAME,
+    DEFAULT_IDENTITY_FILENAME,
+  ];
+
+  // Check if any bootstrap file exists directly in dir
+  for (const name of probeFiles) {
+    try {
+      await fs.access(path.join(resolvedDir, name));
+      return resolvedDir; // Found at least one — use this dir
+    } catch {
+      // continue
+    }
+  }
+
+  // Fallback: check dir/workspace/
+  const workspaceSubdir = path.join(resolvedDir, "workspace");
+  for (const name of probeFiles) {
+    try {
+      await fs.access(path.join(workspaceSubdir, name));
+      return workspaceSubdir;
+    } catch {
+      // continue
+    }
+  }
+
+  // Neither found — return original dir (files will be marked [MISSING])
+  return resolvedDir;
+}
+
 export async function loadWorkspaceBootstrapFiles(
   dir: string,
 ): Promise<BootstrapFile[]> {
-  const resolvedDir = path.resolve(dir);
+  const resolvedDir = await resolveBootstrapDir(dir);
   const entries: Array<{
     name: BootstrapFileName;
     filePath: string;
