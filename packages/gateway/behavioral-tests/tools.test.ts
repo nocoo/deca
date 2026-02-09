@@ -20,6 +20,7 @@ import {
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";
+import { cleanupJudge, verify } from "./judge";
 import { isProcessingMessage } from "./utils";
 
 const DEBUG = process.argv.includes("--debug");
@@ -233,13 +234,11 @@ function createToolTests(): ToolTestCase[] {
       },
       prompt: `Use the list tool to list ${TEST_DIR}. Tell me how many items contain "${testMarker}" in their name.`,
       validate: async (response) => {
-        if (!response.includes("3") && !response.includes("three")) {
-          return {
-            passed: false,
-            error: `Expected "3" or "three" items in response: ${response.slice(0, 200)}`,
-          };
-        }
-        return { passed: true };
+        const result = await verify(
+          response,
+          `Response should indicate that there are exactly 3 items whose names contain "${testMarker}" (2 files and 1 subdirectory).`,
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -254,17 +253,11 @@ function createToolTests(): ToolTestCase[] {
       },
       prompt: `Use the grep tool to search for "${testMarker}_GREP_TARGET" in ${TEST_DIR}. Which line number contains it?`,
       validate: async (response) => {
-        if (
-          !response.includes("2") &&
-          !response.includes("two") &&
-          !response.includes("second")
-        ) {
-          return {
-            passed: false,
-            error: `Expected line "2" in response: ${response.slice(0, 200)}`,
-          };
-        }
-        return { passed: true };
+        const result = await verify(
+          response,
+          "Response should indicate that the grep target was found on line 2 (the second line) of the file.",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -273,29 +266,11 @@ function createToolTests(): ToolTestCase[] {
       prompt:
         'Use the exec tool to run this exact command: "cd /Users/nocoo/workspace/personal/obsidian && git status". Tell me which branch it is on and if it has uncommitted changes.',
       validate: async (response) => {
-        const hasBranchInfo =
-          response.includes("main") ||
-          response.includes("master") ||
-          response.includes("branch");
-        const hasStatusInfo =
-          response.includes("clean") ||
-          response.includes("uncommitted") ||
-          response.includes("modified") ||
-          response.includes("nothing to commit") ||
-          response.includes("changes");
-        if (!hasBranchInfo) {
-          return {
-            passed: false,
-            error: `Expected branch info in response: ${response.slice(0, 200)}`,
-          };
-        }
-        if (!hasStatusInfo) {
-          return {
-            passed: false,
-            error: `Expected status info in response: ${response.slice(0, 200)}`,
-          };
-        }
-        return { passed: true };
+        const result = await verify(
+          response,
+          "Response should mention which git branch the repository is on AND describe the working tree status (e.g., clean, modified files, uncommitted changes).",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
 
@@ -304,20 +279,11 @@ function createToolTests(): ToolTestCase[] {
       prompt:
         'Use the exec tool to run this exact command: "cd /Users/nocoo/workspace/personal/obsidian && git log --oneline -3". Tell me the first commit message.',
       validate: async (response) => {
-        const hasCommitInfo =
-          response.includes("docs") ||
-          response.includes("add") ||
-          response.includes("update") ||
-          response.includes("fix") ||
-          response.includes("feat") ||
-          response.match(/[a-f0-9]{7}/i);
-        if (!hasCommitInfo) {
-          return {
-            passed: false,
-            error: `Expected commit info in response: ${response.slice(0, 200)}`,
-          };
-        }
-        return { passed: true };
+        const result = await verify(
+          response,
+          "Response should mention at least the first (most recent) commit message from the git log output, indicating it successfully ran the command.",
+        );
+        return { passed: result.passed, error: result.reasoning };
       },
     },
   ];
@@ -479,6 +445,7 @@ async function main() {
   }
 
   console.log(`\n📁 Test files: ${TEST_DIR}`);
+  cleanupJudge();
   process.exit(passed === total ? 0 : 1);
 }
 
