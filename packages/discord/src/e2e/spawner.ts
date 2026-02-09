@@ -64,7 +64,7 @@ export interface BotProcess {
  * @param config - Spawner configuration
  * @returns Bot process handle
  */
-const LLM_PROVIDERS = ["glm", "minimax"] as const;
+const LLM_PROVIDERS = ["minimax", "glm"] as const;
 
 async function loadLLMCredentials(): Promise<LLMCredential | null> {
   const credDir = join(homedir(), ".deca", "credentials");
