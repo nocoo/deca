@@ -24,6 +24,7 @@
  * Session key: `agent:deca:user:{mainUserId}`
  */
 
+import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -273,6 +274,22 @@ async function main() {
   const results: TestResult[] = [];
   const testMarker = `XSESSION_${Date.now()}`;
   const httpPort = 19800 + Math.floor(Math.random() * 100);
+
+  // Clean up session files to avoid context pollution
+  const sessionDir = join(process.cwd(), ".deca", "sessions");
+  const guildId = "1467737355384258695";
+  const sessionsToClean = [
+    `agent%3Adeca%3Auser%3A${config.mainUserId}.jsonl`,
+    `agent%3Adeca%3Achannel%3A${guildId}%3A${config.mainChannelId}.jsonl`,
+    `agent%3Adeca%3Achannel%3A${guildId}%3A${config.testChannelId}.jsonl`,
+  ];
+  for (const sessionFile of sessionsToClean) {
+    const fullPath = join(sessionDir, sessionFile);
+    if (existsSync(fullPath)) {
+      rmSync(fullPath);
+    }
+  }
+  console.log("✓ Cleaned up session files");
 
   console.log("\n📡 Starting Gateway with cross-channel session...");
   let bot = await startBot(config, httpPort);
