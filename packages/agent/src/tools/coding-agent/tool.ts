@@ -49,9 +49,9 @@ export interface ClaudeCodeInput {
 }
 
 export const claudeCodeTool: Tool<ClaudeCodeInput> = {
-  name: "claude_code",
+  name: "coding_agent",
   description:
-    "Execute a complex programming task using Claude Code CLI. " +
+    "Execute a complex programming task using an external coding agent. " +
     "Use this for multi-step tasks that require autonomous file operations, " +
     "code generation, testing, and debugging. This is a heavy operation - " +
     "only use when simpler tools (read, write, edit, exec) are insufficient.",

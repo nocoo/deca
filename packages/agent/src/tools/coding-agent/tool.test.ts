@@ -4,7 +4,7 @@ import { claudeCodeTool } from "./tool.js";
 describe("claudeCodeTool", () => {
   describe("metadata", () => {
     it("should have correct name", () => {
-      expect(claudeCodeTool.name).toBe("claude_code");
+      expect(claudeCodeTool.name).toBe("coding_agent");
     });
 
     it("should have description mentioning complex tasks", () => {

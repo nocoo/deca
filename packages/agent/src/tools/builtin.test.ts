@@ -53,7 +53,7 @@ describe("builtin tools", () => {
       expect(names).toContain("memory_search");
       expect(names).toContain("memory_get");
       expect(names).toContain("sessions_spawn");
-      expect(names).toContain("claude_code");
+      expect(names).toContain("coding_agent");
     });
   });
 
