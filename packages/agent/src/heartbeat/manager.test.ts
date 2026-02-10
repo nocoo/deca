@@ -564,5 +564,35 @@ describe("HeartbeatManager", () => {
 
       manager.stop();
     });
+
+    it("should not start when intervalMs is 0", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 0,
+      });
+
+      manager.start();
+
+      const status = manager.getStatus();
+      expect(status.started).toBe(false);
+
+      manager.stop();
+    });
+
+    it("should not start when intervalMs is negative", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: -1,
+      });
+
+      manager.start();
+
+      const status = manager.getStatus();
+      expect(status.started).toBe(false);
+
+      manager.stop();
+    });
   });
 });

@@ -268,6 +268,7 @@ export class HeartbeatManager {
    */
   start(): void {
     if (!this.config.enabled || this.started) return;
+    if (this.config.intervalMs <= 0) return;
     this.started = true;
 
     // 计算下一次运行时间
