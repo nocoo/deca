@@ -20,3 +20,4 @@ eval/reports/*.md
 
 # Temporary debugging files
 tmp/
+scripts/
