@@ -75,7 +75,8 @@ export function createGateway(config: GatewayConfig): Gateway {
       // Send to main channel if configured
       if (discord.mainChannelId) {
         try {
-          const channel = client.channels.cache.get(discord.mainChannelId);
+          // Use fetch() instead of cache.get() to handle cold cache on startup
+          const channel = await client.channels.fetch(discord.mainChannelId);
           if (channel?.isTextBased()) {
             await sendToChannel(channel as TextBasedChannel, text);
             delivered = true;
