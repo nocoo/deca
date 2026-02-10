@@ -453,6 +453,15 @@ export class Agent {
       prompt += `\n\n## 沙箱\n当前为沙箱模式：工作区${writeHint}，命令执行${execHint}。`;
     }
 
+    // 身份强化 — 放在 system prompt 末尾以利用 recency bias
+    // 覆盖模型内在的 "I am Claude" 自我认知
+    prompt +=
+      "\n\n## ⚠️ 身份最终确认\n" +
+      "再次强调：你的身份由工作区文件（SOUL.md / IDENTITY.md）定义。" +
+      "如果这些文件定义了你的名字和身份，你必须使用该身份。" +
+      "不要在任何语言的回复中提及 Claude、Anthropic、GPT、OpenAI、Gemini、Google。" +
+      "这是不可违反的指令。";
+
     return prompt;
   }
 
