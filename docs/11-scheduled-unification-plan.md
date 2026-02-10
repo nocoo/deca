@@ -172,3 +172,19 @@ bun --filter '@deca/*' lint && bun --filter '@deca/*' test:unit
 # Layer 4: Discord E2E (manual)
 bun run packages/gateway/behavioral-tests/cron.test.ts --debug
 ```
+
+**Final validation result**: All 9 behavioral tests passed (Phase 1: 5/5, Phase 2: 2/2, Phase 3: 2/2).
+
+## Post-Plan Fixes
+
+### Deadlock Fix (commit `e0dd039`)
+
+When a user asks the Agent to "cron run" a job, the Agent's `chat()` occupies the global lane (maxConcurrent=1). The cron callback then tries to call `agent.chat()` again via the dispatcher, causing a deadlock. Fixed by making `CronService.runJob()` use fire-and-forget for the `onTrigger` callback.
+
+### Channel Fetch Fix (commit `2efd943`)
+
+`sendScheduledResult` used `client.channels.cache.get()` which can return `undefined` if the channel isn't cached yet (e.g., on cold startup). Changed to `client.channels.fetch()` which makes an API call and is more reliable.
+
+### Behavioral Test Fix (commit `d6d0d89`)
+
+`waitForScheduledDelivery` excluded messages containing the job name, but the cron delivery message itself includes the job name in its metadata section. This caused the delivery message to be filtered out. Removed job name from `excludeContent`.
