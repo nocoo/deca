@@ -71,36 +71,45 @@ export function createGateway(config: GatewayConfig): Gateway {
   }
 
   /**
-   * Send heartbeat result to Discord DM and main channel
+   * Send heartbeat result to available channels.
+   * Degrades gracefully: Discord if available, otherwise log only.
    */
   async function sendHeartbeatResult(text: string): Promise<void> {
-    if (!discordGateway || !discord) return;
+    let delivered = false;
 
-    const client = discordGateway.client;
+    if (discordGateway && discord) {
+      const client = discordGateway.client;
 
-    // Send to main channel (webhook channel) if configured
-    if (discord.mainChannelId) {
-      try {
-        const channel = client.channels.cache.get(discord.mainChannelId);
-        if (channel?.isTextBased()) {
-          await sendToChannel(channel as TextBasedChannel, text);
+      // Send to main channel if configured
+      if (discord.mainChannelId) {
+        try {
+          const channel = client.channels.cache.get(discord.mainChannelId);
+          if (channel?.isTextBased()) {
+            await sendToChannel(channel as TextBasedChannel, text);
+            delivered = true;
+          }
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          events.onError?.(err, "heartbeat");
         }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        events.onError?.(err, "heartbeat");
+      }
+
+      // Send to main user's DM if configured
+      if (discord.mainUserId) {
+        try {
+          const user = await client.users.fetch(discord.mainUserId);
+          const dmChannel = await user.createDM();
+          await sendToChannel(dmChannel, text);
+          delivered = true;
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          events.onError?.(err, "heartbeat");
+        }
       }
     }
 
-    // Send to main user's DM if configured
-    if (discord.mainUserId) {
-      try {
-        const user = await client.users.fetch(discord.mainUserId);
-        const dmChannel = await user.createDM();
-        await sendToChannel(dmChannel, text);
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        events.onError?.(err, "heartbeat");
-      }
+    if (!delivered) {
+      console.log("[Heartbeat] Result (no delivery channel):", text);
     }
   }
 
@@ -130,8 +139,8 @@ export function createGateway(config: GatewayConfig): Gateway {
             priority: 5,
           });
 
-          // Send result to Discord DM and main channel
-          if (response.success && response.text && discordGateway) {
+          // Send result to available channels
+          if (response.success && response.text) {
             await sendHeartbeatResult(response.text);
           }
         } catch (error) {
@@ -181,6 +190,10 @@ export function createGateway(config: GatewayConfig): Gateway {
         });
       });
     }
+
+    // Setup heartbeat callback (channel-independent)
+    // Works with any channel: Discord, HTTP, terminal, or none
+    setupHeartbeatCallback();
 
     if (discord) {
       discordGateway = createDiscordGateway({
@@ -240,10 +253,6 @@ export function createGateway(config: GatewayConfig): Gateway {
           slashConfig,
         );
       }
-
-      // Setup heartbeat after Discord is connected
-      // Heartbeat is always enabled, sends results to DM and main channel
-      setupHeartbeatCallback();
     }
 
     if (http) {

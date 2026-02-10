@@ -389,7 +389,7 @@ describe("createGateway", () => {
       expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
     });
 
-    it("does not start heartbeat without Discord channel", async () => {
+    it("starts heartbeat even without Discord channel", async () => {
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
         http: { port: 3000 },
@@ -398,7 +398,8 @@ describe("createGateway", () => {
 
       await gateway.start();
 
-      expect(mockStartHeartbeat).not.toHaveBeenCalled();
+      // Heartbeat is channel-independent; it dispatches through dispatcher
+      expect(mockStartHeartbeat).toHaveBeenCalledTimes(1);
     });
 
     it("stops heartbeat when gateway stops", async () => {
