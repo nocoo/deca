@@ -27,7 +27,7 @@ import {
   createDispatcher,
   createDispatcherHandler,
 } from "./dispatcher";
-import { createHeartbeatCallback } from "./heartbeat";
+import { createHeartbeatCallback } from "./scheduled";
 import type { Gateway, GatewayConfig, MessageHandler } from "./types";
 
 /**

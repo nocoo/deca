@@ -30,12 +30,12 @@ export {
 // Gateway
 export { createGateway, createEchoGateway } from "./gateway";
 
-// Heartbeat
+// Scheduled dispatch (heartbeat + cron)
 export {
   buildHeartbeatInstruction,
   createHeartbeatCallback,
   type HeartbeatCallbackDeps,
-} from "./heartbeat";
+} from "./scheduled";
 
 // Lock
 export {

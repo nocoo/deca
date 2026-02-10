@@ -20,7 +20,7 @@ import {
   type HeartbeatCallbackDeps,
   buildHeartbeatInstruction,
   createHeartbeatCallback,
-} from "./heartbeat";
+} from "./scheduled";
 
 // ============================================================================
 // Test Helpers
