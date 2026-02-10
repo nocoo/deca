@@ -1,8 +1,10 @@
 /**
- * Heartbeat Unit Tests
+ * Scheduled Dispatch Tests
  *
- * Tests for the extracted heartbeat logic: buildHeartbeatInstruction and createHeartbeatCallback.
- * These test the REAL exported functions, not inline copies.
+ * Tests for heartbeat and cron dispatch logic:
+ * - buildHeartbeatInstruction / buildCronInstruction (pure functions)
+ * - createHeartbeatCallback / createCronCallback (dispatch + delivery)
+ * - Stage 2 behavioral integration (real Dispatcher + mock Agent)
  */
 
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
@@ -1076,5 +1078,216 @@ describe("createCronCallback", () => {
       expect(sentResults).toHaveLength(1);
       expect(sentResults[0]).toBe("Daily report: 5 tasks completed, 2 pending");
     });
+  });
+});
+
+// ============================================================================
+// Stage 2 Behavioral Tests: Dispatcher + CronCallback integrated
+//
+// These tests wire up a REAL createDispatcher with createCronCallback.
+// The only mock is the handler (simulating the Agent LLM), so we can control
+// what the "Agent" responds and verify the full pipeline behavior:
+//
+//   cronCallback(job)
+//     -> buildCronInstruction(job)
+//     -> dispatcher.dispatch()
+//       -> handler.handle() (mock Agent)
+//     -> sendResult() — always delivers, no HEARTBEAT_OK suppression
+//
+// Note: CronService integration (timer scheduling, persistence, etc.) is
+// already thoroughly tested in @deca/agent. Here we focus on the dispatch
+// pipeline that the gateway owns.
+// ============================================================================
+
+describe("cron behavioral (Stage 2 integration)", () => {
+  /**
+   * Wire up the full pipeline: Dispatcher + CronCallback.
+   * Returns the callback and instrumented handles for assertion.
+   */
+  function wireCron(opts: {
+    agentResponse: string;
+    agentSuccess?: boolean;
+  }) {
+    const dispatched: DispatchRequest[] = [];
+    const sentResults: string[] = [];
+    const errors: { error: Error; source: string }[] = [];
+
+    const dispatcher = createDispatcher({
+      concurrency: 1,
+      handler: {
+        handle: async (req) => {
+          dispatched.push(req as DispatchRequest);
+          return {
+            text: opts.agentResponse,
+            success: opts.agentSuccess ?? true,
+          };
+        },
+      },
+    });
+
+    const callback = createCronCallback({
+      dispatcher,
+      sendResult: async (text) => {
+        sentResults.push(text);
+      },
+      onError: (error, source) => {
+        errors.push({ error, source });
+      },
+    });
+
+    return { callback, dispatcher, dispatched, sentResults, errors };
+  }
+
+  it("cron trigger dispatches to Agent and delivers result", async () => {
+    const { callback, dispatcher, dispatched, sentResults } = wireCron({
+      agentResponse: "Daily report: all systems nominal.",
+    });
+
+    await callback({
+      name: "daily-report",
+      instruction: "Generate a daily summary",
+    });
+    await dispatcher.shutdown();
+
+    // Verify Agent received the correct dispatch
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].source).toBe("cron");
+    expect(dispatched[0].sessionKey).toBe("cron");
+    expect(dispatched[0].content).toBe(
+      "[CRON TASK: daily-report] Generate a daily summary",
+    );
+    expect(dispatched[0].priority).toBe(5);
+    expect(dispatched[0].sender).toEqual({
+      id: "cron",
+      username: "cron-scheduler",
+    });
+
+    // Verify result was delivered
+    expect(sentResults).toHaveLength(1);
+    expect(sentResults[0]).toBe("Daily report: all systems nominal.");
+  });
+
+  it("Agent failure does not deliver and does not crash", async () => {
+    const { callback, dispatcher, dispatched, sentResults } = wireCron({
+      agentResponse: "Error occurred",
+      agentSuccess: false,
+    });
+
+    await callback({ name: "risky-task", instruction: "Run diagnostics" });
+    await dispatcher.shutdown();
+
+    // Agent was called but response was unsuccessful
+    expect(dispatched).toHaveLength(1);
+    // Nothing delivered because success=false
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("HEARTBEAT_OK from Agent is still delivered for cron (not suppressed)", async () => {
+    const { callback, dispatcher, dispatched, sentResults } = wireCron({
+      agentResponse: "HEARTBEAT_OK",
+    });
+
+    await callback({
+      name: "check-status",
+      instruction: "Reply exactly HEARTBEAT_OK",
+    });
+    await dispatcher.shutdown();
+
+    // Agent was called
+    expect(dispatched).toHaveLength(1);
+    // Unlike heartbeat, HEARTBEAT_OK is delivered as-is for cron
+    expect(sentResults).toHaveLength(1);
+    expect(sentResults[0]).toBe("HEARTBEAT_OK");
+  });
+
+  it("error in dispatcher does not crash", async () => {
+    const errors: { error: Error; source: string }[] = [];
+
+    const dispatcher = createDispatcher({
+      concurrency: 1,
+      handler: {
+        handle: async () => {
+          throw new Error("LLM API unavailable");
+        },
+      },
+    });
+
+    const callback = createCronCallback({
+      dispatcher,
+      sendResult: async () => {},
+      onError: (error, source) => {
+        errors.push({ error, source });
+      },
+    });
+
+    // Should not throw
+    await callback({ name: "failing-task", instruction: "This will fail" });
+    await dispatcher.shutdown();
+
+    // Error was captured
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("LLM API unavailable");
+    expect(errors[0].source).toBe("cron");
+  });
+
+  it("multiple cron jobs dispatch independently with correct instructions", async () => {
+    const { callback, dispatcher, dispatched, sentResults } = wireCron({
+      agentResponse: "Done",
+    });
+
+    await callback({ name: "backup-db", instruction: "Run database backup" });
+    await callback({ name: "sync-notes", instruction: "Sync obsidian notes" });
+    await dispatcher.shutdown();
+
+    expect(dispatched).toHaveLength(2);
+    expect(dispatched[0].content).toBe(
+      "[CRON TASK: backup-db] Run database backup",
+    );
+    expect(dispatched[1].content).toBe(
+      "[CRON TASK: sync-notes] Sync obsidian notes",
+    );
+
+    expect(sentResults).toHaveLength(2);
+  });
+
+  it("concurrent cron dispatches are serialized by the dispatcher", async () => {
+    const callOrder: string[] = [];
+
+    const dispatcher = createDispatcher({
+      concurrency: 1,
+      handler: {
+        handle: async (req) => {
+          callOrder.push(`start:${req.content}`);
+          // Simulate async work
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          callOrder.push(`end:${req.content}`);
+          return { text: "Done", success: true };
+        },
+      },
+    });
+
+    const sentResults: string[] = [];
+    const callback = createCronCallback({
+      dispatcher,
+      sendResult: async (text) => {
+        sentResults.push(text);
+      },
+    });
+
+    // Fire two jobs concurrently
+    const p1 = callback({ name: "job-a", instruction: "First" });
+    const p2 = callback({ name: "job-b", instruction: "Second" });
+    await Promise.all([p1, p2]);
+    await dispatcher.shutdown();
+
+    // With concurrency=1, they should be serialized (not interleaved)
+    expect(callOrder).toHaveLength(4);
+    expect(callOrder[0]).toContain("start:");
+    expect(callOrder[1]).toContain("end:");
+    expect(callOrder[2]).toContain("start:");
+    expect(callOrder[3]).toContain("end:");
+
+    // Both results delivered
+    expect(sentResults).toHaveLength(2);
   });
 });

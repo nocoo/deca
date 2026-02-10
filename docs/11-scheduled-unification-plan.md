@@ -46,10 +46,7 @@ After (unified):
 
 ### Step 1: refactor: rename heartbeat.ts → scheduled.ts
 
-**Status**: [ ] pending
-
-**Changes**:
-- Rename `packages/gateway/src/heartbeat.ts` → `packages/gateway/src/scheduled.ts`
+**Status**: [x] done (commit `ca9ff2a`)
 - Rename `packages/gateway/src/heartbeat.test.ts` → `packages/gateway/src/scheduled.test.ts`
 - Update all imports in `gateway.ts`, test files, etc.
 - No logic changes — pure rename
@@ -60,7 +57,7 @@ After (unified):
 
 ### Step 2: feat: extract createCronCallback + buildCronInstruction
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `b60b0a8`)
 
 **Changes**:
 - `packages/gateway/src/scheduled.ts` — Add:
@@ -80,15 +77,11 @@ After (unified):
 
 ### Step 3: refactor: replace cron inline closure in gateway.ts
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `3e957f0`)
 
 **Changes**:
 - `packages/gateway/src/gateway.ts` — Replace `gateway.ts:148-159` inline closure with `createCronCallback()`
 - Wire `sendResult` to the same delivery function as heartbeat
-
-**Tests**:
-- Existing gateway tests should still pass
-- New: verify cron dispatch uses `createCronCallback`
 
 **Verify**: `bun --filter '@deca/*' lint && bun --filter '@deca/*' test:unit`
 
@@ -96,7 +89,7 @@ After (unified):
 
 ### Step 4: refactor: rename sendHeartbeatResult → sendScheduledResult
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `d40328d`)
 
 **Changes**:
 - `packages/gateway/src/gateway.ts` — Rename function, update all call sites
@@ -108,7 +101,7 @@ After (unified):
 
 ### Step 5: test: add cron callback unit tests (Layer 1)
 
-**Status**: [ ] pending
+**Status**: [x] done (merged into Step 2, commit `b60b0a8`)
 
 **Changes**:
 - `packages/gateway/src/scheduled.test.ts` — Add comprehensive cron unit tests:
