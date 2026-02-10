@@ -21,7 +21,7 @@ export function buildHeartbeatInstruction(
   request: WakeRequest,
 ): string {
   const taskList = tasks.map((t) => t.description).join(", ");
-  return `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}. If nothing needs attention, reply HEARTBEAT_OK.`;
+  return `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}. Reply with your report for the user. Only reply HEARTBEAT_OK if HEARTBEAT.md does not require any reporting.`;
 }
 
 /**
