@@ -3,13 +3,15 @@
  *
  * 对应 OpenClaw 源码: src/tools/ 目录 (50+ 工具)
  *
- * 这里只实现了 9 个最基础的工具，覆盖了 Agent 的核心能力:
+ * 这里实现了 11 个最基础的工具，覆盖了 Agent 的核心能力:
  * - read: 读取文件 (感知代码)
  * - write: 写入文件 (创建代码)
  * - edit: 编辑文件 (修改代码)
  * - exec: 执行命令 (运行测试、安装依赖等)
  * - list: 列出目录 (探索项目结构)
  * - grep: 搜索文件 (定位代码)
+ * - search: 网络搜索 (实时信息获取)
+ * - research: 深度研究 (带引用的研究报告)
  * - memory_search: 记忆检索 (历史召回)
  * - memory_get: 记忆读取 (按需拉取)
  * - sessions_spawn: 子代理触发
@@ -328,6 +330,184 @@ export const grepTool: Tool<{ pattern: string; path?: string }> = {
   },
 };
 
+// ============== 网络搜索 ==============
+
+/**
+ * 网络搜索工具
+ *
+ * 为什么做成独立工具而不是 skill？
+ * - 与 read/write/exec 等工具平级，Agent 可以自然地选择使用
+ * - 不需要通过 skill 触发 → exec curl 的间接路径
+ * - 一次调用直接返回结果，减少 Agent loop 轮次
+ *
+ * 使用 Tavily Search API:
+ * - 环境变量 TAVILY_API_KEY 由 gateway/spawner 层注入
+ * - 返回格式化的搜索结果（标题、URL、摘要）
+ */
+export const searchTool: Tool<{
+  query: string;
+  max_results?: number;
+  search_depth?: string;
+  topic?: string;
+}> = {
+  name: "search",
+  description:
+    "搜索网络获取实时信息。当你不确定、需要最新数据、或用户问了时效性问题时使用",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "搜索关键词" },
+      max_results: {
+        type: "number",
+        description: "返回结果数量 (1-20)，默认 5",
+      },
+      search_depth: {
+        type: "string",
+        description: '"basic" (快速) 或 "advanced" (深度)，默认 basic',
+      },
+      topic: {
+        type: "string",
+        description: '"general"、"news" 或 "finance"，默认 general',
+      },
+    },
+    required: ["query"],
+  },
+  async execute(input) {
+    const apiKey = process.env.TAVILY_API_KEY;
+    if (!apiKey) {
+      return "错误: 网络搜索不可用 (未配置 TAVILY_API_KEY)";
+    }
+
+    try {
+      const response = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: input.query,
+          max_results: input.max_results ?? 5,
+          search_depth: input.search_depth ?? "basic",
+          topic: input.topic ?? "general",
+        }),
+      });
+
+      if (!response.ok) {
+        return `搜索失败: HTTP ${response.status} ${response.statusText}`;
+      }
+
+      const data = (await response.json()) as {
+        results?: {
+          title: string;
+          url: string;
+          content: string;
+          score: number;
+        }[];
+        answer?: string;
+      };
+
+      if (!data.results || data.results.length === 0) {
+        return "未找到相关结果";
+      }
+
+      const lines: string[] = [];
+      if (data.answer) {
+        lines.push(`**摘要**: ${data.answer}\n`);
+      }
+      for (const r of data.results) {
+        lines.push(`- **${r.title}**`);
+        lines.push(`  ${r.url}`);
+        lines.push(`  ${r.content.slice(0, 300)}`);
+        lines.push("");
+      }
+
+      return lines.join("\n").slice(0, 15000);
+    } catch (err) {
+      return `搜索错误: ${(err as Error).message}`;
+    }
+  },
+};
+
+// ============== 深度研究 ==============
+
+/**
+ * 深度研究工具
+ *
+ * 使用 Tavily Research API 生成带引用的研究报告。
+ * 适用于需要多角度、综合分析的场景。
+ *
+ * 注意: 研究可能需要 30-120 秒，timeout 设置较长。
+ */
+export const researchTool: Tool<{
+  topic: string;
+  model?: string;
+}> = {
+  name: "research",
+  description:
+    "深度研究一个主题，生成带引用来源的综合报告。适合需要全面了解某个话题的场景",
+  inputSchema: {
+    type: "object",
+    properties: {
+      topic: { type: "string", description: "研究主题" },
+      model: {
+        type: "string",
+        description: '"mini" (快速, ~30s) 或 "pro" (深度, ~60-120s)，默认 mini',
+      },
+    },
+    required: ["topic"],
+  },
+  async execute(input) {
+    const apiKey = process.env.TAVILY_API_KEY;
+    if (!apiKey) {
+      return "错误: 深度研究不可用 (未配置 TAVILY_API_KEY)";
+    }
+
+    try {
+      const response = await fetch("https://api.tavily.com/research", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: input.topic,
+          model: input.model ?? "mini",
+          stream: false,
+          citation_format: "numbered",
+        }),
+      });
+
+      if (!response.ok) {
+        return `研究失败: HTTP ${response.status} ${response.statusText}`;
+      }
+
+      const data = (await response.json()) as {
+        content?: string;
+        sources?: { title: string; url: string }[];
+      };
+
+      if (!data.content) {
+        return "研究未返回结果";
+      }
+
+      const lines: string[] = [data.content];
+
+      if (data.sources && data.sources.length > 0) {
+        lines.push("\n---\n**引用来源**:");
+        for (let i = 0; i < data.sources.length; i++) {
+          const s = data.sources[i];
+          lines.push(`[${i + 1}] ${s.title} — ${s.url}`);
+        }
+      }
+
+      return lines.join("\n").slice(0, 30000);
+    } catch (err) {
+      return `研究错误: ${(err as Error).message}`;
+    }
+  },
+};
+
 // ============== 记忆工具 ==============
 
 /**
@@ -448,6 +628,8 @@ const coreTools: Tool[] = [
   execTool,
   listTool,
   grepTool,
+  searchTool,
+  researchTool,
   memorySearchTool,
   memoryGetTool,
   sessionsSpawnTool,

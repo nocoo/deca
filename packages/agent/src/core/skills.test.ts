@@ -31,8 +31,6 @@ describe("SkillManager", () => {
       expect(skills.some((s) => s.id === "explain")).toBe(true);
       expect(skills.some((s) => s.id === "refactor")).toBe(true);
       expect(skills.some((s) => s.id === "test")).toBe(true);
-      expect(skills.some((s) => s.id === "search")).toBe(true);
-      expect(skills.some((s) => s.id === "research")).toBe(true);
     });
 
     it("should load skills from workspace skills directory", async () => {
@@ -154,22 +152,6 @@ Deploy prompt`,
 
       expect(match).toBeDefined();
       expect(match?.skill.id).toBe("deploy");
-    });
-
-    it("should match /search trigger", async () => {
-      const match = await skillManager.match("/search quantum computing");
-
-      expect(match).toBeDefined();
-      expect(match?.skill.id).toBe("search");
-      expect(match?.matchedTrigger).toBe("/search");
-    });
-
-    it("should match /research trigger", async () => {
-      const match = await skillManager.match("/research AI trends 2026");
-
-      expect(match).toBeDefined();
-      expect(match?.skill.id).toBe("research");
-      expect(match?.matchedTrigger).toBe("/research");
     });
   });
 

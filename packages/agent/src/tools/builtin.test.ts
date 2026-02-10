@@ -11,6 +11,8 @@ import {
   memoryGetTool,
   memorySearchTool,
   readTool,
+  researchTool,
+  searchTool,
   sessionsSpawnTool,
   writeTool,
 } from "./builtin.js";
@@ -37,8 +39,8 @@ describe("builtin tools", () => {
   });
 
   describe("builtinTools export", () => {
-    it("should export all 10 tools", () => {
-      expect(builtinTools.length).toBe(10);
+    it("should export all 12 tools", () => {
+      expect(builtinTools.length).toBe(12);
       const names = builtinTools.map((t) => t.name);
       expect(names).toContain("read");
       expect(names).toContain("write");
@@ -46,6 +48,8 @@ describe("builtin tools", () => {
       expect(names).toContain("exec");
       expect(names).toContain("list");
       expect(names).toContain("grep");
+      expect(names).toContain("search");
+      expect(names).toContain("research");
       expect(names).toContain("memory_search");
       expect(names).toContain("memory_get");
       expect(names).toContain("sessions_spawn");
@@ -322,6 +326,234 @@ describe("builtin tools", () => {
       const result = await grepTool.execute({ pattern: "anything" }, ctx);
 
       expect(result).toBe("未找到匹配");
+    });
+  });
+
+  describe("searchTool", () => {
+    it("should have correct metadata", () => {
+      expect(searchTool.name).toBe("search");
+      expect(searchTool.description).toContain("搜索");
+      expect(searchTool.inputSchema.required).toContain("query");
+    });
+
+    it("should return error when TAVILY_API_KEY not set", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      process.env.TAVILY_API_KEY = "";
+
+      try {
+        const result = await searchTool.execute({ query: "test" }, ctx);
+        expect(result).toContain("错误");
+        expect(result).toContain("TAVILY_API_KEY");
+      } finally {
+        if (originalKey) process.env.TAVILY_API_KEY = originalKey;
+        else process.env.TAVILY_API_KEY = "";
+      }
+    });
+
+    it("should call Tavily API and return formatted results", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async (url: string | URL | Request) => {
+        const urlStr = url instanceof Request ? url.url : url.toString();
+        expect(urlStr).toBe("https://api.tavily.com/search");
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                title: "Test Result",
+                url: "https://example.com",
+                content: "Test content about the query",
+                score: 0.95,
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+
+      try {
+        const result = await searchTool.execute({ query: "test query" }, ctx);
+        expect(result).toContain("Test Result");
+        expect(result).toContain("https://example.com");
+        expect(result).toContain("Test content");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("should handle API errors gracefully", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async () =>
+        new Response("Unauthorized", {
+          status: 401,
+          statusText: "Unauthorized",
+        });
+
+      try {
+        const result = await searchTool.execute({ query: "test" }, ctx);
+        expect(result).toContain("搜索失败");
+        expect(result).toContain("401");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("should handle empty results", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async () =>
+        new Response(JSON.stringify({ results: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+
+      try {
+        const result = await searchTool.execute({ query: "test" }, ctx);
+        expect(result).toBe("未找到相关结果");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("should include answer summary when available", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async () =>
+        new Response(
+          JSON.stringify({
+            answer: "The answer is 42",
+            results: [
+              {
+                title: "Result",
+                url: "https://example.com",
+                content: "Content",
+                score: 0.9,
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+
+      try {
+        const result = await searchTool.execute(
+          { query: "meaning of life" },
+          ctx,
+        );
+        expect(result).toContain("**摘要**: The answer is 42");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  describe("researchTool", () => {
+    it("should have correct metadata", () => {
+      expect(researchTool.name).toBe("research");
+      expect(researchTool.description).toContain("研究");
+      expect(researchTool.inputSchema.required).toContain("topic");
+    });
+
+    it("should return error when TAVILY_API_KEY not set", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      process.env.TAVILY_API_KEY = "";
+
+      try {
+        const result = await researchTool.execute({ topic: "test" }, ctx);
+        expect(result).toContain("错误");
+        expect(result).toContain("TAVILY_API_KEY");
+      } finally {
+        if (originalKey) process.env.TAVILY_API_KEY = originalKey;
+        else process.env.TAVILY_API_KEY = "";
+      }
+    });
+
+    it("should call Tavily Research API and return report", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async (url: string | URL | Request) => {
+        const urlStr = url instanceof Request ? url.url : url.toString();
+        expect(urlStr).toBe("https://api.tavily.com/research");
+        return new Response(
+          JSON.stringify({
+            content: "Research report about AI trends",
+            sources: [
+              { title: "Source 1", url: "https://source1.com" },
+              { title: "Source 2", url: "https://source2.com" },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+
+      try {
+        const result = await researchTool.execute(
+          { topic: "AI trends 2026" },
+          ctx,
+        );
+        expect(result).toContain("Research report about AI trends");
+        expect(result).toContain("引用来源");
+        expect(result).toContain("[1] Source 1");
+        expect(result).toContain("[2] Source 2");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("should handle empty research response", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async () =>
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+
+      try {
+        const result = await researchTool.execute({ topic: "test" }, ctx);
+        expect(result).toBe("研究未返回结果");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("should handle API errors gracefully", async () => {
+      const originalKey = process.env.TAVILY_API_KEY;
+      const originalFetch = globalThis.fetch;
+
+      process.env.TAVILY_API_KEY = "test-key";
+      globalThis.fetch = async () =>
+        new Response("Server Error", {
+          status: 500,
+          statusText: "Internal Server Error",
+        });
+
+      try {
+        const result = await researchTool.execute({ topic: "test" }, ctx);
+        expect(result).toContain("研究失败");
+        expect(result).toContain("500");
+      } finally {
+        process.env.TAVILY_API_KEY = originalKey;
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 
