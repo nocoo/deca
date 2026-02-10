@@ -369,7 +369,7 @@ describe("CronService", () => {
   });
 
   describe("runJob", () => {
-    it("should trigger callback for existing job", async () => {
+    it("should trigger callback for existing job (fire-and-forget)", async () => {
       const triggered: string[] = [];
       const service = new CronService({
         storagePath,
@@ -387,6 +387,8 @@ describe("CronService", () => {
       });
 
       await service.runJob(job.id);
+      // runJob uses fire-and-forget for onTrigger; yield to let it complete
+      await new Promise((r) => setTimeout(r, 10));
 
       expect(triggered).toContain(job.id);
 
@@ -627,6 +629,8 @@ describe("CronService", () => {
       });
 
       await service.runJob(job.id);
+      // runJob uses fire-and-forget; yield to let error handler run
+      await new Promise((r) => setTimeout(r, 10));
 
       expect(consoleSpy).toHaveBeenCalled();
 
@@ -681,6 +685,8 @@ describe("CronService", () => {
       });
 
       await service.runJob(job.id);
+      // runJob uses fire-and-forget; yield to let callback complete
+      await new Promise((r) => setTimeout(r, 10));
 
       expect(triggered).toContain(job.id);
       await service.shutdown();
@@ -710,6 +716,8 @@ describe("CronService", () => {
       });
 
       await service.runJob(job.id);
+      // runJob uses fire-and-forget; yield to let callback complete
+      await new Promise((r) => setTimeout(r, 10));
 
       expect(initialTriggered).toEqual([]);
       expect(lateTriggered).toContain(job.id);

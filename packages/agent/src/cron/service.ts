@@ -71,7 +71,10 @@ export class CronService {
   async runJob(jobId: string): Promise<void> {
     const job = this.jobs.get(jobId);
     if (!job) throw new Error(`Job not found: ${jobId}`);
-    await this.triggerJob(job);
+    // Use fireAndForget mode to avoid deadlock when called from
+    // within an Agent tool — the cron callback dispatches another
+    // Agent request through the same serialized global lane.
+    await this.triggerJob(job, { fireAndForget: true });
   }
 
   listJobs(): CronJob[] {
@@ -130,7 +133,10 @@ export class CronService {
     return earliest;
   }
 
-  private async triggerJob(job: CronJob): Promise<void> {
+  private async triggerJob(
+    job: CronJob,
+    opts?: { fireAndForget?: boolean },
+  ): Promise<void> {
     const now = Date.now();
 
     job.lastRunAtMs = now;
@@ -147,10 +153,18 @@ export class CronService {
       return;
     }
 
-    try {
-      await this.onTrigger(job);
-    } catch (err) {
-      console.error(`[Cron] Job ${job.id} trigger failed:`, err);
+    if (opts?.fireAndForget) {
+      // Don't await — prevents deadlock when runJob is called
+      // from inside an Agent tool execution context.
+      void this.onTrigger(job).catch((err) => {
+        console.error(`[Cron] Job ${job.id} trigger failed:`, err);
+      });
+    } else {
+      try {
+        await this.onTrigger(job);
+      } catch (err) {
+        console.error(`[Cron] Job ${job.id} trigger failed:`, err);
+      }
     }
   }
 

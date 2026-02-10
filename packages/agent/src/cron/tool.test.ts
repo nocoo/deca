@@ -271,6 +271,8 @@ describe("cronTool", () => {
       );
 
       expect(result).toContain("Job triggered");
+      // runJob uses fire-and-forget; yield to let callback complete
+      await new Promise((r) => setTimeout(r, 10));
       expect(triggered).toContain(job.id);
 
       await triggerService.shutdown();
