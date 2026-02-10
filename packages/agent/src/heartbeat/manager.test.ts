@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { HeartbeatManager, type HeartbeatTask } from "./manager.js";
+import {
+  HeartbeatManager,
+  type HeartbeatResult,
+  type HeartbeatTask,
+  type WakeRequest,
+} from "./manager.js";
 
 describe("HeartbeatManager", () => {
   let tempDir: string;
@@ -593,6 +598,372 @@ describe("HeartbeatManager", () => {
       expect(status.started).toBe(false);
 
       manager.stop();
+    });
+  });
+
+  // ============================================================
+  // Stage 1: Timer Lifecycle Tests
+  // Test that timers actually fire, reschedule, and coalesce.
+  // Uses short intervals (50-100ms) to keep tests fast.
+  // ============================================================
+
+  describe("timer lifecycle (Stage 1)", () => {
+    it("start() fires callback automatically on interval", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 50,
+        coalesceMs: 10,
+      });
+
+      let callCount = 0;
+      manager.onTasks(async () => {
+        callCount++;
+        return { status: "ok" };
+      });
+
+      manager.start();
+
+      // Wait long enough for at least 1 interval to fire
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      manager.stop();
+
+      expect(callCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it("rescheduling loop fires callback multiple times", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 60,
+        coalesceMs: 10,
+      });
+
+      let callCount = 0;
+      manager.onTasks(async () => {
+        callCount++;
+        return { status: "ok" };
+      });
+
+      manager.start();
+
+      // Wait for multiple intervals
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      manager.stop();
+
+      expect(callCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it("stop() prevents pending timer from firing", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 100,
+        coalesceMs: 10,
+      });
+
+      let callCount = 0;
+      manager.onTasks(async () => {
+        callCount++;
+        return { status: "ok" };
+      });
+
+      manager.start();
+      // Stop immediately before the first interval fires
+      manager.stop();
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      expect(callCount).toBe(0);
+    });
+
+    it("start() after stop() resumes timer cycle", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 50,
+        coalesceMs: 10,
+      });
+
+      let callCount = 0;
+      manager.onTasks(async () => {
+        callCount++;
+        return { status: "ok" };
+      });
+
+      manager.start();
+      manager.stop();
+      expect(callCount).toBe(0);
+
+      // Re-start
+      manager.start();
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      manager.stop();
+
+      expect(callCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it("double-buffering: request during execution is queued and runs after", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 5000, // Long interval so timer doesn't interfere
+        coalesceMs: 10,
+      });
+
+      const reasons: string[] = [];
+      manager.onTasks(async (_tasks, request) => {
+        reasons.push(request.reason);
+        if (reasons.length === 1) {
+          // While first callback is running, request another wake
+          manager.requestNow("exec", "test");
+          // Simulate some async work so the double-buffer has time to register
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        return { status: "ok" };
+      });
+
+      // Trigger the first execution
+      manager.requestNow("requested");
+
+      // Wait for both executions to complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      manager.stop();
+
+      // First call was "requested", second call should be "exec" (double-buffered)
+      expect(reasons.length).toBe(2);
+      expect(reasons[0]).toBe("requested");
+      expect(reasons[1]).toBe("exec");
+    });
+
+    it("coalescing merges multiple requests into one execution", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 5000,
+        coalesceMs: 100,
+      });
+
+      let callCount = 0;
+      let receivedReason: string | undefined;
+      manager.onTasks(async (_tasks, request) => {
+        callCount++;
+        receivedReason = request.reason;
+        return { status: "ok" };
+      });
+
+      // Fire multiple requests within the coalesce window
+      manager.requestNow("requested");
+      manager.requestNow("interval");
+      manager.requestNow("cron");
+
+      // Wait for coalesce + execution
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      manager.stop();
+
+      // Should have coalesced into a single call with highest priority reason
+      expect(callCount).toBe(1);
+      expect(receivedReason).toBe("cron");
+    });
+
+    it("active hours gating works with timer-driven execution", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      // Set active hours to exclude current time
+      const now = new Date();
+      const outStart = `${(now.getHours() + 2) % 24}:00`;
+      const outEnd = `${(now.getHours() + 3) % 24}:00`;
+
+      const manager = new HeartbeatManager(tempDir, {
+        intervalMs: 50,
+        coalesceMs: 10,
+        activeHours: { start: outStart, end: outEnd },
+      });
+
+      let callCount = 0;
+      manager.onTasks(async () => {
+        callCount++;
+        return { status: "ok" };
+      });
+
+      manager.start();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      manager.stop();
+
+      // Callback should never be called because we're outside active hours
+      expect(callCount).toBe(0);
+    });
+  });
+
+  // ============================================================
+  // Stage 2: Agent Processing Tests
+  // Test runOnce() logic: what input goes in, what comes out.
+  // Uses trigger() which is a synchronous wrapper for runOnce().
+  // ============================================================
+
+  describe("agent processing (Stage 2)", () => {
+    it("exec reason bypasses empty-task skip", async () => {
+      // No pending tasks — all completed
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [x] Done");
+
+      const manager = new HeartbeatManager(tempDir);
+
+      let callbackInvoked = false;
+      let receivedTasks: HeartbeatTask[] = [];
+      let receivedRequest: WakeRequest | undefined;
+      manager.onTasks(async (tasks, request) => {
+        callbackInvoked = true;
+        receivedTasks = tasks;
+        receivedRequest = request;
+        return { status: "ok" };
+      });
+
+      // Use requestNow with "exec" reason — should call callback even with no pending tasks
+      manager.requestNow("exec");
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      manager.stop();
+
+      expect(callbackInvoked).toBe(true);
+      expect(receivedTasks).toHaveLength(0);
+      expect(receivedRequest?.reason).toBe("exec");
+    });
+
+    it("non-exec reason skips when no pending tasks", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [x] Done");
+
+      const manager = new HeartbeatManager(tempDir);
+
+      let callbackInvoked = false;
+      manager.onTasks(async () => {
+        callbackInvoked = true;
+        return { status: "ok" };
+      });
+
+      const result = await manager.trigger();
+
+      expect(callbackInvoked).toBe(false);
+      expect(result.status).toBe("skipped");
+      expect(result.reason).toBe("no-pending-tasks");
+    });
+
+    it("duplicate suppression returns skipped status with correct reason", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        duplicateWindowMs: 5000,
+      });
+
+      manager.onTasks(async () => {
+        return { status: "ok", text: "Same response text" };
+      });
+
+      // First trigger — should succeed
+      const first = await manager.trigger();
+      expect(first.status).toBe("ok");
+      expect(first.text).toBe("Same response text");
+
+      // Second trigger with same text — should be skipped as duplicate
+      const second = await manager.trigger();
+      expect(second.status).toBe("skipped");
+      expect(second.reason).toBe("duplicate-message");
+    });
+
+    it("duplicate suppression expires after window", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        duplicateWindowMs: 50, // Very short window for testing
+      });
+
+      manager.onTasks(async () => {
+        return { status: "ok", text: "Same response" };
+      });
+
+      // First trigger
+      const first = await manager.trigger();
+      expect(first.status).toBe("ok");
+
+      // Wait for the duplicate window to expire
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should no longer be suppressed
+      const second = await manager.trigger();
+      expect(second.status).toBe("ok");
+      expect(second.text).toBe("Same response");
+    });
+
+    it("different text is not suppressed", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        duplicateWindowMs: 5000,
+      });
+
+      let callIndex = 0;
+      manager.onTasks(async () => {
+        callIndex++;
+        return { status: "ok", text: `Response ${callIndex}` };
+      });
+
+      const first = await manager.trigger();
+      expect(first.status).toBe("ok");
+
+      const second = await manager.trigger();
+      expect(second.status).toBe("ok");
+      expect(second.text).toBe("Response 2");
+    });
+
+    it("callback receives correct tasks and wake request", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "HEARTBEAT.md"),
+        "- [ ] Alpha\n- [x] Beta\n- [ ] Gamma",
+      );
+
+      const manager = new HeartbeatManager(tempDir);
+
+      let receivedTasks: HeartbeatTask[] = [];
+      let receivedRequest: WakeRequest | undefined;
+      manager.onTasks(async (tasks, request) => {
+        receivedTasks = tasks;
+        receivedRequest = request;
+        return { status: "ok" };
+      });
+
+      await manager.trigger();
+
+      // Should receive only pending tasks (not completed Beta)
+      expect(receivedTasks).toHaveLength(2);
+      expect(receivedTasks[0].description).toBe("Alpha");
+      expect(receivedTasks[0].completed).toBe(false);
+      expect(receivedTasks[1].description).toBe("Gamma");
+      expect(receivedTasks[1].completed).toBe(false);
+
+      // Request should have reason "requested" (from trigger())
+      expect(receivedRequest?.reason).toBe("requested");
+    });
+
+    it("callback result text is stored for duplicate detection", async () => {
+      await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [ ] Task");
+
+      const manager = new HeartbeatManager(tempDir, {
+        duplicateWindowMs: 5000,
+      });
+
+      // First callback returns text, second returns nothing
+      let callIndex = 0;
+      manager.onTasks(async () => {
+        callIndex++;
+        if (callIndex === 1) return { status: "ok", text: "Agent said hello" };
+        return { status: "ok" }; // No text
+      });
+
+      const first = await manager.trigger();
+      expect(first.text).toBe("Agent said hello");
+
+      // Second trigger — callback returns no text, so no duplicate check
+      const second = await manager.trigger();
+      expect(second.status).toBe("ok");
+      expect(second.text).toBeUndefined();
     });
   });
 });
