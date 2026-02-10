@@ -157,12 +157,12 @@ describe("Agent", () => {
     expect(result.text).toBe("ok");
     // System prompt is now an array of TextBlockParam with cache_control
     const systemText = lastStreamParams?.system?.[0]?.text ?? "";
-    expect(systemText).toContain("## 工作区文件");
+    expect(systemText).toContain("# Project Context");
     expect(systemText).toContain("## AGENTS.md");
     expect(systemText).toContain("CTX");
     expect(systemText).toContain("## 可用技能");
-    expect(systemText).toContain("记忆");
-    expect(systemText).toContain("沙箱");
+    expect(systemText).toContain("Memory");
+    expect(systemText).toContain("Sandbox");
     // Verify cache_control is set for prompt caching
     expect(lastStreamParams?.system?.[0]?.cache_control?.type).toBe(
       "ephemeral",

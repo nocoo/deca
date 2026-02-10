@@ -54,16 +54,13 @@ export class ContextLoader {
 
     const lines: string[] = [
       "",
-      "## 工作区文件 (已注入)",
-      "以下文件为可编辑上下文，已注入到 Project Context：",
-      "",
       "# Project Context",
       "",
-      "以下项目上下文文件已加载：",
+      "The following project context files have been loaded:",
     ];
     if (hasSoulFile) {
       lines.push(
-        "若存在 SOUL.md，请遵循其人格与语气指引，避免机械化回复（除非更高优先级指令覆盖）。",
+        "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies.",
       );
     }
     lines.push("");

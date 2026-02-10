@@ -78,7 +78,7 @@ describe("ContextLoader", () => {
       const prompt = await loader.buildContextPrompt();
 
       expect(prompt).toContain("SOUL.md");
-      expect(prompt).toContain("人格与语气");
+      expect(prompt).toContain("embody its persona and tone");
     });
 
     it("should respect maxChars option", async () => {

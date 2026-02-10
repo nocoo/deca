@@ -352,7 +352,7 @@ export const searchTool: Tool<{
 }> = {
   name: "search",
   description:
-    "搜索网络获取实时信息。当你不确定、需要最新数据、或用户问了时效性问题时使用",
+    "Search the web for real-time information. Use when your training data might be outdated, when the user asks you to search, or when you're not sure about something.",
   inputSchema: {
     type: "object",
     properties: {

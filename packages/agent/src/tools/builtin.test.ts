@@ -332,7 +332,7 @@ describe("builtin tools", () => {
   describe("searchTool", () => {
     it("should have correct metadata", () => {
       expect(searchTool.name).toBe("search");
-      expect(searchTool.description).toContain("搜索");
+      expect(searchTool.description).toContain("Search");
       expect(searchTool.inputSchema.required).toContain("query");
     });
 
