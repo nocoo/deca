@@ -713,11 +713,13 @@ async function main() {
           });
         } else {
           // Step 4: Wait for the scheduled delivery message
-          // Exclude the chat reply about "Job triggered" and the original prompt
+          // Exclude only the chat reply about "Job triggered" — do NOT exclude
+          // deliveryJobName because the cron delivery message itself contains
+          // the job name in its metadata section.
           const delivered = await waitForScheduledDelivery(
             config,
             beforeRun,
-            ["Job triggered", "cron tool", deliveryJobName],
+            ["Job triggered", "cron tool"],
             90000,
           );
 
@@ -824,7 +826,7 @@ async function main() {
           const delivered = await waitForScheduledDelivery(
             config,
             beforeRun,
-            ["Job triggered", "cron tool", heartbeatJobName],
+            ["Job triggered", "cron tool"],
             90000,
           );
 
