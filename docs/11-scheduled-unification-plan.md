@@ -117,7 +117,7 @@ After (unified):
 
 ### Step 6: test: add cron Stage 2 behavioral integration tests (Layer 3)
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `57c3ea0`)
 
 **Changes**:
 - `packages/gateway/src/scheduled.test.ts` — Add Stage 2 section for cron:
