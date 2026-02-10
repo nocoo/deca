@@ -17,8 +17,11 @@ import {
 import { createDispatcher } from "./dispatcher";
 import type { DispatchRequest } from "./dispatcher/types";
 import {
+  type CronJobInfo,
   type HeartbeatCallbackDeps,
+  buildCronInstruction,
   buildHeartbeatInstruction,
+  createCronCallback,
   createHeartbeatCallback,
 } from "./scheduled";
 
@@ -813,5 +816,265 @@ describe("heartbeat behavioral (Stage 2 integration)", () => {
     expect(errors).toHaveLength(1);
     expect(errors[0].error.message).toBe("LLM API unavailable");
     expect(errors[0].source).toBe("heartbeat");
+  });
+});
+
+// ============================================================================
+// buildCronInstruction
+// ============================================================================
+
+describe("buildCronInstruction", () => {
+  it("formats instruction with job name and instruction", () => {
+    const result = buildCronInstruction({
+      name: "daily-report",
+      instruction: "Generate a summary of today's activity",
+    });
+    expect(result).toBe(
+      "[CRON TASK: daily-report] Generate a summary of today's activity",
+    );
+  });
+
+  it("preserves exact instruction text without modification", () => {
+    const result = buildCronInstruction({
+      name: "backup",
+      instruction: "Run backup with --full flag",
+    });
+    expect(result).toBe("[CRON TASK: backup] Run backup with --full flag");
+  });
+
+  it("handles empty instruction", () => {
+    const result = buildCronInstruction({
+      name: "ping",
+      instruction: "",
+    });
+    expect(result).toBe("[CRON TASK: ping] ");
+  });
+
+  it("does NOT include HEARTBEAT_OK protocol", () => {
+    const result = buildCronInstruction({
+      name: "check",
+      instruction: "Check server status",
+    });
+    expect(result).not.toContain("HEARTBEAT_OK");
+  });
+});
+
+// ============================================================================
+// createCronCallback
+// ============================================================================
+
+describe("createCronCallback", () => {
+  const sampleJob: CronJobInfo = {
+    name: "daily-report",
+    instruction: "Generate daily summary",
+  };
+
+  it("dispatches with correct source, sessionKey, and priority", async () => {
+    const { deps, dispatched } = createMockDeps();
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].source).toBe("cron");
+    expect(dispatched[0].sessionKey).toBe("cron");
+    expect(dispatched[0].priority).toBe(5);
+    expect(dispatched[0].sender).toEqual({
+      id: "cron",
+      username: "cron-scheduler",
+    });
+  });
+
+  it("dispatches with correct instruction content", async () => {
+    const { deps, dispatched } = createMockDeps();
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(dispatched[0].content).toBe(
+      "[CRON TASK: daily-report] Generate daily summary",
+    );
+  });
+
+  it("sends result on successful dispatch", async () => {
+    const { deps, sentResults } = createMockDeps();
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(sentResults).toHaveLength(1);
+    expect(sentResults[0]).toBe("Agent response");
+  });
+
+  it("does not send result when dispatch fails", async () => {
+    const { deps, sentResults } = createMockDeps({
+      dispatcher: makeMockDispatcher({
+        text: "Error occurred",
+        success: false,
+      }),
+    });
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("does not send result when response text is empty", async () => {
+    const { deps, sentResults } = createMockDeps({
+      dispatcher: makeMockDispatcher({ text: "", success: true }),
+    });
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("catches dispatch errors and reports via onError", async () => {
+    const { deps, errors } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw new Error("Cron dispatch failed");
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createCronCallback(deps);
+
+    // Should not throw
+    await callback(sampleJob);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("Cron dispatch failed");
+    expect(errors[0].source).toBe("cron");
+  });
+
+  it("catches non-Error throws and wraps them", async () => {
+    const { deps, errors } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw "string error from cron";
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("string error from cron");
+  });
+
+  it("catches sendResult errors and reports via onError", async () => {
+    const { deps, errors } = createMockDeps({
+      sendResult: mock(async () => {
+        throw new Error("Discord delivery failed");
+      }),
+    });
+    const callback = createCronCallback(deps);
+
+    await callback(sampleJob);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("Discord delivery failed");
+    expect(errors[0].source).toBe("cron");
+  });
+
+  it("works without onError callback (no crash)", async () => {
+    const deps: HeartbeatCallbackDeps = {
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw new Error("Boom");
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+      sendResult: mock(async () => {}),
+      // no onError
+    };
+    const callback = createCronCallback(deps);
+
+    // Should not throw even without onError handler
+    await callback(sampleJob);
+  });
+
+  describe("no HEARTBEAT_OK suppression", () => {
+    it("delivers 'HEARTBEAT_OK' as-is (not suppressed)", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "HEARTBEAT_OK",
+          success: true,
+        }),
+      });
+      const callback = createCronCallback(deps);
+
+      await callback(sampleJob);
+
+      // Unlike heartbeat, cron delivers HEARTBEAT_OK to the user
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("HEARTBEAT_OK");
+    });
+
+    it("delivers 'HEARTBEAT_OK' with trailing content without stripping", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "HEARTBEAT_OK Some report here",
+          success: true,
+        }),
+      });
+      const callback = createCronCallback(deps);
+
+      await callback(sampleJob);
+
+      // Cron does not strip token — full text delivered
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("HEARTBEAT_OK Some report here");
+    });
+
+    it("delivers normal text without modification", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "Daily report: 5 tasks completed, 2 pending",
+          success: true,
+        }),
+      });
+      const callback = createCronCallback(deps);
+
+      await callback(sampleJob);
+
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("Daily report: 5 tasks completed, 2 pending");
+    });
   });
 });
