@@ -63,10 +63,10 @@ export function createGateway(config: GatewayConfig): Gateway {
   }
 
   /**
-   * Send heartbeat result to available channels.
+   * Send scheduled result (heartbeat/cron) to available channels.
    * Degrades gracefully: Discord if available, otherwise log only.
    */
-  async function sendHeartbeatResult(text: string): Promise<void> {
+  async function sendScheduledResult(text: string): Promise<void> {
     let delivered = false;
 
     if (discordGateway && discord) {
@@ -82,7 +82,7 @@ export function createGateway(config: GatewayConfig): Gateway {
           }
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
-          events.onError?.(err, "heartbeat");
+          events.onError?.(err, "scheduled");
         }
       }
 
@@ -95,13 +95,13 @@ export function createGateway(config: GatewayConfig): Gateway {
           delivered = true;
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
-          events.onError?.(err, "heartbeat");
+          events.onError?.(err, "scheduled");
         }
       }
     }
 
     if (!delivered) {
-      console.log("[Heartbeat] Result (no delivery channel):", text);
+      console.log("[Scheduled] Result (no delivery channel):", text);
     }
   }
 
@@ -112,7 +112,7 @@ export function createGateway(config: GatewayConfig): Gateway {
 
     const callback = createHeartbeatCallback({
       dispatcher,
-      sendResult: sendHeartbeatResult,
+      sendResult: sendScheduledResult,
       onError: events.onError,
     });
 
@@ -148,7 +148,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     if (adapter.cronService) {
       const cronCallback = createCronCallback({
         dispatcher,
-        sendResult: sendHeartbeatResult,
+        sendResult: sendScheduledResult,
         onError: events.onError,
       });
       adapter.cronService.setOnTrigger(cronCallback);
