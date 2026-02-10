@@ -349,19 +349,20 @@ describe("HeartbeatManager", () => {
       );
 
       const manager = new HeartbeatManager(tempDir);
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      expect(tasks.length).toBe(1);
-      expect(tasks[0].description).toBe("Pending");
+      expect(result.tasks?.length).toBe(1);
+      expect(result.tasks?.[0].description).toBe("Pending");
     });
 
     it("should return empty when no pending tasks", async () => {
       await fs.writeFile(path.join(tempDir, "HEARTBEAT.md"), "- [x] Done");
 
       const manager = new HeartbeatManager(tempDir);
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      expect(tasks.length).toBe(0);
+      expect(result.status).toBe("skipped");
+      expect(result.reason).toBe("no-pending-tasks");
     });
   });
 
@@ -378,10 +379,11 @@ describe("HeartbeatManager", () => {
         activeHours: { start: outOfRangeStart, end: outOfRangeEnd },
       });
 
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      // Should return empty because we're outside active hours
-      expect(tasks.length).toBe(0);
+      // Should be skipped because we're outside active hours
+      expect(result.status).toBe("skipped");
+      expect(result.tasks ?? []).toHaveLength(0);
     });
 
     it("should execute when within active hours", async () => {
@@ -396,9 +398,9 @@ describe("HeartbeatManager", () => {
         activeHours: { start: inRangeStart, end: inRangeEnd },
       });
 
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      expect(tasks.length).toBe(1);
+      expect(result.tasks).toHaveLength(1);
     });
   });
 
@@ -508,12 +510,13 @@ describe("HeartbeatManager", () => {
         activeHours: { start: "22:00", end: "06:00" },
       });
 
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
       if (isOvernight) {
-        expect(tasks.length).toBe(1);
+        expect(result.tasks).toHaveLength(1);
       } else {
-        expect(tasks.length).toBe(0);
+        expect(result.status).toBe("skipped");
+        expect(result.tasks ?? []).toHaveLength(0);
       }
     });
   });

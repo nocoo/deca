@@ -176,6 +176,9 @@ async function sendAndWait(
 
 interface TriggerResponse {
   ok: boolean;
+  triggered?: boolean;
+  status?: string;
+  reason?: string;
   tasks?: { description: string; completed: boolean; line: number }[];
   error?: string;
 }

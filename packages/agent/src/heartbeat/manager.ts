@@ -304,9 +304,8 @@ export class HeartbeatManager {
   /**
    * 手动触发检查 (同步等待)
    */
-  async trigger(): Promise<HeartbeatTask[]> {
-    const result = await this.runOnce({ reason: "requested" });
-    return result.tasks ?? [];
+  async trigger(): Promise<HeartbeatResult> {
+    return this.runOnce({ reason: "requested" });
   }
 
   // ============== 调度逻辑 ==============

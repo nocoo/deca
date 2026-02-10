@@ -850,7 +850,7 @@ export class Agent {
   /**
    * 手动触发 Heartbeat 检查
    */
-  async triggerHeartbeat(): Promise<HeartbeatTask[]> {
+  async triggerHeartbeat(): Promise<HeartbeatResult> {
     return this.heartbeat.trigger();
   }
 

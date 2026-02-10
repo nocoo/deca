@@ -734,9 +734,9 @@ describe("Agent", () => {
       });
 
       // Should not throw
-      const tasks = await agent.triggerHeartbeat();
+      const result = await agent.triggerHeartbeat();
       agent.stopHeartbeat();
-      expect(Array.isArray(tasks)).toBe(true);
+      expect(result).toHaveProperty("status");
     });
 
     it("stopHeartbeat stops monitoring", () => {
@@ -772,8 +772,8 @@ describe("Agent", () => {
         enableHeartbeat: true,
       });
 
-      const tasks = await agent.triggerHeartbeat();
-      expect(Array.isArray(tasks)).toBe(true);
+      const result = await agent.triggerHeartbeat();
+      expect(result).toHaveProperty("status");
     });
   });
 });

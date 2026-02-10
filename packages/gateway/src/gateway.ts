@@ -242,10 +242,13 @@ export function createGateway(config: GatewayConfig): Gateway {
         }
 
         try {
-          const tasks = await adapter.agent.triggerHeartbeat();
+          const result = await adapter.agent.triggerHeartbeat();
           return c.json({
             ok: true,
-            tasks: tasks.map((t) => ({
+            triggered: result.status === "ok",
+            status: result.status,
+            reason: result.reason,
+            tasks: (result.tasks ?? []).map((t) => ({
               description: t.description,
               completed: t.completed,
               line: t.line,

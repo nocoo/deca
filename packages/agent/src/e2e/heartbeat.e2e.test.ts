@@ -235,15 +235,15 @@ describe("Heartbeat E2E", () => {
         return { status: "ok", tasks, text: `Processed ${tasks.length} tasks` };
       });
 
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      expect(tasks).toHaveLength(2);
+      expect(result.tasks).toHaveLength(2);
       expect(receivedTasks).toHaveLength(2);
-      expect(tasks[0]?.description).toContain("Check server status");
-      expect(tasks[1]?.description).toContain("Review logs");
+      expect(result.tasks?.[0]?.description).toContain("Check server status");
+      expect(result.tasks?.[1]?.description).toContain("Review logs");
 
       console.log("✅ Heartbeat triggered with tasks:");
-      for (const task of tasks) {
+      for (const task of result.tasks ?? []) {
         console.log(`   ○ ${task.description}`);
       }
     });
@@ -270,9 +270,10 @@ describe("Heartbeat E2E", () => {
         return { status: "ok" };
       });
 
-      const tasks = await manager.trigger();
+      const result = await manager.trigger();
 
-      expect(tasks).toHaveLength(0);
+      expect(result.status).toBe("skipped");
+      expect(result.tasks ?? []).toHaveLength(0);
       expect(callbackCalled).toBe(false);
 
       console.log("✅ Correctly skipped - no pending tasks");
