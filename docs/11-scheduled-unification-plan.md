@@ -132,7 +132,7 @@ After (unified):
 
 ### Step 7: test: extend behavioral-tests/cron.test.ts Phase 3 — Discord E2E (Layer 4)
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `6371b38`)
 
 **Changes**:
 - `packages/gateway/behavioral-tests/cron.test.ts` — Add Phase 3: Cron Result Delivery
