@@ -819,13 +819,21 @@ export class Agent {
    * 启动 Heartbeat 监控
    */
   startHeartbeat(
-    callback?: (tasks: HeartbeatTask[], request: WakeRequest) => void,
+    callback?: (
+      tasks: HeartbeatTask[],
+      request: WakeRequest,
+    ) => Promise<HeartbeatResult | undefined> | undefined,
   ): void {
     if (callback) {
       this.heartbeat.onTasks(
         async (tasks, request): Promise<HeartbeatResult> => {
-          callback(tasks, request);
-          return { status: "ok", tasks };
+          try {
+            const result = await callback(tasks, request);
+            return result ?? { status: "ok", tasks };
+          } catch (err) {
+            console.error("[Heartbeat] Callback error:", err);
+            return { status: "error", reason: String(err) };
+          }
         },
       );
     }

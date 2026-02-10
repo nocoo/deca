@@ -670,13 +670,73 @@ describe("Agent", () => {
       });
 
       let callbackCalled = false;
-      agent.startHeartbeat((tasks) => {
+      agent.startHeartbeat(async (tasks) => {
         callbackCalled = true;
         expect(tasks.length).toBeGreaterThanOrEqual(0);
+        return undefined;
       });
 
       agent.stopHeartbeat();
       expect(callbackCalled).toBe(false);
+    });
+
+    it("startHeartbeat awaits async callback and propagates result", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "HEARTBEAT.md"),
+        "- [ ] Async task",
+      );
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+      });
+
+      const callOrder: string[] = [];
+      agent.startHeartbeat(async () => {
+        callOrder.push("callback-start");
+        await new Promise((r) => setTimeout(r, 10));
+        callOrder.push("callback-end");
+        return { status: "ok", text: "done" };
+      });
+
+      // Trigger directly to verify await behavior
+      await agent.triggerHeartbeat();
+      agent.stopHeartbeat();
+
+      expect(callOrder).toEqual(["callback-start", "callback-end"]);
+    });
+
+    it("startHeartbeat catches callback errors without crashing", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "HEARTBEAT.md"),
+        "- [ ] Error task",
+      );
+
+      const agent = new Agent({
+        apiKey: "test-key",
+        model: "mock-model",
+        sessionDir: tempDir,
+        workspaceDir: tempDir,
+        enableContext: false,
+        enableMemory: false,
+        enableSkills: false,
+        enableHeartbeat: true,
+      });
+
+      agent.startHeartbeat(async () => {
+        throw new Error("callback failure");
+      });
+
+      // Should not throw
+      const tasks = await agent.triggerHeartbeat();
+      agent.stopHeartbeat();
+      expect(Array.isArray(tasks)).toBe(true);
     });
 
     it("stopHeartbeat stops monitoring", () => {
