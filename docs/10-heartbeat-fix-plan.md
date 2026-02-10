@@ -16,7 +16,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 1: fix: await heartbeat callback in Agent
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `2511c71`)
 
 **Problem**: `agent.ts:828` — `callback(tasks, request)` is not awaited. This causes:
 - `runOnce()` finishes before LLM responds, rescheduling prematurely
@@ -35,7 +35,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 2: refactor: decouple heartbeat wiring from Discord
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `fa33220`)
 
 **Problem**: `setupHeartbeatCallback()` is called inside `if (discord)` block (gateway.ts:246). No Discord = no heartbeat execution.
 
@@ -53,7 +53,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 3: test: rewrite heartbeat unit tests against real code paths
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `61c8f79`)
 
 **Problem**: Current `heartbeat.test.ts` inlines a copy of the dispatch logic instead of testing the actual `setupHeartbeatCallback` function.
 
@@ -71,7 +71,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 4: feat: implement HEARTBEAT_OK protocol
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `974b45f`)
 
 **Problem**: Every heartbeat sends a message even when Agent has nothing to report. OpenClaw uses `HEARTBEAT_OK` token protocol to suppress noise.
 
@@ -90,7 +90,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 5: fix: make /heartbeat/trigger actually trigger execution
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `1f6d182`)
 
 **Problem**: `POST /heartbeat/trigger` calls `triggerHeartbeat()` which only returns task list. The name says "trigger" but it only reads.
 
@@ -108,7 +108,7 @@ Current state: Timer and detection work, but execution is fire-and-forget (callb
 
 ### Step 6: fix: heartbeatIntervalMs=0 should disable heartbeat
 
-**Status**: [ ] pending
+**Status**: [x] done (commit `0b4ddde`)
 
 **Problem**: `types.ts:132` comments say "0 to disable" but 0ms interval causes infinite loop.
 
