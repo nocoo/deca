@@ -168,7 +168,7 @@ const gateway = createGateway({
     model: provider.model,
     agentId: "tomato",
     workspaceDir: workspaceDir,
-    heartbeatIntervalMs: 2 * 60 * 1000, // 2 minutes
+    heartbeatIntervalMs: 30 * 60 * 1000, // 30 minutes
   },
   discord: discord
     ? {
