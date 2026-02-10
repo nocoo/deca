@@ -168,6 +168,7 @@ const gateway = createGateway({
     model: provider.model,
     agentId: "tomato",
     workspaceDir: workspaceDir,
+    heartbeatIntervalMs: 2 * 60 * 1000, // 2 minutes
   },
   discord: discord
     ? {
@@ -177,6 +178,8 @@ const gateway = createGateway({
         requireMention,
         ignoreBots: true,
         allowlist: discord.guildId ? { guilds: [discord.guildId] } : undefined,
+        mainChannelId: discord.mainChannelId,
+        mainUserId: discord.userId,
       }
     : undefined,
   http: {
