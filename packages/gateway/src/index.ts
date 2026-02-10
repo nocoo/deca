@@ -30,6 +30,13 @@ export {
 // Gateway
 export { createGateway, createEchoGateway } from "./gateway";
 
+// Heartbeat
+export {
+  buildHeartbeatInstruction,
+  createHeartbeatCallback,
+  type HeartbeatCallbackDeps,
+} from "./heartbeat";
+
 // Lock
 export {
   acquireGatewayLock,

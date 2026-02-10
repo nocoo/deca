@@ -1,295 +1,317 @@
 /**
- * Heartbeat Integration Tests
+ * Heartbeat Unit Tests
  *
- * Tests for heartbeat callback dispatching through the unified dispatcher.
- * Heartbeat should use main session and dispatch through dispatcher like cron does.
+ * Tests for the extracted heartbeat logic: buildHeartbeatInstruction and createHeartbeatCallback.
+ * These test the REAL exported functions, not inline copies.
  */
 
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import type { HeartbeatTask, WakeRequest } from "@deca/agent";
 import type { DispatchRequest } from "./dispatcher/types";
+import {
+  type HeartbeatCallbackDeps,
+  buildHeartbeatInstruction,
+  createHeartbeatCallback,
+} from "./heartbeat";
 
-describe("Heartbeat Callback", () => {
-  describe("setupHeartbeatCallback", () => {
-    it("should dispatch heartbeat instruction when tasks exist", async () => {
-      const dispatchedRequests: DispatchRequest[] = [];
-      const mockDispatcher = {
-        dispatch: async (req: DispatchRequest) => {
-          dispatchedRequests.push(req);
-          return { text: "ok", success: true };
-        },
-      };
+// ============================================================================
+// Test Helpers
+// ============================================================================
 
-      // Simulate heartbeat callback behavior
-      const tasks: HeartbeatTask[] = [
-        {
-          description: "Check obsidian repo",
-          completed: false,
-          raw: "- [ ] Check obsidian repo",
-          line: 1,
-        },
-      ];
-      const request: WakeRequest = { reason: "interval" };
+function makeTasks(...descriptions: string[]): HeartbeatTask[] {
+  return descriptions.map((d, i) => ({
+    description: d,
+    completed: false,
+    raw: `- [ ] ${d}`,
+    line: i + 1,
+  }));
+}
 
-      // This simulates what setupHeartbeatCallback should do
-      if (tasks.length > 0) {
-        const taskList = tasks.map((t) => t.description).join(", ");
-        const instruction = `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}`;
-        await mockDispatcher.dispatch({
-          source: "heartbeat",
-          sessionKey: "main",
-          content: instruction,
-          sender: { id: "heartbeat", username: "heartbeat-scheduler" },
-          priority: 5,
-        });
-      }
+function makeRequest(reason: WakeRequest["reason"] = "interval"): WakeRequest {
+  return { reason };
+}
 
-      expect(dispatchedRequests).toHaveLength(1);
-      expect(dispatchedRequests[0].source).toBe("heartbeat");
-      expect(dispatchedRequests[0].sessionKey).toBe("main");
-      expect(dispatchedRequests[0].content).toContain("[HEARTBEAT: interval]");
-      expect(dispatchedRequests[0].content).toContain("Check obsidian repo");
-      expect(dispatchedRequests[0].priority).toBe(5);
-    });
+function createMockDeps(overrides?: Partial<HeartbeatCallbackDeps>) {
+  const dispatched: DispatchRequest[] = [];
+  const sentResults: string[] = [];
+  const errors: { error: Error; source: string }[] = [];
 
-    it("should not dispatch when no tasks", async () => {
-      const dispatchedRequests: DispatchRequest[] = [];
-      const mockDispatcher = {
-        dispatch: async (req: DispatchRequest) => {
-          dispatchedRequests.push(req);
-          return { text: "ok", success: true };
-        },
-      };
+  const deps: HeartbeatCallbackDeps = {
+    dispatcher: {
+      dispatch: mock(async (req: DispatchRequest) => {
+        dispatched.push(req);
+        return { text: "Agent response", success: true };
+      }),
+      getStatus: () => ({
+        queued: 0,
+        running: 0,
+        concurrency: 1,
+        isPaused: false,
+      }),
+      pause: () => {},
+      resume: () => {},
+      clear: () => {},
+      onIdle: () => Promise.resolve(),
+      shutdown: () => Promise.resolve(),
+    },
+    sendResult: mock(async (text: string) => {
+      sentResults.push(text);
+    }),
+    onError: mock((error: Error, source: string) => {
+      errors.push({ error, source });
+    }),
+    ...overrides,
+  };
 
-      const tasks: HeartbeatTask[] = [];
-      const request: WakeRequest = { reason: "interval" };
+  return { deps, dispatched, sentResults, errors };
+}
 
-      // This simulates what setupHeartbeatCallback should do
-      if (tasks.length > 0) {
-        await mockDispatcher.dispatch({
-          source: "heartbeat",
-          sessionKey: "main",
-          content: "test",
-          sender: { id: "heartbeat", username: "heartbeat-scheduler" },
-        });
-      }
-
-      expect(dispatchedRequests).toHaveLength(0);
-    });
-
-    it("should use 'main' as session key for heartbeat", async () => {
-      const dispatchedRequests: DispatchRequest[] = [];
-      const mockDispatcher = {
-        dispatch: async (req: DispatchRequest) => {
-          dispatchedRequests.push(req);
-          return { text: "ok", success: true };
-        },
-      };
-
-      const tasks: HeartbeatTask[] = [
-        {
-          description: "Task 1",
-          completed: false,
-          raw: "- [ ] Task 1",
-          line: 1,
-        },
-      ];
-
-      await mockDispatcher.dispatch({
-        source: "heartbeat",
-        sessionKey: "main",
-        content: "[HEARTBEAT: interval] Execute pending tasks",
-        sender: { id: "heartbeat", username: "heartbeat-scheduler" },
-        priority: 5,
-      });
-
-      expect(dispatchedRequests[0].sessionKey).toBe("main");
-    });
-
-    it("should include wake reason in instruction", async () => {
-      const testCases: WakeRequest["reason"][] = [
-        "interval",
-        "cron",
-        "exec",
-        "requested",
-      ];
-
-      for (const reason of testCases) {
-        const dispatchedRequests: DispatchRequest[] = [];
-        const mockDispatcher = {
-          dispatch: async (req: DispatchRequest) => {
-            dispatchedRequests.push(req);
-            return { text: "ok", success: true };
-          },
-        };
-
-        const instruction = `[HEARTBEAT: ${reason}] Execute pending tasks`;
-        await mockDispatcher.dispatch({
-          source: "heartbeat",
-          sessionKey: "main",
-          content: instruction,
-          sender: { id: "heartbeat", username: "heartbeat-scheduler" },
-        });
-
-        expect(dispatchedRequests[0].content).toContain(
-          `[HEARTBEAT: ${reason}]`,
-        );
-      }
-    });
-  });
-
-  describe("Heartbeat Reply Routing", () => {
-    it("should support onReply callback for sending to Discord", async () => {
-      const replies: { text: string; target: string }[] = [];
-
-      // Simulate onReply callback that sends to DM and main channel
-      const onReply = async (text: string, targets: string[]) => {
-        for (const target of targets) {
-          replies.push({ text, target });
-        }
-      };
-
-      // Simulate heartbeat result
-      const result = "Checked obsidian repo: 3 new commits found";
-      await onReply(result, ["dm:123456", "channel:789012"]);
-
-      expect(replies).toHaveLength(2);
-      expect(replies[0]).toEqual({ text: result, target: "dm:123456" });
-      expect(replies[1]).toEqual({ text: result, target: "channel:789012" });
-    });
-  });
-});
-
-describe("POST /heartbeat/trigger endpoint", () => {
-  it("should return tasks when triggered", async () => {
-    const mockTasks: HeartbeatTask[] = [
-      {
-        description: "Test task",
-        completed: false,
-        raw: "- [ ] Test task",
-        line: 1,
-      },
-    ];
-
-    const mockTriggerHeartbeat = mock(() => Promise.resolve(mockTasks));
-    const mockAdapter = {
-      agent: {
-        triggerHeartbeat: mockTriggerHeartbeat,
-      },
-    };
-
-    // Simulate the endpoint handler logic
-    const tasks = await mockAdapter.agent.triggerHeartbeat();
-    const response = {
-      ok: true,
-      tasks: tasks.map((t) => ({
-        description: t.description,
-        completed: t.completed,
-        line: t.line,
-      })),
-    };
-
-    expect(response.ok).toBe(true);
-    expect(response.tasks).toHaveLength(1);
-    expect(response.tasks[0].description).toBe("Test task");
-    expect(response.tasks[0].completed).toBe(false);
-    expect(response.tasks[0].line).toBe(1);
-  });
-
-  it("should return empty tasks array when no pending tasks", async () => {
-    const mockTriggerHeartbeat = mock(() => Promise.resolve([]));
-    const mockAdapter = {
-      agent: {
-        triggerHeartbeat: mockTriggerHeartbeat,
-      },
-    };
-
-    const tasks = await mockAdapter.agent.triggerHeartbeat();
-    const response = {
-      ok: true,
-      tasks: tasks.map((t) => ({
-        description: t.description,
-        completed: t.completed,
-        line: t.line,
-      })),
-    };
-
-    expect(response.ok).toBe(true);
-    expect(response.tasks).toHaveLength(0);
-  });
-
-  it("should handle errors gracefully", async () => {
-    const mockTriggerHeartbeat = mock(() =>
-      Promise.reject(new Error("Heartbeat failed")),
-    );
-    const mockAdapter = {
-      agent: {
-        triggerHeartbeat: mockTriggerHeartbeat,
-      },
-    };
-
-    let response: { ok: boolean; error?: string };
-    try {
-      await mockAdapter.agent.triggerHeartbeat();
-      response = { ok: true };
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      response = { ok: false, error: err.message };
-    }
-
-    expect(response.ok).toBe(false);
-    expect(response.error).toBe("Heartbeat failed");
-  });
-});
+// ============================================================================
+// buildHeartbeatInstruction
+// ============================================================================
 
 describe("buildHeartbeatInstruction", () => {
-  function buildHeartbeatInstruction(
-    tasks: HeartbeatTask[],
-    request: WakeRequest,
-  ): string {
-    const taskList = tasks.map((t) => t.description).join(", ");
-    return `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}`;
-  }
+  it("formats instruction with single task", () => {
+    const result = buildHeartbeatInstruction(
+      makeTasks("Check obsidian repo"),
+      makeRequest("interval"),
+    );
+    expect(result).toBe(
+      "[HEARTBEAT: interval] Execute pending tasks: Check obsidian repo",
+    );
+  });
 
-  it("should format instruction with tasks and reason", () => {
-    const tasks: HeartbeatTask[] = [
-      {
-        description: "Check obsidian repo",
-        completed: false,
-        raw: "- [ ] Check obsidian repo",
-        line: 1,
-      },
-      {
-        description: "Sync notes",
-        completed: false,
-        raw: "- [ ] Sync notes",
-        line: 2,
-      },
-    ];
-    const request: WakeRequest = { reason: "interval" };
-
-    const instruction = buildHeartbeatInstruction(tasks, request);
-
-    expect(instruction).toBe(
+  it("formats instruction with multiple tasks", () => {
+    const result = buildHeartbeatInstruction(
+      makeTasks("Check obsidian repo", "Sync notes"),
+      makeRequest("interval"),
+    );
+    expect(result).toBe(
       "[HEARTBEAT: interval] Execute pending tasks: Check obsidian repo, Sync notes",
     );
   });
 
-  it("should handle single task", () => {
-    const tasks: HeartbeatTask[] = [
-      {
-        description: "Single task",
-        completed: false,
-        raw: "- [ ] Single task",
-        line: 1,
-      },
+  it("includes wake reason in instruction", () => {
+    const reasons: WakeRequest["reason"][] = [
+      "interval",
+      "cron",
+      "exec",
+      "requested",
     ];
-    const request: WakeRequest = { reason: "requested" };
+    for (const reason of reasons) {
+      const result = buildHeartbeatInstruction(
+        makeTasks("Task 1"),
+        makeRequest(reason),
+      );
+      expect(result).toContain(`[HEARTBEAT: ${reason}]`);
+    }
+  });
+});
 
-    const instruction = buildHeartbeatInstruction(tasks, request);
+// ============================================================================
+// createHeartbeatCallback
+// ============================================================================
 
-    expect(instruction).toBe(
-      "[HEARTBEAT: requested] Execute pending tasks: Single task",
-    );
+describe("createHeartbeatCallback", () => {
+  it("dispatches when tasks exist", async () => {
+    const { deps, dispatched } = createMockDeps();
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Check repo"), makeRequest());
+
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].source).toBe("heartbeat");
+    expect(dispatched[0].sessionKey).toBe("main");
+    expect(dispatched[0].content).toContain("[HEARTBEAT: interval]");
+    expect(dispatched[0].content).toContain("Check repo");
+    expect(dispatched[0].priority).toBe(5);
+    expect(dispatched[0].sender).toEqual({
+      id: "heartbeat",
+      username: "heartbeat-scheduler",
+    });
+  });
+
+  it("does not dispatch when no tasks", async () => {
+    const { deps, dispatched, sentResults } = createMockDeps();
+    const callback = createHeartbeatCallback(deps);
+
+    await callback([], makeRequest());
+
+    expect(dispatched).toHaveLength(0);
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("sends result on successful dispatch", async () => {
+    const { deps, sentResults } = createMockDeps();
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(sentResults).toHaveLength(1);
+    expect(sentResults[0]).toBe("Agent response");
+  });
+
+  it("does not send result when dispatch fails", async () => {
+    const { deps, sentResults } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => ({
+          text: "Error: something went wrong",
+          success: false,
+          error: "something went wrong",
+        })),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("does not send result when response text is empty", async () => {
+    const { deps, sentResults } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => ({ text: "", success: true })),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(sentResults).toHaveLength(0);
+  });
+
+  it("catches dispatch errors and reports via onError", async () => {
+    const { deps, errors } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw new Error("Dispatch exploded");
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createHeartbeatCallback(deps);
+
+    // Should not throw
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("Dispatch exploded");
+    expect(errors[0].source).toBe("heartbeat");
+  });
+
+  it("catches non-Error throws and wraps them", async () => {
+    const { deps, errors } = createMockDeps({
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw "string error";
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+    });
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("string error");
+  });
+
+  it("catches sendResult errors and reports via onError", async () => {
+    const { deps, errors } = createMockDeps({
+      sendResult: mock(async () => {
+        throw new Error("Send failed");
+      }),
+    });
+    const callback = createHeartbeatCallback(deps);
+
+    await callback(makeTasks("Task 1"), makeRequest());
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error.message).toBe("Send failed");
+  });
+
+  it("works without onError callback (no crash)", async () => {
+    const deps: HeartbeatCallbackDeps = {
+      dispatcher: {
+        dispatch: mock(async () => {
+          throw new Error("Boom");
+        }),
+        getStatus: () => ({
+          queued: 0,
+          running: 0,
+          concurrency: 1,
+          isPaused: false,
+        }),
+        pause: () => {},
+        resume: () => {},
+        clear: () => {},
+        onIdle: () => Promise.resolve(),
+        shutdown: () => Promise.resolve(),
+      },
+      sendResult: mock(async () => {}),
+      // no onError
+    };
+    const callback = createHeartbeatCallback(deps);
+
+    // Should not throw even without onError handler
+    await callback(makeTasks("Task 1"), makeRequest());
+  });
+
+  it("uses main session key for all dispatches", async () => {
+    const { deps, dispatched } = createMockDeps();
+    const callback = createHeartbeatCallback(deps);
+
+    // Multiple calls with different reasons
+    await callback(makeTasks("T1"), makeRequest("interval"));
+    await callback(makeTasks("T2"), makeRequest("cron"));
+    await callback(makeTasks("T3"), makeRequest("requested"));
+
+    expect(dispatched).toHaveLength(3);
+    for (const req of dispatched) {
+      expect(req.sessionKey).toBe("main");
+    }
   });
 });

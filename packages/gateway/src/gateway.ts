@@ -5,7 +5,6 @@
  * This is the central composition point of the system.
  */
 
-import type { HeartbeatTask, WakeRequest } from "@deca/agent";
 import {
   type DiscordGatewayInstance,
   type SlashCommandsConfig,
@@ -28,6 +27,7 @@ import {
   createDispatcher,
   createDispatcherHandler,
 } from "./dispatcher";
+import { createHeartbeatCallback } from "./heartbeat";
 import type { Gateway, GatewayConfig, MessageHandler } from "./types";
 
 /**
@@ -60,14 +60,6 @@ export function createGateway(config: GatewayConfig): Gateway {
   ): MessageHandler {
     if (!dispatcher) throw new Error("Dispatcher not initialized");
     return createDispatcherHandler(dispatcher, channel);
-  }
-
-  function buildHeartbeatInstruction(
-    tasks: HeartbeatTask[],
-    request: WakeRequest,
-  ): string {
-    const taskList = tasks.map((t) => t.description).join(", ");
-    return `[HEARTBEAT: ${request.reason}] Execute pending tasks: ${taskList}`;
   }
 
   /**
@@ -118,37 +110,13 @@ export function createGateway(config: GatewayConfig): Gateway {
       return;
     }
 
-    const heartbeatDispatcher = dispatcher;
+    const callback = createHeartbeatCallback({
+      dispatcher,
+      sendResult: sendHeartbeatResult,
+      onError: events.onError,
+    });
 
-    adapter.agent.startHeartbeat(
-      async (tasks: HeartbeatTask[], request: WakeRequest) => {
-        if (tasks.length === 0) {
-          return;
-        }
-
-        try {
-          const instruction = buildHeartbeatInstruction(tasks, request);
-
-          // Dispatch through dispatcher (like cron does)
-          // Use main session key for heartbeat
-          const response = await heartbeatDispatcher.dispatch({
-            source: "heartbeat",
-            sessionKey: "main",
-            content: instruction,
-            sender: { id: "heartbeat", username: "heartbeat-scheduler" },
-            priority: 5,
-          });
-
-          // Send result to available channels
-          if (response.success && response.text) {
-            await sendHeartbeatResult(response.text);
-          }
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          events.onError?.(err, "heartbeat");
-        }
-      },
-    );
+    adapter.agent.startHeartbeat(callback);
   }
 
   /**
