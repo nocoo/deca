@@ -31,6 +31,23 @@ function makeRequest(reason: WakeRequest["reason"] = "interval"): WakeRequest {
   return { reason };
 }
 
+function makeMockDispatcher(response: { text: string; success: boolean }) {
+  return {
+    dispatch: mock(async (req: DispatchRequest) => response),
+    getStatus: () => ({
+      queued: 0,
+      running: 0,
+      concurrency: 1,
+      isPaused: false,
+    }),
+    pause: () => {},
+    resume: () => {},
+    clear: () => {},
+    onIdle: () => Promise.resolve(),
+    shutdown: () => Promise.resolve(),
+  };
+}
+
 function createMockDeps(overrides?: Partial<HeartbeatCallbackDeps>) {
   const dispatched: DispatchRequest[] = [];
   const sentResults: string[] = [];
@@ -76,9 +93,9 @@ describe("buildHeartbeatInstruction", () => {
       makeTasks("Check obsidian repo"),
       makeRequest("interval"),
     );
-    expect(result).toBe(
-      "[HEARTBEAT: interval] Execute pending tasks: Check obsidian repo",
-    );
+    expect(result).toContain("[HEARTBEAT: interval]");
+    expect(result).toContain("Check obsidian repo");
+    expect(result).toContain("HEARTBEAT_OK");
   });
 
   it("formats instruction with multiple tasks", () => {
@@ -86,9 +103,8 @@ describe("buildHeartbeatInstruction", () => {
       makeTasks("Check obsidian repo", "Sync notes"),
       makeRequest("interval"),
     );
-    expect(result).toBe(
-      "[HEARTBEAT: interval] Execute pending tasks: Check obsidian repo, Sync notes",
-    );
+    expect(result).toContain("Check obsidian repo, Sync notes");
+    expect(result).toContain("HEARTBEAT_OK");
   });
 
   it("includes wake reason in instruction", () => {
@@ -105,6 +121,14 @@ describe("buildHeartbeatInstruction", () => {
       );
       expect(result).toContain(`[HEARTBEAT: ${reason}]`);
     }
+  });
+
+  it("includes HEARTBEAT_OK instruction for Agent", () => {
+    const result = buildHeartbeatInstruction(
+      makeTasks("Task 1"),
+      makeRequest(),
+    );
+    expect(result).toContain("reply HEARTBEAT_OK");
   });
 });
 
@@ -313,5 +337,80 @@ describe("createHeartbeatCallback", () => {
     for (const req of dispatched) {
       expect(req.sessionKey).toBe("main");
     }
+  });
+
+  describe("HEARTBEAT_OK protocol", () => {
+    it("skips delivery when Agent replies with exact HEARTBEAT_OK", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "HEARTBEAT_OK",
+          success: true,
+        }),
+      });
+      const callback = createHeartbeatCallback(deps);
+
+      await callback(makeTasks("Task 1"), makeRequest());
+
+      expect(sentResults).toHaveLength(0);
+    });
+
+    it("skips delivery when Agent replies with HEARTBEAT_OK and whitespace", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "  HEARTBEAT_OK  ",
+          success: true,
+        }),
+      });
+      const callback = createHeartbeatCallback(deps);
+
+      await callback(makeTasks("Task 1"), makeRequest());
+
+      expect(sentResults).toHaveLength(0);
+    });
+
+    it("strips leading HEARTBEAT_OK and delivers remaining text", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "HEARTBEAT_OK Found 3 new commits in repo",
+          success: true,
+        }),
+      });
+      const callback = createHeartbeatCallback(deps);
+
+      await callback(makeTasks("Task 1"), makeRequest());
+
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("Found 3 new commits in repo");
+    });
+
+    it("strips trailing HEARTBEAT_OK and delivers remaining text", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "Checked repo, all good HEARTBEAT_OK",
+          success: true,
+        }),
+      });
+      const callback = createHeartbeatCallback(deps);
+
+      await callback(makeTasks("Task 1"), makeRequest());
+
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("Checked repo, all good");
+    });
+
+    it("delivers normally when no HEARTBEAT_OK token present", async () => {
+      const { deps, sentResults } = createMockDeps({
+        dispatcher: makeMockDispatcher({
+          text: "Found issues: 2 PRs need review",
+          success: true,
+        }),
+      });
+      const callback = createHeartbeatCallback(deps);
+
+      await callback(makeTasks("Task 1"), makeRequest());
+
+      expect(sentResults).toHaveLength(1);
+      expect(sentResults[0]).toBe("Found issues: 2 PRs need review");
+    });
   });
 });

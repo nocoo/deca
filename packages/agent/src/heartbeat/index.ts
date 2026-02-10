@@ -9,3 +9,9 @@ export {
   type WakeRequest,
   type ActiveHours,
 } from "./manager.js";
+
+export {
+  HEARTBEAT_OK,
+  stripHeartbeatToken,
+  type StripResult,
+} from "./tokens.js";
