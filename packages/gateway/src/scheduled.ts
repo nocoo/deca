@@ -85,7 +85,7 @@ export function createHeartbeatCallback(
 
       const response: MessageResponse = await deps.dispatcher.dispatch({
         source: "heartbeat",
-        sessionKey: "main",
+        sessionKey: "heartbeat",
         content: instruction,
         sender: { id: "heartbeat", username: "heartbeat-scheduler" },
         priority: 5,

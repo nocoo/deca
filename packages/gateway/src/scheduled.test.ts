@@ -158,7 +158,7 @@ describe("createHeartbeatCallback", () => {
 
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0].source).toBe("heartbeat");
-    expect(dispatched[0].sessionKey).toBe("main");
+    expect(dispatched[0].sessionKey).toBe("heartbeat");
     expect(dispatched[0].content).toContain("[HEARTBEAT: interval]");
     expect(dispatched[0].content).toContain("Check repo");
     expect(dispatched[0].priority).toBe(5);
@@ -348,7 +348,7 @@ describe("createHeartbeatCallback", () => {
 
     expect(dispatched).toHaveLength(3);
     for (const req of dispatched) {
-      expect(req.sessionKey).toBe("main");
+      expect(req.sessionKey).toBe("heartbeat");
     }
   });
 
@@ -524,7 +524,7 @@ describe("heartbeat behavioral (Stage 2 integration)", () => {
     // Verify Agent received the correct dispatch
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0].source).toBe("heartbeat");
-    expect(dispatched[0].sessionKey).toBe("main");
+    expect(dispatched[0].sessionKey).toBe("heartbeat");
     expect(dispatched[0].content).toContain("[HEARTBEAT: requested]");
     expect(dispatched[0].content).toContain("Check server status");
     expect(dispatched[0].content).toContain("Review pull requests");
