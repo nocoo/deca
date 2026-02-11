@@ -453,6 +453,16 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
 
   try {
     const discord = requireDiscordCredentials();
+    const testServer = discord.servers?.test;
+
+    if (!testServer?.testChannelWebhookUrl || !testServer?.testChannelId) {
+      return {
+        name,
+        passed: false,
+        error:
+          "Discord test server config missing testChannelWebhookUrl or testChannelId",
+      };
+    }
 
     // 1. Spawn gateway with Discord channel and real agent
     gateway = await spawnGateway({
@@ -469,7 +479,7 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
     );
 
     const webhookResult = await sendWebhookMessage(
-      { url: discord.webhookUrl },
+      { url: testServer.testChannelWebhookUrl },
       { content: testMessage },
     );
 
@@ -487,7 +497,7 @@ async function testDiscordWebhookFlow(): Promise<TestResult> {
     // 3. Wait for bot response (LLM call can take time)
     // Custom wait that excludes the webhook message
     const botResponses = await waitForBotReplies(
-      { botToken: discord.botToken, channelId: discord.testChannelId },
+      { botToken: discord.botToken, channelId: testServer.testChannelId },
       testId,
       webhookMessageId,
       {

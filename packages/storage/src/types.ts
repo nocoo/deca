@@ -140,15 +140,26 @@ export interface CredentialStore {
   // Non-LLM credentials
   discord?: {
     botToken: string;
-    applicationId?: string;
-    /** Webhook URL for testing (channel session) */
-    webhookUrl?: string;
-    /** Test channel ID for testing */
-    testChannelId?: string;
-    /** Main webhook URL - messages here route to main session */
-    mainWebhookUrl?: string;
-    /** Main channel ID - messages here route to main session */
-    mainChannelId?: string;
+    /**
+     * Discord Application ID (from Developer Portal -> General Information).
+     * Used for slash command registration.
+     * Note: For bots, this equals the bot's user ID in Discord.
+     */
+    botApplicationId?: string;
+    /** Per-server configurations keyed by environment name */
+    servers?: {
+      production?: {
+        guildId: string;
+      };
+      test?: {
+        guildId: string;
+        testChannelId?: string;
+        testChannelWebhookUrl?: string;
+        mainChannelId?: string;
+        mainChannelWebhookUrl?: string;
+        mainUserId?: string;
+      };
+    };
   };
   github?: {
     token: string;

@@ -55,20 +55,32 @@ if (!discord) {
   process.exit(1);
 }
 
-if (!discord.clientId) {
-  console.error("❌ Discord clientId not found in credentials.");
+if (!discord.botApplicationId) {
+  console.error("❌ Discord botApplicationId not found in credentials.");
   process.exit(1);
 }
 
-if (!discord.webhookUrl || !discord.testChannelId) {
-  console.error("❌ Discord webhookUrl or testChannelId not found.");
+const testServer = discord.servers?.test;
+if (!testServer?.testChannelWebhookUrl || !testServer?.testChannelId) {
+  console.error(
+    "❌ Discord servers.test.testChannelWebhookUrl or testChannelId not found.",
+  );
   process.exit(1);
 }
+
+// Collect all guild IDs from servers config
+const allGuildIds = discord.servers
+  ? [discord.servers.production?.guildId, discord.servers.test?.guildId].filter(
+      (id): id is string => !!id,
+    )
+  : [];
 
 console.log("🚀 Starting Gateway with Slash Commands...\n");
 console.log(`  Provider: ${provider.id} (${provider.model})`);
-console.log(`  Discord clientId: ${discord.clientId}`);
-console.log(`  Discord guildId: ${discord.guildId || "(global)"}`);
+console.log(`  Discord botApplicationId: ${discord.botApplicationId}`);
+console.log(
+  `  Discord guildIds: ${allGuildIds.length > 0 ? allGuildIds.join(", ") : "(global)"}`,
+);
 console.log("");
 
 const gateway = createGateway({
@@ -81,11 +93,11 @@ const gateway = createGateway({
   },
   discord: {
     token: discord.botToken,
-    clientId: discord.clientId,
-    guildId: discord.guildId,
+    botApplicationId: discord.botApplicationId,
+    guildIds: allGuildIds.length > 0 ? allGuildIds : undefined,
     requireMention: false,
     ignoreBots: false,
-    allowlist: discord.guildId ? { guilds: [discord.guildId] } : undefined,
+    allowlist: allGuildIds.length > 0 ? { guilds: allGuildIds } : undefined,
   },
   events: {
     onStart: () => console.log("✅ Gateway started"),
@@ -111,7 +123,7 @@ try {
   const message = createTestMessage(testId, testContent);
 
   const sendResult = await sendWebhookMessage(
-    { url: discord.webhookUrl },
+    { url: testServer.testChannelWebhookUrl },
     { content: message },
   );
 
@@ -124,9 +136,9 @@ try {
     // Wait for bot response
     console.log("⏳ Waiting for bot response (timeout: 30s)...");
     const response = await waitForBotResponse(
-      { botToken: discord.botToken, channelId: discord.testChannelId },
+      { botToken: discord.botToken, channelId: testServer.testChannelId },
       testId,
-      { timeout: 30000, interval: 1000, botUserId: discord.clientId },
+      { timeout: 30000, interval: 1000, botUserId: discord.botApplicationId },
     );
 
     if (response) {
@@ -139,7 +151,7 @@ try {
       // Fetch recent messages for debugging
       console.log("\n📋 Recent channel messages:");
       const msgs = await fetchChannelMessages(
-        { botToken: discord.botToken, channelId: discord.testChannelId },
+        { botToken: discord.botToken, channelId: testServer.testChannelId },
         5,
       );
       for (const m of msgs.messages) {

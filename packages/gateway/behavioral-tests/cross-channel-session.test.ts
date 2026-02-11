@@ -63,27 +63,28 @@ async function loadConfig(): Promise<Config> {
   const content = await Bun.file(credPath).text();
   const creds = JSON.parse(content);
 
-  const required = [
-    "botToken",
-    "mainWebhookUrl",
-    "mainChannelId",
-    "webhookUrl",
-    "testChannelId",
-    "userId",
+  const testServer = creds.servers?.test;
+  const required: [string, unknown][] = [
+    ["botToken", creds.botToken],
+    ["servers.test.mainChannelWebhookUrl", testServer?.mainChannelWebhookUrl],
+    ["servers.test.mainChannelId", testServer?.mainChannelId],
+    ["servers.test.testChannelWebhookUrl", testServer?.testChannelWebhookUrl],
+    ["servers.test.testChannelId", testServer?.testChannelId],
+    ["servers.test.mainUserId", testServer?.mainUserId],
   ];
-  const missing = required.filter((k) => !creds[k]);
+  const missing = required.filter(([, v]) => !v).map(([k]) => k);
   if (missing.length > 0) {
     throw new Error(`Missing required credentials: ${missing.join(", ")}`);
   }
 
   return {
     botToken: creds.botToken,
-    mainWebhookUrl: creds.mainWebhookUrl,
-    mainChannelId: creds.mainChannelId,
-    testWebhookUrl: creds.webhookUrl,
-    testChannelId: creds.testChannelId,
-    botUserId: creds.clientId,
-    mainUserId: creds.userId,
+    mainWebhookUrl: testServer.mainChannelWebhookUrl,
+    mainChannelId: testServer.mainChannelId,
+    testWebhookUrl: testServer.testChannelWebhookUrl,
+    testChannelId: testServer.testChannelId,
+    botUserId: creds.botApplicationId,
+    mainUserId: testServer.mainUserId,
   };
 }
 

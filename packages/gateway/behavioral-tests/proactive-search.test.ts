@@ -33,11 +33,12 @@ async function loadConfig(): Promise<Config> {
   const credPath = join(homedir(), ".deca", "credentials", "discord.json");
   const content = await Bun.file(credPath).text();
   const creds = JSON.parse(content);
+  const testServer = creds.servers?.test;
   return {
     botToken: creds.botToken,
-    webhookUrl: creds.webhookUrl,
-    testChannelId: creds.testChannelId,
-    botUserId: creds.clientId,
+    webhookUrl: testServer.testChannelWebhookUrl,
+    testChannelId: testServer.testChannelId,
+    botUserId: creds.botApplicationId,
   };
 }
 

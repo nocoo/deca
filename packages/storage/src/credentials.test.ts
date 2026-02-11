@@ -123,7 +123,7 @@ describe("createCredentialManager", () => {
     });
     await manager.set("discord", {
       botToken: "discord-token",
-      applicationId: "app-id",
+      botApplicationId: "app-id",
     });
     await manager.set("github", { token: "gh-token" });
     await manager.set("minimax", {

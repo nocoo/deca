@@ -39,8 +39,8 @@ interface E2EConfig {
   botToken: string;
   webhookUrl: string;
   testChannelId: string;
-  /** clientId doubles as botUserId in Discord */
-  clientId?: string;
+  /** botApplicationId doubles as botUserId in Discord */
+  botApplicationId?: string;
 }
 
 const DEBUG = process.argv.includes("--debug");
@@ -56,18 +56,22 @@ async function loadConfig(): Promise<E2EConfig> {
     if (!creds.botToken) {
       throw new Error("Missing botToken in discord.json");
     }
-    if (!creds.webhookUrl) {
-      throw new Error("Missing webhookUrl in discord.json");
+
+    const testServer = creds.servers?.test;
+    if (!testServer?.testChannelWebhookUrl) {
+      throw new Error(
+        "Missing servers.test.testChannelWebhookUrl in discord.json",
+      );
     }
-    if (!creds.testChannelId) {
-      throw new Error("Missing testChannelId in discord.json");
+    if (!testServer?.testChannelId) {
+      throw new Error("Missing servers.test.testChannelId in discord.json");
     }
 
     return {
       botToken: creds.botToken,
-      webhookUrl: creds.webhookUrl,
-      testChannelId: creds.testChannelId,
-      clientId: creds.clientId,
+      webhookUrl: testServer.testChannelWebhookUrl,
+      testChannelId: testServer.testChannelId,
+      botApplicationId: creds.botApplicationId,
     };
   } catch (error) {
     if (error instanceof Error && error.message.includes("Missing")) {
@@ -181,7 +185,7 @@ basicSuite.tests.push({
       {
         timeout: 15000,
         interval: 1000,
-        botUserId: config.clientId,
+        botUserId: config.botApplicationId,
       },
     );
 
@@ -261,7 +265,7 @@ reactionSuite.tests.push({
       {
         timeout: 15000,
         interval: 1000,
-        botUserId: config.clientId,
+        botUserId: config.botApplicationId,
       },
     );
 
@@ -364,8 +368,8 @@ debounceSuite.tests.push({
     // Bot responses start with "🔊 Echo:" prefix
     const botResponses = result.messages.filter((m) => {
       // Must be a bot message
-      const isBot = config.clientId
-        ? m.author.id === config.clientId
+      const isBot = config.botApplicationId
+        ? m.author.id === config.botApplicationId
         : m.author.bot;
       if (!isBot) return false;
 
@@ -508,7 +512,7 @@ async function runTests(): Promise<void> {
     config = await loadConfig();
     console.log("✓ Loaded credentials");
     console.log(`  Channel: ${config.testChannelId}`);
-    console.log(`  Bot User: ${config.clientId ?? "(auto-detect)"}`);
+    console.log(`  Bot User: ${config.botApplicationId ?? "(auto-detect)"}`);
   } catch (error) {
     console.error(
       `✗ Failed to load config: ${error instanceof Error ? error.message : String(error)}`,

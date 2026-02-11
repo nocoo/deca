@@ -32,15 +32,20 @@ async function loadConfig(): Promise<Config> {
   const content = await Bun.file(credPath).text();
   const creds = JSON.parse(content);
 
-  if (!creds.botToken || !creds.webhookUrl || !creds.testChannelId) {
+  const testServer = creds.servers?.test;
+  if (
+    !creds.botToken ||
+    !testServer?.testChannelWebhookUrl ||
+    !testServer?.testChannelId
+  ) {
     throw new Error("Missing required credentials");
   }
 
   return {
     botToken: creds.botToken,
-    webhookUrl: creds.webhookUrl,
-    testChannelId: creds.testChannelId,
-    botUserId: creds.clientId,
+    webhookUrl: testServer.testChannelWebhookUrl,
+    testChannelId: testServer.testChannelId,
+    botUserId: creds.botApplicationId,
   };
 }
 
