@@ -42,7 +42,7 @@ export interface CommandDefinition {
 }
 
 export interface SlashCommandsConfig {
-  clientId: string;
+  botApplicationId: string;
   token: string;
   messageHandler: MessageHandler;
   agentId?: string;
@@ -99,23 +99,26 @@ export function buildCommands(): unknown[] {
  * Register slash commands with Discord.
  *
  * @param config - Registration config
- * @param guildId - Optional guild ID for guild-specific commands (faster for testing)
+ * @param guildIds - Optional guild IDs for guild-specific commands (faster for testing)
  */
 export async function registerCommands(
-  config: { clientId: string; token: string },
-  guildId?: string,
+  config: { botApplicationId: string; token: string },
+  guildIds?: string[],
 ): Promise<void> {
   const rest = new REST().setToken(config.token);
   const commands = buildCommands();
 
-  if (guildId) {
-    // Guild-specific registration (instant)
-    await rest.put(Routes.applicationGuildCommands(config.clientId, guildId), {
-      body: commands,
-    });
+  if (guildIds && guildIds.length > 0) {
+    // Guild-specific registration (instant) — register to each guild
+    for (const guildId of guildIds) {
+      await rest.put(
+        Routes.applicationGuildCommands(config.botApplicationId, guildId),
+        { body: commands },
+      );
+    }
   } else {
     // Global registration (can take up to 1 hour to propagate)
-    await rest.put(Routes.applicationCommands(config.clientId), {
+    await rest.put(Routes.applicationCommands(config.botApplicationId), {
       body: commands,
     });
   }

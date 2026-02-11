@@ -86,7 +86,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       const cleanup = setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -99,7 +99,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -114,7 +114,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler({ text: "Answer", success: true });
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -141,7 +141,7 @@ describe("slash-commands", () => {
       const onClearSession = mock(() => Promise.resolve());
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
         onClearSession,
@@ -162,7 +162,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -200,7 +200,7 @@ describe("slash-commands", () => {
       );
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
         onGetStatus,
@@ -229,7 +229,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -255,7 +255,7 @@ describe("slash-commands", () => {
       };
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -280,7 +280,7 @@ describe("slash-commands", () => {
       );
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
         onClearSession,
@@ -304,7 +304,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -328,7 +328,7 @@ describe("slash-commands", () => {
       };
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -354,7 +354,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       const cleanup = setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });
@@ -371,7 +371,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
         agentId: "myagent",
@@ -404,7 +404,7 @@ describe("slash-commands", () => {
       const handler = createMockHandler();
 
       setupSlashCommands(client, {
-        clientId: "client123",
+        botApplicationId: "client123",
         token: "token123",
         messageHandler: handler,
       });

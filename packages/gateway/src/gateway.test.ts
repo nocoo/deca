@@ -417,12 +417,12 @@ describe("createGateway", () => {
   });
 
   describe("slash commands", () => {
-    it("registers slash commands when clientId is provided", async () => {
+    it("registers slash commands when botApplicationId is provided", async () => {
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
         },
       });
       gateways.push(gateway);
@@ -431,19 +431,19 @@ describe("createGateway", () => {
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
       expect(mockRegisterCommands).toHaveBeenCalledWith(
-        { clientId: "client-123", token: "discord-token" },
+        { botApplicationId: "client-123", token: "discord-token" },
         undefined,
       );
       expect(mockSetupSlashCommands).toHaveBeenCalledTimes(1);
     });
 
-    it("registers guild-specific commands when guildId is provided", async () => {
+    it("registers guild-specific commands when guildIds is provided", async () => {
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
-          guildId: "guild-456",
+          botApplicationId: "client-123",
+          guildIds: ["guild-456", "guild-789"],
         },
       });
       gateways.push(gateway);
@@ -451,12 +451,12 @@ describe("createGateway", () => {
       await gateway.start();
 
       expect(mockRegisterCommands).toHaveBeenCalledWith(
-        { clientId: "client-123", token: "discord-token" },
-        "guild-456",
+        { botApplicationId: "client-123", token: "discord-token" },
+        ["guild-456", "guild-789"],
       );
     });
 
-    it("does not register slash commands without clientId", async () => {
+    it("does not register slash commands without botApplicationId", async () => {
       const gateway = createGateway({
         agent: { apiKey: "test-key" },
         discord: { token: "discord-token" },
@@ -474,7 +474,7 @@ describe("createGateway", () => {
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
           enableSlashCommands: false,
         },
       });
@@ -491,7 +491,7 @@ describe("createGateway", () => {
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
         },
       });
       gateways.push(gateway);
@@ -507,7 +507,7 @@ describe("createGateway", () => {
         agent: { apiKey: "test-key", agentId: "my-agent" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
         },
       });
       gateways.push(gateway);
@@ -524,7 +524,7 @@ describe("createGateway", () => {
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
         },
       });
       gateways.push(gateway);
@@ -544,7 +544,7 @@ describe("createGateway", () => {
         agent: { apiKey: "test-key" },
         discord: {
           token: "discord-token",
-          clientId: "client-123",
+          botApplicationId: "client-123",
         },
       });
       gateways.push(gateway);

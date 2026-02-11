@@ -178,15 +178,15 @@ export function createGateway(config: GatewayConfig): Gateway {
       activeChannels.push("discord");
 
       const shouldEnableSlashCommands =
-        discord.enableSlashCommands !== false && discord.clientId;
-      if (shouldEnableSlashCommands && discord.clientId) {
+        discord.enableSlashCommands !== false && discord.botApplicationId;
+      if (shouldEnableSlashCommands && discord.botApplicationId) {
         await registerCommands(
-          { clientId: discord.clientId, token: discord.token },
-          discord.guildId,
+          { botApplicationId: discord.botApplicationId, token: discord.token },
+          discord.guildIds,
         );
 
         const slashConfig: SlashCommandsConfig = {
-          clientId: discord.clientId,
+          botApplicationId: discord.botApplicationId,
           token: discord.token,
           messageHandler: getChannelHandler("discord"),
           agentId: config.agent.agentId,
