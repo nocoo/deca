@@ -45,7 +45,10 @@ const httpPort = Number(process.env.HTTP_PORT) || 3000;
 const httpApiKey = process.env.HTTP_API_KEY;
 const enableTerminal = process.env.TERMINAL === "true";
 const echoMode = process.env.ECHO_MODE === "true" || !anthropicApiKey;
-const enableMemory = process.env.ENABLE_MEMORY === "true";
+const enableMemory =
+  process.env.ENABLE_MEMORY !== undefined
+    ? process.env.ENABLE_MEMORY === "true"
+    : undefined;
 const memoryDir = process.env.MEMORY_DIR;
 const workspaceDir = process.env.WORKSPACE_DIR;
 const enableCron = process.env.ENABLE_CRON === "true";

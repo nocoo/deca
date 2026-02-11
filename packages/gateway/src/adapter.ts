@@ -49,7 +49,7 @@ export async function createAgentAdapter(
     systemPrompt: config.systemPrompt,
     sessionDir: config.sessionDir,
     workspaceDir: config.workspaceDir,
-    enableMemory: config.enableMemory ?? false,
+    enableMemory: config.enableMemory ?? true,
     memoryDir: config.memoryDir,
     enableContext: true,
     enableSkills: true,
