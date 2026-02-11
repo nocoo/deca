@@ -92,7 +92,7 @@ const response = await waitForBotResponse(
   {
     timeout: 15000,   // 最长等待 15 秒
     interval: 1000,   // 每秒轮询一次
-    botUserId: clientId, // clientId 即 Bot User ID
+    botUserId: botApplicationId, // botApplicationId 即 Bot User ID
   }
 );
 
@@ -182,19 +182,29 @@ E2E 测试需要真实的 Discord 凭证，存储在 `~/.deca/credentials/discor
 ```json
 {
   "botToken": "Bot Token (用于 API 认证)",
-  "clientId": "Application ID (用于 Slash Commands 和 Bot User ID 过滤)",
-  "webhookUrl": "Webhook URL (用于发送测试消息)",
-  "testChannelId": "测试频道 ID",
-  "guildId": "服务器 ID (用于 Guild 级别命令注册)"
+  "botApplicationId": "Application ID (用于 Slash Commands 和 Bot User ID 过滤)",
+  "servers": {
+    "production": {
+      "guildId": "生产服务器 ID"
+    },
+    "test": {
+      "guildId": "测试服务器 ID",
+      "testChannelId": "测试频道 ID",
+      "testChannelWebhookUrl": "测试频道 Webhook URL (用于发送测试消息)",
+      "mainChannelId": "主频道 ID",
+      "mainChannelWebhookUrl": "主频道 Webhook URL",
+      "mainUserId": "主用户 ID"
+    }
+  }
 }
 ```
 
 **获取方式：**
 
 1. **botToken**: Discord Developer Portal → Application → Bot → Token
-2. **clientId**: Discord Developer Portal → Application → General Information → Application ID (同时也是 Bot 的 User ID)
-3. **webhookUrl**: 服务器设置 → 集成 → Webhooks → 创建 Webhook
-4. **testChannelId**: 开启开发者模式 → 右键频道 → 复制 ID
+2. **botApplicationId**: Discord Developer Portal → Application → General Information → Application ID (同时也是 Bot 的 User ID)
+3. **testChannelWebhookUrl / mainChannelWebhookUrl**: 服务器设置 → 集成 → Webhooks → 创建 Webhook
+4. **testChannelId / mainChannelId**: 开启开发者模式 → 右键频道 → 复制 ID
 5. **guildId**: 开启开发者模式 → 右键服务器 → 复制 ID
 
 ## 测试场景

@@ -41,7 +41,7 @@ bun run behavioral-tests/<test-name>.test.ts
 
 | 问题 | 状态 | 影响范围 | 修复方案 |
 |------|------|----------|----------|
-| botUserId 配置错误 | ✅ 已修复 | 全部测试 | 使用 `creds.clientId` 替代 `creds.botUserId` |
+| botUserId 配置错误 | ✅ 已修复 | 全部测试 | 使用 `creds.botApplicationId` 替代 `creds.botUserId` |
 | Session 历史污染 | ✅ 已修复 | cron, cross-channel | 测试前清理 session 文件 |
 
 ### P1 - 功能缺陷 ✅ 已全部修复
@@ -110,7 +110,7 @@ bun run behavioral-tests/<test-name>.test.ts
 botUserId: creds.botUserId  // undefined
 
 // ✅ After  
-botUserId: creds.clientId   // Bot's Discord ID: "1468704508317139060"
+botUserId: creds.botApplicationId   // Bot's Discord ID: "1468704508317139060"
 ```
 
 **Commits**: `4043270`, `b1574c5`
@@ -221,15 +221,25 @@ if (existsSync(sessionFile)) rmSync(sessionFile);
 ```json
 // ~/.deca/credentials/discord.json
 {
-  "clientId": "1468704508317139060",   // Bot's Discord ID - 用作 botUserId
-  "userId": "1376095313496117338",      // Human user's Discord ID
   "botToken": "...",
-  "webhookUrl": "...",
-  "testChannelId": "..."
+  "botApplicationId": "1468704508317139060",  // Bot's Discord ID - 用作 botUserId
+  "servers": {
+    "production": {
+      "guildId": "..."
+    },
+    "test": {
+      "guildId": "...",
+      "testChannelId": "...",
+      "testChannelWebhookUrl": "...",
+      "mainChannelId": "...",
+      "mainChannelWebhookUrl": "...",
+      "mainUserId": "1376095313496117338"
+    }
+  }
 }
 ```
 
-**重要**: `clientId` 是 Bot 的 Discord ID，应作为 `botUserId` 传递给 spawner。
+**重要**: `botApplicationId` 是 Bot 的 Discord ID，应作为 `botUserId` 传递给 spawner。
 
 ---
 

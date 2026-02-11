@@ -26,7 +26,7 @@ packages/storage/src/
 ```
 ~/.deca/
 ├── credentials/
-│   ├── discord.json    # { "botToken", "clientId", "guildId", ... }
+│   ├── discord.json    # { "botToken", "botApplicationId", "servers": { ... } }
 │   └── anthropic.json  # { "apiKey": "..." }
 ├── config.json         # Global configuration
 └── sessions/           # Session persistence (future)
