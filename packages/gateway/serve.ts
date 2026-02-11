@@ -160,6 +160,14 @@ if (!discord) {
   console.log("   Create ~/.deca/credentials/discord.json to enable\n");
 }
 
+// Collect all guild IDs from servers config for allowlist and slash commands
+const allGuildIds = discord?.servers
+  ? [discord.servers.production?.guildId, discord.servers.test?.guildId].filter(
+      (id): id is string => !!id,
+    )
+  : [];
+const testServer = discord?.servers?.test;
+
 // Build gateway config
 const gateway = createGateway({
   agent: {
@@ -173,13 +181,13 @@ const gateway = createGateway({
   discord: discord
     ? {
         token: discord.botToken,
-        clientId: discord.clientId,
-        guildId: discord.guildId,
+        botApplicationId: discord.botApplicationId,
+        guildIds: allGuildIds.length > 0 ? allGuildIds : undefined,
         requireMention,
         ignoreBots: true,
-        allowlist: discord.guildId ? { guilds: [discord.guildId] } : undefined,
-        mainChannelId: discord.mainChannelId,
-        mainUserId: discord.userId,
+        allowlist: allGuildIds.length > 0 ? { guilds: allGuildIds } : undefined,
+        mainChannelId: testServer?.mainChannelId,
+        mainUserId: testServer?.mainUserId,
       }
     : undefined,
   http: {
@@ -216,7 +224,8 @@ try {
   console.log("\n📡 Active channels:");
   for (const channel of gateway.channels) {
     if (channel === "discord") {
-      const guildInfo = discord?.guildId ? ` guildId: ${discord.guildId}` : "";
+      const guildInfo =
+        allGuildIds.length > 0 ? ` guilds: [${allGuildIds.join(", ")}]` : "";
       console.log(
         `  - discord (requireMention: ${requireMention}${guildInfo})`,
       );
