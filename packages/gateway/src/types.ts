@@ -146,11 +146,15 @@ export interface DiscordChannelConfig {
   /** Discord bot token */
   token: string;
 
-  /** Application/Client ID for slash commands */
-  clientId?: string;
+  /**
+   * Discord Application ID (from Developer Portal -> General Information).
+   * Used for slash command registration.
+   * Note: For bots, this equals the bot's user ID in Discord.
+   */
+  botApplicationId?: string;
 
-  /** Guild ID for guild-specific command registration (instant, recommended for dev) */
-  guildId?: string;
+  /** Guild IDs for guild-specific command registration (instant, recommended for dev) */
+  guildIds?: string[];
 
   /** Require bot mention (default: false) */
   requireMention?: boolean;
@@ -168,7 +172,7 @@ export interface DiscordChannelConfig {
   /** Debug mode - show session ID and timing info before processing (default: false) */
   debugMode?: boolean;
 
-  /** Enable slash commands (default: true if clientId is provided) */
+  /** Enable slash commands (default: true if botApplicationId is provided) */
   enableSlashCommands?: boolean;
 
   /** Main channel ID - messages in this channel route to main session for debugging */
