@@ -242,28 +242,6 @@ describe("HeartbeatManager", () => {
     });
   });
 
-  describe("buildTasksPrompt", () => {
-    it("should return empty string when no tasks", async () => {
-      const manager = new HeartbeatManager(tempDir);
-      expect(await manager.buildTasksPrompt()).toBe("");
-    });
-
-    it("should build formatted prompt", async () => {
-      await fs.writeFile(
-        path.join(tempDir, "HEARTBEAT.md"),
-        "- [ ] Task 1\n- [ ] Task 2",
-      );
-
-      const manager = new HeartbeatManager(tempDir);
-      const prompt = await manager.buildTasksPrompt();
-
-      expect(prompt).toContain("## 待办任务");
-      expect(prompt).toContain("HEARTBEAT.md");
-      expect(prompt).toContain("1. Task 1");
-      expect(prompt).toContain("2. Task 2");
-    });
-  });
-
   describe("start/stop", () => {
     it("should start when enabled", () => {
       const manager = new HeartbeatManager(tempDir);

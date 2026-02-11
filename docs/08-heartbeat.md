@@ -71,20 +71,14 @@ for (const callback of this.callbacks) {
 }
 ```
 
-**buildTasksPrompt() 的用途** (`agent.ts:470-476`):
-```typescript
-// 只在 agent.run() 被调用时才注入任务
-if (this.enableHeartbeat) {
-  const tasksPrompt = await this.heartbeat.buildTasksPrompt();
-  if (tasksPrompt) {
-    processedMessage += tasksPrompt;
-  }
-}
-```
+**buildTasksPrompt() — 已删除**:
+
+此方法曾将 heartbeat 任务注入用户消息，导致会话污染。
+现在 heartbeat 完全通过 Path A (`scheduled.ts`) 在独立 session 中运行。
 
 **特点**:
 - ⚠️ 半成品：定时器 → 检测 → 通知 → **缺少执行**
-- ⚠️ `buildTasksPrompt()` 只在用户发消息时才会被调用
+- ⚠️ `buildTasksPrompt()` 已删除 — 曾将任务注入用户消息，污染会话
 - ⚠️ 如果用户不发消息，任务永远不会执行
 
 **设计意图分析**:
@@ -209,9 +203,7 @@ Gateway 通过 dispatcher.dispatch() 发送 heartbeat 指令
     ↓
 Dispatcher 调用 agent.run()
     ↓
-agent.run() 内部调用 buildTasksPrompt() 注入任务
-    ↓
-Agent 执行任务，返回结果
+Agent 在独立 "heartbeat" session 中执行任务，返回结果
     ↓
 Dispatcher 通过 reply 回调把结果发送到 Discord
 ```
@@ -343,6 +335,6 @@ Heartbeat 和用户消息可能同时到达。
 |------|------|------|
 | OpenClaw | `src/infra/heartbeat-runner.ts` | 完整实现参考 |
 | OpenClaw-mini | `src/heartbeat.ts` | HeartbeatManager 源码 |
-| OpenClaw-mini | `src/agent.ts` | buildTasksPrompt 用法 |
+| OpenClaw-mini | `src/agent.ts` | buildTasksPrompt 用法（已在 Deca 中删除） |
 | Deca | `packages/gateway/src/gateway.ts` | 当前实现（需修复） |
 | Deca | `packages/agent/src/heartbeat/manager.ts` | HeartbeatManager 复制版 |

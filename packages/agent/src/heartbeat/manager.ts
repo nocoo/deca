@@ -563,17 +563,6 @@ export class HeartbeatManager {
   }
 
   /**
-   * 构建任务提示
-   */
-  async buildTasksPrompt(): Promise<string> {
-    const pending = await this.getPendingTasks();
-    if (pending.length === 0) return "";
-
-    const lines = pending.map((t, i) => `${i + 1}. ${t.description}`);
-    return `\n\n## 待办任务 (HEARTBEAT.md)\n\n${lines.join("\n")}\n\n请优先处理这些任务。`;
-  }
-
-  /**
    * 更新配置 (热加载)
    */
   updateConfig(config: Partial<HeartbeatConfig>): void {

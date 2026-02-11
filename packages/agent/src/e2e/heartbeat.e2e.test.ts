@@ -451,60 +451,6 @@ describe("Heartbeat E2E", () => {
     });
   });
 
-  // ==================== Prompt Building Tests ====================
-
-  describe("Prompt Building", () => {
-    it("should build tasks prompt for Agent context", async () => {
-      const heartbeatPath = join(testDir, "HEARTBEAT.md");
-      writeFileSync(
-        heartbeatPath,
-        `# Priority Tasks
-
-- [ ] Critical: Fix production bug
-- [ ] High: Deploy hotfix
-- [x] Low: Update readme
-`,
-      );
-
-      const manager = new HeartbeatManager(testDir, {
-        heartbeatPath: "HEARTBEAT.md",
-        enabled: true,
-      });
-
-      const prompt = await manager.buildTasksPrompt();
-
-      expect(prompt).toBeDefined();
-      expect(prompt).toContain("HEARTBEAT");
-      expect(prompt).toContain("Critical: Fix production bug");
-      expect(prompt).toContain("High: Deploy hotfix");
-
-      console.log("✅ Built tasks prompt:");
-      console.log(prompt?.slice(0, 500));
-    });
-
-    it("should return empty string when no pending tasks", async () => {
-      const heartbeatPath = join(testDir, "HEARTBEAT.md");
-      writeFileSync(
-        heartbeatPath,
-        `# All Done
-
-- [x] Completed task
-`,
-      );
-
-      const manager = new HeartbeatManager(testDir, {
-        heartbeatPath: "HEARTBEAT.md",
-        enabled: true,
-      });
-
-      const prompt = await manager.buildTasksPrompt();
-
-      expect(prompt).toBe("");
-
-      console.log("✅ Empty prompt for completed tasks");
-    });
-  });
-
   // ==================== Status and Config Tests ====================
 
   describe("Status and Config", () => {
