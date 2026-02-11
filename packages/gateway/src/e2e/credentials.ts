@@ -19,26 +19,38 @@ export interface AnthropicCredentials {
   };
 }
 
+/**
+ * Per-server configuration within Discord credentials.
+ */
+export interface DiscordServerConfig {
+  /** Guild ID for this server */
+  guildId: string;
+  /** Test channel ID for fetching messages (test server only) */
+  testChannelId?: string;
+  /** Test channel webhook URL for sending test messages (test server only) */
+  testChannelWebhookUrl?: string;
+  /** Main channel ID - messages here route to user session (test server only) */
+  mainChannelId?: string;
+  /** Main channel webhook URL for debugging (test server only) */
+  mainChannelWebhookUrl?: string;
+  /** User ID for unified session key across all channels (test server only) */
+  mainUserId?: string;
+}
+
 export interface DiscordCredentials {
   /** Bot token for Discord API */
   botToken: string;
   /**
-   * Application/Client ID for slash commands registration.
-   * Note: For bots, clientId equals the bot's user ID in Discord.
+   * Discord Application ID (from Developer Portal -> General Information).
+   * Used for slash command registration.
+   * Note: For bots, this equals the bot's user ID in Discord.
    */
-  clientId?: string;
-  /** Webhook URL for sending test messages (channel session) */
-  webhookUrl?: string;
-  /** Channel ID for fetching messages */
-  testChannelId?: string;
-  /** Guild ID to restrict bot to (security) */
-  guildId?: string;
-  /** Main webhook URL - messages here route to user session for debugging */
-  mainWebhookUrl?: string;
-  /** Main channel ID - messages here route to user session */
-  mainChannelId?: string;
-  /** User ID for unified session key across all channels */
-  userId?: string;
+  botApplicationId?: string;
+  /** Per-server configurations keyed by environment name */
+  servers?: {
+    production?: DiscordServerConfig;
+    test?: DiscordServerConfig;
+  };
 }
 
 const CREDENTIALS_DIR = join(homedir(), ".deca", "credentials");
