@@ -176,7 +176,9 @@ describe("Agent", () => {
     expect(toolNames).not.toContain("edit");
 
     const history = agent.getHistory("session-1");
-    expect(history[0]?.content).toContain("待办任务");
+    // Heartbeat tasks should NOT be injected into user messages
+    expect(history[0]?.content).not.toContain("待办任务");
+    expect(history[0]?.content).toBe("hello");
   });
 
   it("applies skill match and triggers callback", async () => {

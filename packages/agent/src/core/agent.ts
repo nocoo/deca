@@ -529,13 +529,8 @@ export class Agent {
 
           // 记忆检索改为工具化调用，不在此自动注入
 
-          // ===== Heartbeat 任务注入 =====
-          if (this.enableHeartbeat) {
-            const tasksPrompt = await this.heartbeat.buildTasksPrompt();
-            if (tasksPrompt) {
-              processedMessage += tasksPrompt;
-            }
-          }
+          // Heartbeat tasks run in their own session ("heartbeat"),
+          // so we no longer inject them into user messages here.
 
           // 添加用户消息
           const userMsg: Message = {
