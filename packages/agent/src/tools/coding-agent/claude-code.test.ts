@@ -51,6 +51,15 @@ describe("claude-code parser", () => {
       expect(messages.length).toBe(0);
       expect(parseErrors.length).toBe(0);
     });
+
+    it("should truncate long lines in parse error messages", () => {
+      const longLine = "x".repeat(200);
+      const { parseErrors } = parseClaudeStreamOutput(longLine);
+
+      expect(parseErrors.length).toBe(1);
+      // parse error message truncates to 100 chars
+      expect(parseErrors[0].length).toBeLessThan(200);
+    });
   });
 
   describe("extractModifiedFiles", () => {
@@ -138,6 +147,46 @@ describe("claude-code parser", () => {
 
       expect(files.length).toBe(0);
     });
+
+    it("should extract files from 'writing to' pattern", () => {
+      const messages = [
+        {
+          type: "assistant" as const,
+          message: {
+            content: [
+              {
+                type: "text" as const,
+                text: "Writing to output.json now",
+              },
+            ],
+          },
+        },
+      ];
+
+      const files = extractModifiedFiles(messages);
+
+      expect(files).toContain("output.json");
+    });
+
+    it("should extract files from 'creating' pattern", () => {
+      const messages = [
+        {
+          type: "assistant" as const,
+          message: {
+            content: [
+              {
+                type: "text" as const,
+                text: "Creating config.yaml for deployment",
+              },
+            ],
+          },
+        },
+      ];
+
+      const files = extractModifiedFiles(messages);
+
+      expect(files).toContain("config.yaml");
+    });
   });
 
   describe("summarizeResult", () => {
@@ -218,6 +267,63 @@ describe("claude-code parser", () => {
       expect(result.success).toBe(false);
       expect(result.result).toBe("");
       expect(result.durationMs).toBe(0);
+    });
+
+    it("should extract modified files from assistant messages", () => {
+      const messages = [
+        {
+          type: "assistant" as const,
+          message: {
+            content: [
+              {
+                type: "text" as const,
+                text: "I wrote src/index.ts and created test.js",
+              },
+            ],
+          },
+        },
+        {
+          type: "result" as const,
+          subtype: "success" as const,
+          result: "Done",
+          duration_ms: 100,
+        },
+      ];
+
+      const result = summarizeResult(messages);
+
+      expect(result.modifiedFiles).toContain("src/index.ts");
+      expect(result.modifiedFiles).toContain("test.js");
+    });
+
+    it("should handle multiple system messages (uses last model)", () => {
+      const messages = [
+        {
+          type: "system" as const,
+          subtype: "init" as const,
+          session_id: "s1",
+          tools: [],
+          model: "claude-3",
+        },
+        {
+          type: "system" as const,
+          subtype: "init" as const,
+          session_id: "s2",
+          tools: [],
+          model: "claude-4",
+        },
+        {
+          type: "result" as const,
+          subtype: "success" as const,
+          result: "OK",
+          duration_ms: 100,
+        },
+      ];
+
+      const result = summarizeResult(messages);
+
+      expect(result.model).toBe("claude-4");
+      expect(result.sessionId).toBe("s2");
     });
   });
 });
