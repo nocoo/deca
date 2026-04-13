@@ -1,0 +1,7 @@
+# OSV-Scanner configuration
+# Add [[IgnoredVulns]] entries here if false positives are found in CI.
+#
+# Example:
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# reason = "Indirect dependency, no direct exposure"
