@@ -2,3 +2,7 @@
 # Exclude e2e utilities from coverage as they are tested via behavioral tests
 coverageSkipTestFiles = true
 coveragePathIgnorePatterns = ["src/e2e/**"]
+
+[test.coverageThreshold]
+line = 90
+function = 90

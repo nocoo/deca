@@ -1,0 +1,7 @@
+[test]
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = ["src/e2e/**", "../agent/**", "../discord/**", "../http/**", "../terminal/**", "../storage/**"]
+
+[test.coverageThreshold]
+line = 90
+function = 90

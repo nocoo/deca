@@ -9,7 +9,7 @@
     "test:unit": "bun test src/core src/context src/heartbeat src/tools",
     "test:e2e": "bun test src/e2e/",
     "test:coverage": "bun test --coverage",
-    "lint": "biome check src",
+    "lint": "biome check src --error-on-warnings",
     "format": "biome format src --write"
   },
   "dependencies": {

@@ -17,7 +17,7 @@
     "test:behavioral:memory": "bun run behavioral-tests/memory.test.ts",
     "test:behavioral:autonomy": "bun run behavioral-tests/agent-autonomy.test.ts",
     "test:behavioral:skills": "bun run behavioral-tests/skills.test.ts",
-    "lint": "biome lint src behavioral-tests",
+    "lint": "biome lint src behavioral-tests --error-on-warnings",
     "format": "biome format src behavioral-tests"
   },
   "dependencies": {
