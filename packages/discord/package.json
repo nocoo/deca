@@ -18,7 +18,7 @@
     "test:unit": "bun test src/",
     "test:e2e": "bun run src/e2e/runner.ts --core",
     "test:e2e:full": "bun run src/e2e/runner.ts",
-    "lint": "biome lint src",
+    "lint": "biome lint src --error-on-warnings",
     "format": "biome format src"
   },
   "dependencies": {

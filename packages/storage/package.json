@@ -9,7 +9,7 @@
     "test:unit": "bun test",
     "test:e2e": "bun run src/e2e/runner.ts",
     "test:coverage": "bun test --coverage",
-    "lint": "biome check src",
+    "lint": "biome check src --error-on-warnings",
     "format": "biome format src --write"
   },
   "devDependencies": {
