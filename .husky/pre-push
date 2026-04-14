@@ -1,6 +1,1 @@
-# Pre-push: Run E2E tests with real services
-# Credential checking is handled by tests themselves (skip if missing)
-
-echo "🚀 Running E2E tests before push..."
-bun run test:e2e
-echo "✅ E2E tests passed!"
+bun run build && bun run test:unit && bun run lint && bun run test:e2e
