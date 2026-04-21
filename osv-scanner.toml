@@ -5,3 +5,7 @@
 # [[IgnoredVulns]]
 # id = "GHSA-xxxx-xxxx-xxxx"
 # reason = "Indirect dependency, no direct exposure"
+
+[[IgnoredVulns]]
+id = "GHSA-458j-xx4x-4375"
+reason = "hono 4.12.12 medium severity (4.3 CVSS), indirect dependency, no direct exposure to affected functionality"
