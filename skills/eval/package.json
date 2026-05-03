@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "biome check .",
     "format": "biome format . --write",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "run": "bun run runner.ts",
     "report": "bun run reporter.ts"
   },

@@ -2,9 +2,9 @@
  * Unit tests for eval reporter
  */
 
-import { afterEach, describe, expect, it } from "bun:test";
-import { rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   calculateByCategory,
   calculateSummary,
@@ -422,7 +422,8 @@ describe("loadJudgedResults", () => {
   it("should load judged results from file", async () => {
     const judged = createJudgedResults();
 
-    await Bun.write(testFile, JSON.stringify(judged));
+    await mkdir(dirname(testFile), { recursive: true });
+    await writeFile(testFile, JSON.stringify(judged));
 
     const loaded = await loadJudgedResults(testFile);
 
@@ -460,11 +461,8 @@ describe("saveReport", () => {
     expect(filepath).toContain("report-");
     expect(filepath).toContain(".md");
 
-    const file = Bun.file(filepath);
-    expect(await file.exists()).toBe(true);
-
-    const content = await file.text();
-    expect(content).toContain("# Eval Report");
+    const file = await readFile(filepath, "utf-8");
+    expect(file).toContain("# Eval Report");
   });
 });
 
@@ -493,7 +491,8 @@ describe("generateReport", () => {
       ],
     });
 
-    await Bun.write(inputFile, JSON.stringify(judged));
+    await mkdir(dirname(inputFile), { recursive: true });
+    await writeFile(inputFile, JSON.stringify(judged));
 
     const result = await generateReport(inputFile);
 
@@ -501,15 +500,15 @@ describe("generateReport", () => {
     expect(result.report.summary.passed).toBe(1);
     expect(result.outputPath).toContain("report-");
 
-    const file = Bun.file(result.outputPath);
-    expect(await file.exists()).toBe(true);
+    await expect(stat(result.outputPath)).resolves.toBeDefined();
   });
 
   it("should use custom output directory", async () => {
     const judged = createJudgedResults();
     const customDir = join(testDir, "custom-output");
 
-    await Bun.write(inputFile, JSON.stringify(judged));
+    await mkdir(dirname(inputFile), { recursive: true });
+    await writeFile(inputFile, JSON.stringify(judged));
 
     const result = await generateReport(inputFile, { outputDir: customDir });
 

@@ -5,7 +5,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     exclude: ["src/e2e/**", "node_modules/**"],
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/e2e/**", "src/index.ts"],
       thresholds: {
