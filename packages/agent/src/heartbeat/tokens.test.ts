@@ -2,7 +2,7 @@
  * Heartbeat Tokens Tests
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { HEARTBEAT_OK, stripHeartbeatToken } from "./tokens";
 
 describe("HEARTBEAT_OK", () => {

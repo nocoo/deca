@@ -8,14 +8,6 @@
  */
 
 import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "bun:test";
-import {
   existsSync,
   mkdirSync,
   readFileSync,
@@ -24,6 +16,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Agent } from "../core/agent.js";
 import {
   HeartbeatManager,

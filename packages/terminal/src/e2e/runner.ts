@@ -9,7 +9,7 @@
  *   bun run packages/terminal/src/e2e/runner.ts --debug
  */
 
-import { getPackageDir, spawnTerminal, type TerminalProcess } from "./spawner";
+import { type TerminalProcess, getPackageDir, spawnTerminal } from "./spawner";
 
 // ============================================================================
 // Configuration
@@ -89,7 +89,7 @@ basicSuite.tests.push({
   fn: async ({ terminal }) => {
     // Send empty line - should just show prompt again without crash
     const response = await terminal.send("");
-    
+
     // Should not crash, just return prompt or empty echo
     // The terminal should still be responsive
     const followUp = await terminal.send("still working");

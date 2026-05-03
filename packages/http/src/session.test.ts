@@ -1,9 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
+  extractSessionId,
+  extractUserId,
   generateSessionKey,
   parseSessionKey,
-  extractUserId,
-  extractSessionId,
 } from "./session";
 import { HTTP_SESSION_PREFIX } from "./types";
 

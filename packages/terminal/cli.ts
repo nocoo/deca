@@ -12,7 +12,7 @@
  *   cd packages/terminal && bun run standalone
  */
 
-import { createTerminal, createEchoHandler } from "./src";
+import { createEchoHandler, createTerminal } from "./src";
 
 console.log("🖥️  Starting Terminal standalone mode (echo handler)...\n");
 

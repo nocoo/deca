@@ -1,20 +1,21 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, vi } from "vitest";
 import { createAgentAdapter, createEchoAdapter } from "./adapter";
 import type { MessageRequest } from "./types";
 
 // Mock the Agent class from @deca/agent
-const mockRun = mock(() =>
-  Promise.resolve({
-    text: "Agent response",
-    turns: 1,
-    toolCalls: 0,
-  }),
-);
+const { mockRun, mockCronInitialize, mockCronShutdown } = vi.hoisted(() => ({
+  mockRun: vi.fn(() =>
+    Promise.resolve({
+      text: "Agent response",
+      turns: 1,
+      toolCalls: 0,
+    }),
+  ),
+  mockCronInitialize: vi.fn(() => Promise.resolve()),
+  mockCronShutdown: vi.fn(() => Promise.resolve()),
+}));
 
-const mockCronInitialize = mock(() => Promise.resolve());
-const mockCronShutdown = mock(() => Promise.resolve());
-
-mock.module("@deca/agent", () => ({
+vi.mock("@deca/agent", () => ({
   Agent: class MockAgent {
     constructor(public config: unknown) {}
     run = mockRun;
@@ -150,7 +151,7 @@ describe("createAgentAdapter", () => {
 
   it("passes onTextDelta callback to agent.run", async () => {
     mockRun.mockClear();
-    const deltaCallback = mock(() => {});
+    const deltaCallback = vi.fn(() => {});
 
     const adapter = await createAgentAdapter({ apiKey: "test-key" });
     await adapter.handle(createRequest("hello", deltaCallback));

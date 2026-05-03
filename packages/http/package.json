@@ -7,11 +7,12 @@
   "types": "src/index.ts",
   "scripts": {
     "standalone": "bun run cli.ts",
-    "test": "bun test",
-    "test:unit": "bun test src/",
+    "test": "bun --bun vitest run",
+    "test:unit": "bun --bun vitest run",
     "test:e2e": "bun run src/e2e/runner.ts",
     "lint": "biome lint src --error-on-warnings",
-    "format": "biome format src"
+    "format": "biome format src",
+    "test:coverage": "bun --bun vitest run --coverage"
   },
   "dependencies": {
     "hono": "^4.7.10"

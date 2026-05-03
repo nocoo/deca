@@ -2,16 +2,8 @@
  * Unit tests for eval runner
  */
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from "bun:test";
-import { rm } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   type RunnerConfig,
@@ -110,7 +102,7 @@ describe("executeCase", () => {
 
   it("should return result with output on successful response", async () => {
     // Mock fetch
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({
           response: "Hello there! I am Tomato 🍅",
@@ -132,7 +124,7 @@ describe("executeCase", () => {
   });
 
   it("should return result with quickCheck passed when output matches", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({
           response: "hello world",
@@ -149,7 +141,7 @@ describe("executeCase", () => {
   });
 
   it("should return error on HTTP error response", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response("Internal Server Error", { status: 500 });
     });
 
@@ -161,7 +153,7 @@ describe("executeCase", () => {
   });
 
   it("should return error when success=false", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({
           response: "partial response",
@@ -180,7 +172,7 @@ describe("executeCase", () => {
   });
 
   it("should return error on network failure", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       throw new Error("Connection refused");
     });
 
@@ -193,7 +185,7 @@ describe("executeCase", () => {
   it("should include API key header when configured", async () => {
     let capturedHeaders: Headers | undefined;
 
-    globalThis.fetch = mock(async (url: string, options: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url: string, options: RequestInit) => {
       capturedHeaders = new Headers(options.headers);
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
@@ -209,7 +201,7 @@ describe("executeCase", () => {
   it("should not include API key header when not configured", async () => {
     let capturedHeaders: Headers | undefined;
 
-    globalThis.fetch = mock(async (url: string, options: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url: string, options: RequestInit) => {
       capturedHeaders = new Headers(options.headers);
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
@@ -222,7 +214,7 @@ describe("executeCase", () => {
   });
 
   it("should handle case without quickCheck", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ response: "response", success: true }),
         { status: 200 },
@@ -259,7 +251,7 @@ describe("runCases", () => {
       { ...testCase, id: "case-3", name: "Case 3" },
     ];
 
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
@@ -280,7 +272,7 @@ describe("runCases", () => {
       { ...testCase, id: "case-2", name: "Case 2" },
     ];
 
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
@@ -366,8 +358,7 @@ describe("savePendingResults", () => {
     expect(filepath).toContain(".json");
 
     // Verify file exists and has correct content
-    const file = Bun.file(filepath);
-    const content = await file.json();
+    const content = JSON.parse(await readFile(filepath, "utf-8"));
 
     expect(content).toEqual(pending);
   });
@@ -384,8 +375,7 @@ describe("savePendingResults", () => {
     const nestedDir = join(testOutputDir, "nested", "dir");
     const filepath = await savePendingResults(pending, nestedDir);
 
-    const file = Bun.file(filepath);
-    expect(await file.exists()).toBe(true);
+    await expect(stat(filepath)).resolves.toBeDefined();
   });
 });
 
@@ -407,7 +397,7 @@ describe("run", () => {
   });
 
   it("should run all cases and save results", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ response: "I am Tomato 🍅", success: true }),
         { status: 200 },
@@ -425,12 +415,11 @@ describe("run", () => {
     expect(result.outputPath).toContain("pending-");
 
     // Verify file exists
-    const file = Bun.file(result.outputPath);
-    expect(await file.exists()).toBe(true);
+    await expect(stat(result.outputPath)).resolves.toBeDefined();
   });
 
   it("should run single case by ID", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
@@ -440,11 +429,11 @@ describe("run", () => {
     const result = await run({
       gatewayUrl: "http://localhost:9999",
       outputDir: testOutputDir,
-      caseId: "identity-001",
+      caseId: "identity-name-001",
     });
 
     expect(result.executed).toBe(1);
-    expect(result.results.results[0].caseId).toBe("identity-001");
+    expect(result.results.results[0].caseId).toBe("identity-name-001");
   });
 
   it("should throw error for unknown case ID", async () => {
@@ -460,7 +449,7 @@ describe("run", () => {
   it("should count errors correctly", async () => {
     let callCount = 0;
 
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++;
       if (callCount === 1) {
         return new Response(JSON.stringify({ response: "ok", success: true }), {
@@ -480,7 +469,7 @@ describe("run", () => {
   });
 
   it("should use default values when not specified", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
       });
@@ -490,7 +479,7 @@ describe("run", () => {
       outputDir: testOutputDir,
     });
 
-    expect(result.results.gatewayUrl).toBe("http://localhost:8080");
+    expect(result.results.gatewayUrl).toBe("http://localhost:7014");
     expect(result.results.model).toBe("unknown");
   });
 });

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Client, Guild, Message, TextChannel, User } from "discord.js";
 import { ChannelType as DJSChannelType } from "discord.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type ListenerConfig,
   createMessageListener,
@@ -34,8 +34,8 @@ function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
     id: "channel789",
     name: "test-channel",
     type: DJSChannelType.GuildText,
-    send: mock(() => Promise.resolve({ id: "sent-id" })),
-    sendTyping: mock(() => Promise.resolve()),
+    send: vi.fn(() => Promise.resolve({ id: "sent-id" })),
+    sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
     ...overrides,
   } as unknown as TextChannel;
@@ -49,7 +49,7 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
   // Track reactions for testing
   const reactionsCache = new Map<
     string,
-    { users: { remove: ReturnType<typeof mock> } }
+    { users: { remove: ReturnType<ReturnType<typeof vi.fn>> } }
   >();
 
   return {
@@ -62,10 +62,10 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
       users: new Map(),
       has: () => false,
     },
-    reply: mock(() => Promise.resolve({ id: "reply-id" })),
-    react: mock(async (emoji: string) => {
+    reply: vi.fn(() => Promise.resolve({ id: "reply-id" })),
+    react: vi.fn(async (emoji: string) => {
       reactionsCache.set(emoji, {
-        users: { remove: mock(() => Promise.resolve()) },
+        users: { remove: vi.fn(() => Promise.resolve()) },
       });
     }),
     reactions: {
@@ -81,7 +81,7 @@ function createMockHandler(
   response: MessageResponse = { text: "OK", success: true },
 ): MessageHandler {
   return {
-    handle: mock(() => Promise.resolve(response)),
+    handle: vi.fn(() => Promise.resolve(response)),
   };
 }
 
@@ -92,8 +92,8 @@ function createMockClient(user: Partial<User> = {}): Client {
       username: "testbot",
       ...user,
     },
-    on: mock(() => {}),
-    off: mock(() => {}),
+    on: vi.fn(() => {}),
+    off: vi.fn(() => {}),
   } as unknown as Client;
 }
 
@@ -304,7 +304,8 @@ describe("processMessage", () => {
     });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+      .calls[0];
     const request = call[0];
 
     expect(request.content).toBe("Hello bot!");
@@ -335,13 +336,14 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      .mock.calls[0];
     expect(replyCall[0]).toContain("Something went wrong");
   });
 
   it("handles handler exceptions", async () => {
     const handler: MessageHandler = {
-      handle: mock(() => Promise.reject(new Error("Handler crashed"))),
+      handle: vi.fn(() => Promise.reject(new Error("Handler crashed"))),
     };
     const message = createMockMessage();
 
@@ -349,13 +351,14 @@ describe("processMessage", () => {
 
     // Should send error message, not throw
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
 
   it("handles handler sync exceptions", async () => {
     const handler: MessageHandler = {
-      handle: mock(() => {
+      handle: vi.fn(() => {
         throw new Error("Sync handler crash");
       }),
     };
@@ -365,17 +368,18 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
 
   it("handles reply failures gracefully", async () => {
     const handler: MessageHandler = {
-      handle: mock(() => Promise.reject(new Error("Handler error"))),
+      handle: vi.fn(() => Promise.reject(new Error("Handler error"))),
     };
     const message = createMockMessage();
     // Make reply throw
-    message.reply = mock(() => Promise.reject(new Error("Reply failed")));
+    message.reply = vi.fn(() => Promise.reject(new Error("Reply failed")));
 
     // Should not throw even if reply fails
     await expect(
@@ -385,14 +389,15 @@ describe("processMessage", () => {
 
   it("handles non-Error exceptions", async () => {
     const handler: MessageHandler = {
-      handle: mock(() => Promise.reject("string error")),
+      handle: vi.fn(() => Promise.reject("string error")),
     };
     const message = createMockMessage();
 
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<typeof mock>).mock.calls[0];
+    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
 
@@ -415,10 +420,10 @@ describe("processMessage", () => {
 
       // Should have 2 replies: debug message + actual response
       expect(message.reply).toHaveBeenCalledTimes(2);
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock
-        .calls[0];
-      const secondCall = (message.reply as ReturnType<typeof mock>).mock
-        .calls[1];
+      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls[0];
+      const secondCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls[1];
 
       // First message should be debug info
       expect(firstCall[0]).toContain("Processing...");
@@ -457,8 +462,8 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls[0];
       // Session key should be truncated (last 12 chars with ... prefix)
       expect(firstCall[0]).toMatch(/Session: \.\.\.[a-z0-9:]+/i);
     });
@@ -469,8 +474,8 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls[0];
       // Should contain ISO timestamp format
       expect(firstCall[0]).toMatch(/Time: \d{4}-\d{2}-\d{2}T/);
     });
@@ -497,7 +502,7 @@ describe("processMessage", () => {
 
     it("adds ❌ reaction on handler error", async () => {
       const handler: MessageHandler = {
-        handle: mock(() => Promise.reject(new Error("Error"))),
+        handle: vi.fn(() => Promise.reject(new Error("Error"))),
       };
       const message = createMockMessage();
 
@@ -625,12 +630,12 @@ describe("createMessageListener", () => {
     let messageHandler: ((message: Message) => Promise<void>) | null = null;
     const client = {
       user: { id: "bot123", username: "testbot" },
-      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+      on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {
         if (event === "messageCreate") {
           messageHandler = handler;
         }
       }),
-      off: mock(() => {}),
+      off: vi.fn(() => {}),
     } as unknown as Client;
 
     const handler = createMockHandler({ text: "Response", success: true });
@@ -652,12 +657,12 @@ describe("createMessageListener", () => {
     let messageHandler: ((message: Message) => Promise<void>) | null = null;
     const client = {
       user: { id: "bot123", username: "testbot" },
-      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+      on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {
         if (event === "messageCreate") {
           messageHandler = handler;
         }
       }),
-      off: mock(() => {}),
+      off: vi.fn(() => {}),
     } as unknown as Client;
 
     const handler = createMockHandler();
@@ -679,12 +684,12 @@ describe("createMessageListener", () => {
     let messageHandler: ((message: Message) => Promise<void>) | null = null;
     const client = {
       user: { id: "bot123", username: "testbot" },
-      on: mock((event: string, handler: (msg: Message) => Promise<void>) => {
+      on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {
         if (event === "messageCreate") {
           messageHandler = handler;
         }
       }),
-      off: mock(() => {}),
+      off: vi.fn(() => {}),
     } as unknown as Client;
 
     const handler = createMockHandler({ text: "OK", success: true });
@@ -743,7 +748,8 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+      .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("dm");
   });
@@ -767,7 +773,8 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+      .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("thread");
     expect(request.channel.threadId).toBe("thread123");
@@ -789,7 +796,8 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<typeof mock>).mock.calls[0];
+    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+      .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("thread");
   });
@@ -799,8 +807,8 @@ describe("processMessage edge cases", () => {
     const channelWithoutName = {
       id: "channel789",
       type: DJSChannelType.GuildText,
-      send: mock(() => Promise.resolve({ id: "sent-id" })),
-      sendTyping: mock(() => Promise.resolve()),
+      send: vi.fn(() => Promise.resolve({ id: "sent-id" })),
+      sendTyping: vi.fn(() => Promise.resolve()),
       isTextBased: () => true,
       // No 'name' property
     } as unknown as TextChannel;

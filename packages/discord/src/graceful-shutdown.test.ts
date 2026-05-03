@@ -2,7 +2,7 @@
  * Graceful Shutdown Manager Tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type GracefulShutdown,
   createGracefulShutdown,
@@ -132,7 +132,7 @@ describe("Graceful Shutdown", () => {
     });
 
     it("calls onTimeout callback on timeout", async () => {
-      const onTimeout = mock(() => {});
+      const onTimeout = vi.fn(() => {});
 
       shutdown = createGracefulShutdown({
         timeoutMs: 20,

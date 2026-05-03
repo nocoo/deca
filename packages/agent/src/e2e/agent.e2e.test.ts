@@ -8,7 +8,6 @@
  * Run with: bun test src/e2e/
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import {
   existsSync,
   mkdirSync,
@@ -19,6 +18,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { LLM_PROVIDER_IDS, type ProviderCredential } from "@deca/storage";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Agent } from "../core/agent.js";
 
 /**

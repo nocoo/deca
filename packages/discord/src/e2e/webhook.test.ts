@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { createTestMessage, extractTestId, generateTestId } from "./webhook";
 
 describe("webhook", () => {

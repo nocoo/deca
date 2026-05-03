@@ -14,12 +14,13 @@
   },
   "scripts": {
     "standalone": "bun run cli.ts",
-    "test": "bun test",
-    "test:unit": "bun test src/",
+    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:e2e": "bun run src/e2e/runner.ts --core",
     "test:e2e:full": "bun run src/e2e/runner.ts",
     "lint": "biome lint src --error-on-warnings",
-    "format": "biome format src"
+    "format": "biome format src",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "discord.js": "^14.25.1"

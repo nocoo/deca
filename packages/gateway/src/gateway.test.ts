@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Gateway } from "./types";
 
 // ============================================================================
@@ -6,28 +6,59 @@ import type { Gateway } from "./types";
 // ============================================================================
 
 // Mock Agent
-const mockAgentRun = mock(() =>
-  Promise.resolve({ text: "Agent response", turns: 1, toolCalls: 0 }),
-);
-const mockStartHeartbeat = mock(() => {});
-const mockStopHeartbeat = mock(() => {});
-const mockAgentReset = mock(() => Promise.resolve());
-const mockAgentGetStatus = mock(() =>
-  Promise.resolve({
-    model: "mock-model",
-    agentId: "mock-agent",
-    contextTokens: 128000,
-    session: {
-      key: "test-session",
-      messageCount: 10,
-      userMessages: 5,
-      assistantMessages: 5,
-      totalChars: 1000,
-    },
-  }),
-);
+const {
+  mockAgentRun,
+  mockStartHeartbeat,
+  mockStopHeartbeat,
+  mockAgentReset,
+  mockAgentGetStatus,
+  mockDiscordConnect,
+  mockDiscordShutdown,
+  mockRegisterCommands,
+  mockSlashCommandsCleanup,
+  mockSetupSlashCommands,
+  mockTerminalStart,
+  mockTerminalStop,
+  mockHttpStart,
+  mockHttpStop,
+  mockHttpAppPost,
+} = vi.hoisted(() => {
+  const mockSlashCommandsCleanup = vi.fn(() => {});
+  return {
+    mockAgentRun: vi.fn(() =>
+      Promise.resolve({ text: "Agent response", turns: 1, toolCalls: 0 }),
+    ),
+    mockStartHeartbeat: vi.fn(() => {}),
+    mockStopHeartbeat: vi.fn(() => {}),
+    mockAgentReset: vi.fn(() => Promise.resolve()),
+    mockAgentGetStatus: vi.fn(() =>
+      Promise.resolve({
+        model: "mock-model",
+        agentId: "mock-agent",
+        contextTokens: 128000,
+        session: {
+          key: "test-session",
+          messageCount: 10,
+          userMessages: 5,
+          assistantMessages: 5,
+          totalChars: 1000,
+        },
+      }),
+    ),
+    mockDiscordConnect: vi.fn(() => Promise.resolve()),
+    mockDiscordShutdown: vi.fn(() => Promise.resolve()),
+    mockRegisterCommands: vi.fn(() => Promise.resolve()),
+    mockSlashCommandsCleanup,
+    mockSetupSlashCommands: vi.fn(() => mockSlashCommandsCleanup),
+    mockTerminalStart: vi.fn(() => Promise.resolve()),
+    mockTerminalStop: vi.fn(() => {}),
+    mockHttpStart: vi.fn(() => Promise.resolve()),
+    mockHttpStop: vi.fn(() => {}),
+    mockHttpAppPost: vi.fn(() => {}),
+  };
+});
 
-mock.module("@deca/agent", () => ({
+vi.mock("@deca/agent", () => ({
   Agent: class MockAgent {
     constructor(public config: unknown) {}
     run = mockAgentRun;
@@ -39,14 +70,8 @@ mock.module("@deca/agent", () => ({
 }));
 
 // Mock Discord
-const mockDiscordConnect = mock(() => Promise.resolve());
-const mockDiscordShutdown = mock(() => Promise.resolve());
-const mockRegisterCommands = mock(() => Promise.resolve());
-const mockSlashCommandsCleanup = mock(() => {});
-const mockSetupSlashCommands = mock(() => mockSlashCommandsCleanup);
-
-mock.module("@deca/discord", () => ({
-  createDiscordGateway: mock((config: unknown) => ({
+vi.mock("@deca/discord", () => ({
+  createDiscordGateway: vi.fn((config: unknown) => ({
     connect: mockDiscordConnect,
     shutdown: mockDiscordShutdown,
     client: { guilds: { cache: { size: 1 } } },
@@ -54,15 +79,12 @@ mock.module("@deca/discord", () => ({
   })),
   registerCommands: mockRegisterCommands,
   setupSlashCommands: mockSetupSlashCommands,
-  sendToChannel: mock(() => Promise.resolve()),
+  sendToChannel: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock Terminal
-const mockTerminalStart = mock(() => Promise.resolve());
-const mockTerminalStop = mock(() => {});
-
-mock.module("@deca/terminal", () => ({
-  createTerminal: mock((config: unknown) => ({
+vi.mock("@deca/terminal", () => ({
+  createTerminal: vi.fn((config: unknown) => ({
     start: mockTerminalStart,
     stop: mockTerminalStop,
     config,
@@ -70,12 +92,8 @@ mock.module("@deca/terminal", () => ({
 }));
 
 // Mock HTTP
-const mockHttpStart = mock(() => Promise.resolve());
-const mockHttpStop = mock(() => {});
-const mockHttpAppPost = mock(() => {});
-
-mock.module("@deca/http", () => ({
-  createHttpServer: mock((config: unknown) => ({
+vi.mock("@deca/http", () => ({
+  createHttpServer: vi.fn((config: unknown) => ({
     start: mockHttpStart,
     stop: mockHttpStop,
     config,

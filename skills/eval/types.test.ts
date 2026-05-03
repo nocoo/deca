@@ -2,7 +2,7 @@
  * Unit tests for eval types and utility functions
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PASS_THRESHOLD,
   type EvalCase,

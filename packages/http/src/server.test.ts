@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "vitest";
 import { createEchoHandler } from "./echo-handler";
 import { createHttpServer } from "./server";
 import type { HttpServer } from "./types";

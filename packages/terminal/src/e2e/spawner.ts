@@ -34,7 +34,9 @@ export interface TerminalProcess {
  * @param config - Spawner configuration
  * @returns Terminal process handle
  */
-export async function spawnTerminal(config: SpawnerConfig = {}): Promise<TerminalProcess> {
+export async function spawnTerminal(
+  config: SpawnerConfig = {},
+): Promise<TerminalProcess> {
   const startupTimeout = config.startupTimeout ?? 10000;
   const debug = config.debug ?? false;
 
@@ -110,7 +112,10 @@ export async function spawnTerminal(config: SpawnerConfig = {}): Promise<Termina
 
     const checkReady = setInterval(() => {
       // Look for the prompt ">" or "Terminal REPL started"
-      if (outputBuffer.includes(">") || outputBuffer.includes("Terminal REPL started")) {
+      if (
+        outputBuffer.includes(">") ||
+        outputBuffer.includes("Terminal REPL started")
+      ) {
         clearInterval(checkReady);
         clearTimeout(timeout);
         resolve();
@@ -158,7 +163,11 @@ export async function spawnTerminal(config: SpawnerConfig = {}): Promise<Termina
     // Wait for response - need to see the prompt ">" after processing
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new Error(`Response timeout after ${timeout}ms. Output so far: ${outputBuffer}`));
+        reject(
+          new Error(
+            `Response timeout after ${timeout}ms. Output so far: ${outputBuffer}`,
+          ),
+        );
       }, timeout);
 
       let lastBufferLength = 0;
@@ -168,13 +177,13 @@ export async function spawnTerminal(config: SpawnerConfig = {}): Promise<Termina
         // Check if output has stabilized (no new content for 2 checks)
         // AND we see the prompt
         const hasPrompt = outputBuffer.includes(">");
-        
+
         if (outputBuffer.length === lastBufferLength && hasPrompt) {
           stableCount++;
           if (stableCount >= 2) {
             clearInterval(checkResponse);
             clearTimeout(timeoutId);
-            
+
             const response = outputBuffer.trim();
             resolve(response);
           }
@@ -212,7 +221,10 @@ export async function spawnTerminal(config: SpawnerConfig = {}): Promise<Termina
         const exitTimeout = 3000;
         const exitPromise = proc.exited;
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Terminal stop timeout")), exitTimeout);
+          setTimeout(
+            () => reject(new Error("Terminal stop timeout")),
+            exitTimeout,
+          );
         });
 
         try {

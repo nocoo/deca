@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronService } from "./service.js";
 import type { CronJob } from "./types.js";
 
@@ -609,7 +609,7 @@ describe("CronService", () => {
 
   describe("error handling", () => {
     it("should handle callback errors gracefully", async () => {
-      const consoleSpy = mock(() => {});
+      const consoleSpy = vi.fn(() => {});
       const originalError = console.error;
       console.error = consoleSpy;
 
@@ -646,7 +646,7 @@ describe("CronService", () => {
     });
 
     it("should warn when trigger fires without callback", async () => {
-      const consoleSpy = mock(() => {});
+      const consoleSpy = vi.fn(() => {});
       const originalWarn = console.warn;
       console.warn = consoleSpy;
 

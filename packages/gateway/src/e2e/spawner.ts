@@ -4,8 +4,8 @@
  * Spawns the Gateway as an independent subprocess with real Agent (LLM) integration.
  */
 
-import { type Subprocess, spawn } from "bun";
 import { join } from "node:path";
+import { type Subprocess, spawn } from "bun";
 import {
   type AnthropicCredentials,
   type DiscordCredentials,
@@ -121,7 +121,12 @@ export async function spawnGateway(
   });
 
   // Wait for gateway to be ready
-  const readyPromise = waitForGatewayReady(proc, httpPort, startupTimeout, debug);
+  const readyPromise = waitForGatewayReady(
+    proc,
+    httpPort,
+    startupTimeout,
+    debug,
+  );
 
   try {
     await readyPromise;
@@ -149,7 +154,10 @@ export async function spawnGateway(
       const exitTimeout = 5000;
       const exitPromise = proc.exited;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Gateway stop timeout")), exitTimeout);
+        setTimeout(
+          () => reject(new Error("Gateway stop timeout")),
+          exitTimeout,
+        );
       });
 
       try {

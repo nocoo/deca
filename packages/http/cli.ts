@@ -10,7 +10,7 @@
  *   PORT=8080 bun run packages/http/cli.ts
  */
 
-import { createHttpServer, createEchoHandler } from "./src";
+import { createEchoHandler, createHttpServer } from "./src";
 
 const port = Number(process.env.PORT) || 3000;
 const apiKey = process.env.API_KEY;

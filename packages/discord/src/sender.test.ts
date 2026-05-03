@@ -1,19 +1,19 @@
-import { describe, expect, it, mock } from "bun:test";
 import type { Message, TextChannel } from "discord.js";
+import { describe, expect, it, vi } from "vitest";
 import { sendReply, sendToChannel, showTyping } from "./sender";
 
 // Mock message factory
 function createMockMessage(overrides: Partial<Message> = {}): Message {
   const channel = {
-    send: mock(() => Promise.resolve({ id: "sent-msg-id" })),
-    sendTyping: mock(() => Promise.resolve()),
+    send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
+    sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
     ...overrides.channel,
   };
 
   return {
     id: "msg-id",
-    reply: mock(() => Promise.resolve({ id: "reply-msg-id" })),
+    reply: vi.fn(() => Promise.resolve({ id: "reply-msg-id" })),
     channel,
     ...overrides,
   } as unknown as Message;
@@ -23,8 +23,8 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
 function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
   return {
     id: "channel-id",
-    send: mock(() => Promise.resolve({ id: "sent-msg-id" })),
-    sendTyping: mock(() => Promise.resolve()),
+    send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
+    sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
     ...overrides,
   } as unknown as TextChannel;
@@ -40,7 +40,7 @@ describe("sendReply", () => {
     });
 
     it("uses message.reply()", async () => {
-      const replyMock = mock(() => Promise.resolve({ id: "reply-id" }));
+      const replyMock = vi.fn(() => Promise.resolve({ id: "reply-id" }));
       const message = createMockMessage({ reply: replyMock as never });
 
       await sendReply(message, "Test message");
@@ -51,7 +51,7 @@ describe("sendReply", () => {
 
   describe("long messages", () => {
     it("chunks long messages", async () => {
-      const sendMock = mock(() => Promise.resolve({ id: "sent-id" }));
+      const sendMock = vi.fn(() => Promise.resolve({ id: "sent-id" }));
       const message = createMockMessage({
         channel: { send: sendMock } as never,
       });
@@ -65,7 +65,7 @@ describe("sendReply", () => {
     });
 
     it("sends first chunk as reply", async () => {
-      const replyMock = mock(() => Promise.resolve({ id: "reply-id" }));
+      const replyMock = vi.fn(() => Promise.resolve({ id: "reply-id" }));
       const message = createMockMessage({ reply: replyMock as never });
 
       const longMessage = "a".repeat(2500);
@@ -77,7 +77,7 @@ describe("sendReply", () => {
     });
 
     it("sends subsequent chunks to channel", async () => {
-      const sendMock = mock(() => Promise.resolve({ id: "sent-id" }));
+      const sendMock = vi.fn(() => Promise.resolve({ id: "sent-id" }));
       const message = createMockMessage({
         channel: { send: sendMock } as never,
       });
@@ -94,7 +94,7 @@ describe("sendReply", () => {
 
   describe("error handling", () => {
     it("throws on send failure", async () => {
-      const replyMock = mock(() =>
+      const replyMock = vi.fn(() =>
         Promise.reject(new Error("Discord API error")),
       );
       const message = createMockMessage({ reply: replyMock as never });
@@ -105,7 +105,7 @@ describe("sendReply", () => {
     });
 
     it("includes original error message", async () => {
-      const replyMock = mock(() => Promise.reject(new Error("Rate limited")));
+      const replyMock = vi.fn(() => Promise.reject(new Error("Rate limited")));
       const message = createMockMessage({ reply: replyMock as never });
 
       try {
@@ -120,7 +120,7 @@ describe("sendReply", () => {
 
 describe("sendToChannel", () => {
   it("sends to text channel", async () => {
-    const sendMock = mock(() => Promise.resolve({ id: "msg-id" }));
+    const sendMock = vi.fn(() => Promise.resolve({ id: "msg-id" }));
     const channel = createMockChannel({ send: sendMock as never });
 
     await sendToChannel(channel, "Hello!");
@@ -129,7 +129,7 @@ describe("sendToChannel", () => {
   });
 
   it("chunks long messages", async () => {
-    const sendMock = mock(() => Promise.resolve({ id: "msg-id" }));
+    const sendMock = vi.fn(() => Promise.resolve({ id: "msg-id" }));
     const channel = createMockChannel({ send: sendMock as never });
 
     const longMessage = "b".repeat(4500);
@@ -140,7 +140,7 @@ describe("sendToChannel", () => {
   });
 
   it("returns sent messages", async () => {
-    const sendMock = mock(() => Promise.resolve({ id: "msg-id" }));
+    const sendMock = vi.fn(() => Promise.resolve({ id: "msg-id" }));
     const channel = createMockChannel({ send: sendMock as never });
 
     const result = await sendToChannel(channel, "Hello!");
@@ -152,7 +152,7 @@ describe("sendToChannel", () => {
 
 describe("showTyping", () => {
   it("calls sendTyping on channel", async () => {
-    const sendTypingMock = mock(() => Promise.resolve());
+    const sendTypingMock = vi.fn(() => Promise.resolve());
     const channel = createMockChannel({ sendTyping: sendTypingMock as never });
 
     await showTyping(channel);
@@ -161,7 +161,7 @@ describe("showTyping", () => {
   });
 
   it("handles errors gracefully", async () => {
-    const sendTypingMock = mock(() =>
+    const sendTypingMock = vi.fn(() =>
       Promise.reject(new Error("Typing failed")),
     );
     const channel = createMockChannel({ sendTyping: sendTypingMock as never });

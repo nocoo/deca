@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { Message } from "discord.js";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   DEFAULT_DEBOUNCE_WINDOW_MS,
   type DebouncedHandler,
@@ -28,10 +28,10 @@ describe("debounce", () => {
   });
 
   describe("createDebounceManager", () => {
-    let handler: DebouncedHandler & ReturnType<typeof mock>;
+    let handler: DebouncedHandler & ReturnType<ReturnType<typeof vi.fn>>;
 
     beforeEach(() => {
-      handler = mock(async () => {});
+      handler = vi.fn(async () => {});
     });
 
     test("calls handler after window expires", async () => {
@@ -148,7 +148,7 @@ describe("debounce", () => {
     });
 
     test("handles handler errors gracefully", async () => {
-      const errorHandler = mock(async () => {
+      const errorHandler = vi.fn(async () => {
         throw new Error("Handler error");
       });
       const manager = createDebounceManager(errorHandler, { windowMs: 50 });
