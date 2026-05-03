@@ -1,8 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { createEchoHandler } from "./echo-handler";
 import type { MessageRequest } from "./types";
 
-function createRequest(content: string, onTextDelta?: (delta: string) => void): MessageRequest {
+function createRequest(
+  content: string,
+  onTextDelta?: (delta: string) => void,
+): MessageRequest {
   return {
     sessionKey: "terminal:deca:user123",
     content,
@@ -105,7 +108,9 @@ describe("createEchoHandler", () => {
       const received: string[] = [];
       const start = Date.now();
 
-      await handler.handle(createRequest("ab", (delta) => received.push(delta)));
+      await handler.handle(
+        createRequest("ab", (delta) => received.push(delta)),
+      );
       const elapsed = Date.now() - start;
 
       expect(received).toEqual(["a", "b"]);

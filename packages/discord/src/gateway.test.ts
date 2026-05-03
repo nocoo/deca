@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { type Client, Events } from "discord.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDiscordClient } from "./client";
 import { type DiscordGatewayInstance, createDiscordGateway } from "./gateway";
 import type {
@@ -12,7 +12,7 @@ function createMockHandler(
   response: MessageResponse = { text: "OK", success: true },
 ): MessageHandler {
   return {
-    handle: mock(() => Promise.resolve(response)),
+    handle: vi.fn(() => Promise.resolve(response)),
   };
 }
 
@@ -57,7 +57,7 @@ describe("DiscordGateway", () => {
   beforeEach(() => {
     mockClient = createDiscordClient();
     // Mock login to emit ready
-    mockClient.login = mock(() => {
+    mockClient.login = vi.fn(() => {
       setTimeout(() => {
         // Simulate user being set
         Object.defineProperty(mockClient, "user", {
@@ -142,7 +142,7 @@ describe("DiscordGateway", () => {
 
   describe("disconnect", () => {
     it("disconnects client", async () => {
-      const destroySpy = mock(() => {});
+      const destroySpy = vi.fn(() => {});
       mockClient.destroy = destroySpy;
 
       gateway = createDiscordGateway({
@@ -251,7 +251,7 @@ describe("DiscordGateway", () => {
     });
 
     it("calls onConnect callback", async () => {
-      const onConnect = mock(() => {});
+      const onConnect = vi.fn(() => {});
 
       gateway = createDiscordGateway({
         token: "test-token",
@@ -266,7 +266,7 @@ describe("DiscordGateway", () => {
     });
 
     it("calls onError callback on error", async () => {
-      const onError = mock(() => {});
+      const onError = vi.fn(() => {});
       const testError = new Error("Test error");
 
       gateway = createDiscordGateway({
@@ -285,7 +285,7 @@ describe("DiscordGateway", () => {
     });
 
     it("calls onDisconnect callback on shard disconnect", async () => {
-      const onDisconnect = mock(() => {});
+      const onDisconnect = vi.fn(() => {});
 
       gateway = createDiscordGateway({
         token: "test-token",
@@ -303,7 +303,7 @@ describe("DiscordGateway", () => {
     });
 
     it("does not call onDisconnect during shutdown", async () => {
-      const onDisconnect = mock(() => {});
+      const onDisconnect = vi.fn(() => {});
 
       gateway = createDiscordGateway({
         token: "test-token",
@@ -343,7 +343,7 @@ describe("DiscordGateway", () => {
 
   describe("shutdown", () => {
     it("performs graceful shutdown", async () => {
-      const destroySpy = mock(() => {});
+      const destroySpy = vi.fn(() => {});
       mockClient.destroy = destroySpy;
 
       gateway = createDiscordGateway({

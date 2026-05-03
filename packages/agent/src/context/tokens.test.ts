@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { ContentBlock, Message } from "../core/session.js";
 import {
   CHARS_PER_TOKEN_ESTIMATE,

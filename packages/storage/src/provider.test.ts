@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { createConfigManager } from "./config";
 import { createCredentialManager } from "./credentials";
 import { createProviderResolver } from "./provider";
@@ -25,9 +25,9 @@ describe("createProviderResolver", () => {
   test("creates resolver successfully", () => {
     const resolver = createProviderResolver(configManager, credentialManager);
     expect(resolver).toBeDefined();
-    expect(resolver.resolve).toBeFunction();
-    expect(resolver.resolveOrThrow).toBeFunction();
-    expect(resolver.list).toBeFunction();
+    expect(resolver.resolve).toBeTypeOf("function");
+    expect(resolver.resolveOrThrow).toBeTypeOf("function");
+    expect(resolver.list).toBeTypeOf("function");
   });
 
   describe("resolve", () => {

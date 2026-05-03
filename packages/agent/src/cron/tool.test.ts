@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ToolContext } from "../tools/types.js";
 import { CronService } from "./service.js";
 import { type CronToolInput, createCronTool } from "./tool.js";

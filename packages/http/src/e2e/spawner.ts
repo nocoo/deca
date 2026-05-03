@@ -37,12 +37,14 @@ export interface ServerProcess {
  * @param config - Spawner configuration
  * @returns Server process handle
  */
-export async function spawnServer(config: SpawnerConfig = {}): Promise<ServerProcess> {
+export async function spawnServer(
+  config: SpawnerConfig = {},
+): Promise<ServerProcess> {
   const startupTimeout = config.startupTimeout ?? 10000;
   const debug = config.debug ?? false;
-  
+
   // Use a random port if not specified
-  const port = config.port ?? (40000 + Math.floor(Math.random() * 10000));
+  const port = config.port ?? 40000 + Math.floor(Math.random() * 10000);
 
   const cwd = getPackageDir();
   const script = "cli.ts";
@@ -151,7 +153,11 @@ export async function spawnServer(config: SpawnerConfig = {}): Promise<ServerPro
           }
 
           // Check for error
-          if (output.includes("Error:") || output.includes("error:") || output.includes("❌")) {
+          if (
+            output.includes("Error:") ||
+            output.includes("error:") ||
+            output.includes("❌")
+          ) {
             clearTimeout(timeout);
             reader.releaseLock();
             reject(new Error(`Server startup error: ${output}`));
@@ -174,7 +180,9 @@ export async function spawnServer(config: SpawnerConfig = {}): Promise<ServerPro
   }
 
   if (debug) {
-    console.log(`[Spawner] Server ready on port ${actualPort} (PID: ${proc.pid})`);
+    console.log(
+      `[Spawner] Server ready on port ${actualPort} (PID: ${proc.pid})`,
+    );
   }
 
   return {

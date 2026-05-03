@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { createCredentialManager } from "./credentials";
 
 describe("createCredentialManager", () => {
@@ -18,11 +18,11 @@ describe("createCredentialManager", () => {
   test("creates manager successfully", () => {
     const manager = createCredentialManager(tempDir);
     expect(manager).toBeDefined();
-    expect(manager.get).toBeFunction();
-    expect(manager.set).toBeFunction();
-    expect(manager.delete).toBeFunction();
-    expect(manager.list).toBeFunction();
-    expect(manager.has).toBeFunction();
+    expect(manager.get).toBeTypeOf("function");
+    expect(manager.set).toBeTypeOf("function");
+    expect(manager.delete).toBeTypeOf("function");
+    expect(manager.list).toBeTypeOf("function");
+    expect(manager.has).toBeTypeOf("function");
   });
 
   test("get returns null for non-existent credential", async () => {

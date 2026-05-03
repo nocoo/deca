@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
 import { Readable } from "node:stream";
+import { describe, expect, it } from "vitest";
 import { createEchoHandler } from "./echo-handler";
 import { createTerminal } from "./repl";
 import type { MessageResponse } from "./types";

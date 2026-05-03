@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { generateSessionKey, parseSessionKey } from "./session";
 import { DEFAULT_USER_ID } from "./types";
 

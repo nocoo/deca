@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { createConfigManager } from "./config";
 
 describe("createConfigManager", () => {
@@ -20,10 +20,10 @@ describe("createConfigManager", () => {
   test("creates manager successfully", () => {
     const manager = createConfigManager(configPath);
     expect(manager).toBeDefined();
-    expect(manager.load).toBeFunction();
-    expect(manager.save).toBeFunction();
-    expect(manager.get).toBeFunction();
-    expect(manager.set).toBeFunction();
+    expect(manager.load).toBeTypeOf("function");
+    expect(manager.save).toBeTypeOf("function");
+    expect(manager.get).toBeTypeOf("function");
+    expect(manager.set).toBeTypeOf("function");
   });
 
   test("load returns empty config when file does not exist", async () => {

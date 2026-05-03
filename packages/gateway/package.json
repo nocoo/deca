@@ -8,8 +8,8 @@
   "scripts": {
     "start": "bun run cli.ts",
     "serve": "bun run serve.ts",
-    "test": "bun test",
-    "test:unit": "bun test src/",
+    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:e2e": "bun run src/e2e/runner.ts",
     "test:behavioral": "bun run behavioral-tests/tools.test.ts",
     "test:behavioral:claude-code": "bun run behavioral-tests/claude-code.test.ts",
@@ -18,7 +18,8 @@
     "test:behavioral:autonomy": "bun run behavioral-tests/agent-autonomy.test.ts",
     "test:behavioral:skills": "bun run behavioral-tests/skills.test.ts",
     "lint": "biome lint src behavioral-tests --error-on-warnings",
-    "format": "biome format src behavioral-tests"
+    "format": "biome format src behavioral-tests",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@deca/agent": "workspace:*",

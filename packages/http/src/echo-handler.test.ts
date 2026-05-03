@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { createEchoHandler } from "./echo-handler";
 import type { MessageRequest } from "./types";
 

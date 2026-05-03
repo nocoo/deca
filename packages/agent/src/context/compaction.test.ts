@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
 import type Anthropic from "@anthropic-ai/sdk";
+import { describe, expect, it } from "vitest";
 import type { Message } from "../core/session.js";
 import {
   BASE_CHUNK_RATIO,

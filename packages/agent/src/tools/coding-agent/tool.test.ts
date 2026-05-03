@@ -1,25 +1,27 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodingAgentResult } from "./types.js";
 
 // ============================================================================
 // Mocks
 // ============================================================================
 
-const mockIsAvailable = mock(() => Promise.resolve(true));
-const mockExecute = mock(() =>
-  Promise.resolve({
-    success: true,
-    result: "Task completed",
-    modifiedFiles: [],
-    errors: [],
-    durationMs: 5000,
-    costUsd: 0.05,
-    model: "claude-4",
-    sessionId: "s1",
-  } satisfies CodingAgentResult),
-);
+const { mockIsAvailable, mockExecute } = vi.hoisted(() => ({
+  mockIsAvailable: vi.fn(() => Promise.resolve(true)),
+  mockExecute: vi.fn(() =>
+    Promise.resolve({
+      success: true,
+      result: "Task completed",
+      modifiedFiles: [],
+      errors: [],
+      durationMs: 5000,
+      costUsd: 0.05,
+      model: "claude-4",
+      sessionId: "s1",
+    } satisfies CodingAgentResult),
+  ),
+}));
 
-mock.module("./claude-code.js", () => ({
+vi.mock("./claude-code.js", () => ({
   claudeCodeProvider: {
     name: "claude",
     isAvailable: mockIsAvailable,

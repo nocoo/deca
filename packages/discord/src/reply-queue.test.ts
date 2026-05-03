@@ -1,17 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Message } from "discord.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReplyQueue } from "./reply-queue";
 
 function createMockMessage(): Message {
   const channel = {
-    send: mock(() => Promise.resolve({ id: "sent-msg-id" })),
-    sendTyping: mock(() => Promise.resolve()),
+    send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
+    sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
   };
 
   return {
     id: "msg-id",
-    reply: mock(() => Promise.resolve({ id: "reply-msg-id" })),
+    reply: vi.fn(() => Promise.resolve({ id: "reply-msg-id" })),
     channel,
   } as unknown as Message;
 }
@@ -76,8 +76,8 @@ describe("ReplyQueue", () => {
       await queue.enqueue(message, "Ack", { kind: "ack" });
       await queue.enqueue(message, "Done!", { kind: "final" });
 
-      const callCount = (message.reply as ReturnType<typeof mock>).mock.calls
-        .length;
+      const callCount = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls.length;
       await new Promise((r) => setTimeout(r, 60));
 
       expect(message.reply).toHaveBeenCalledTimes(callCount);
@@ -149,8 +149,8 @@ describe("ReplyQueue", () => {
       await queue.enqueue(message, "Ack", { kind: "ack" });
       await queue.finish();
 
-      const callCount = (message.reply as ReturnType<typeof mock>).mock.calls
-        .length;
+      const callCount = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+        .mock.calls.length;
       await new Promise((r) => setTimeout(r, 60));
 
       expect(message.reply).toHaveBeenCalledTimes(callCount);

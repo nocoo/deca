@@ -5,20 +5,20 @@
  */
 
 import * as readline from "node:readline";
+import { generateSessionKey } from "./session";
 import type {
-  Terminal,
-  TerminalConfig,
   MessageRequest,
   MessageResponse,
+  Terminal,
+  TerminalConfig,
 } from "./types";
 import {
   DEFAULT_PROMPT,
-  DEFAULT_USER_ID,
   DEFAULT_USERNAME,
+  DEFAULT_USER_ID,
   EXIT_COMMANDS,
   HELP_COMMANDS,
 } from "./types";
-import { generateSessionKey } from "./session";
 
 /**
  * Default welcome message
@@ -83,12 +83,20 @@ export function createTerminal(config: TerminalConfig): Terminal {
     }
 
     // Handle exit commands
-    if (EXIT_COMMANDS.includes(trimmed.toLowerCase() as typeof EXIT_COMMANDS[number])) {
+    if (
+      EXIT_COMMANDS.includes(
+        trimmed.toLowerCase() as (typeof EXIT_COMMANDS)[number],
+      )
+    ) {
       return { text: "__EXIT__", success: true };
     }
 
     // Handle help commands
-    if (HELP_COMMANDS.includes(trimmed.toLowerCase() as typeof HELP_COMMANDS[number])) {
+    if (
+      HELP_COMMANDS.includes(
+        trimmed.toLowerCase() as (typeof HELP_COMMANDS)[number],
+      )
+    ) {
       showHelp();
       return { text: "", success: true };
     }

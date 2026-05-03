@@ -2,7 +2,7 @@
  * Reconnection Manager Tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_RECONNECT_CONFIG,
   type ReconnectConfig,
@@ -12,14 +12,14 @@ import {
 
 describe("Reconnect Manager", () => {
   let manager: ReconnectManager;
-  let connectFn: ReturnType<typeof mock>;
-  let onReconnect: ReturnType<typeof mock>;
-  let onMaxRetries: ReturnType<typeof mock>;
+  let connectFn: ReturnType<ReturnType<typeof vi.fn>>;
+  let onReconnect: ReturnType<ReturnType<typeof vi.fn>>;
+  let onMaxRetries: ReturnType<ReturnType<typeof vi.fn>>;
 
   beforeEach(() => {
-    connectFn = mock(() => Promise.resolve());
-    onReconnect = mock(() => {});
-    onMaxRetries = mock(() => {});
+    connectFn = vi.fn(() => Promise.resolve());
+    onReconnect = vi.fn(() => {});
+    onMaxRetries = vi.fn(() => {});
   });
 
   afterEach(() => {
@@ -74,7 +74,7 @@ describe("Reconnect Manager", () => {
     });
 
     it("increments attempt counter on failure", async () => {
-      const alwaysFail = mock(() =>
+      const alwaysFail = vi.fn(() =>
         Promise.reject(new Error("Connection failed")),
       );
 
@@ -133,7 +133,7 @@ describe("Reconnect Manager", () => {
   describe("exponential backoff", () => {
     it("increases delay exponentially on failures", async () => {
       let callCount = 0;
-      const failTwiceThenSucceed = mock(() => {
+      const failTwiceThenSucceed = vi.fn(() => {
         callCount++;
         if (callCount < 3) {
           return Promise.reject(new Error("Connection failed"));
@@ -156,7 +156,7 @@ describe("Reconnect Manager", () => {
     });
 
     it("caps delay at maxDelayMs", async () => {
-      const alwaysFail = mock(() =>
+      const alwaysFail = vi.fn(() =>
         Promise.reject(new Error("Connection failed")),
       );
 
@@ -180,7 +180,7 @@ describe("Reconnect Manager", () => {
 
   describe("max retries", () => {
     it("stops after maxRetries exceeded", async () => {
-      const alwaysFail = mock(() =>
+      const alwaysFail = vi.fn(() =>
         Promise.reject(new Error("Connection failed")),
       );
 
@@ -203,7 +203,7 @@ describe("Reconnect Manager", () => {
 
     it("calls onMaxRetries with last error", async () => {
       const error = new Error("Final connection error");
-      const alwaysFail = mock(() => Promise.reject(error));
+      const alwaysFail = vi.fn(() => Promise.reject(error));
 
       manager = createReconnectManager(alwaysFail, {
         baseDelayMs: 5,
@@ -260,7 +260,7 @@ describe("Reconnect Manager", () => {
 
   describe("reset", () => {
     it("resets attempt counter without stopping", async () => {
-      const failOnce = mock(() => {
+      const failOnce = vi.fn(() => {
         if (failOnce.mock.calls.length === 1) {
           return Promise.reject(new Error("First fail"));
         }
@@ -286,7 +286,7 @@ describe("Reconnect Manager", () => {
       const delays: number[] = [];
       let lastCallTime = Date.now();
 
-      const trackDelay = mock(() => {
+      const trackDelay = vi.fn(() => {
         const now = Date.now();
         if (delays.length > 0) {
           delays.push(now - lastCallTime);
@@ -315,7 +315,7 @@ describe("Reconnect Manager", () => {
   describe("integration", () => {
     it("handles intermittent failures", async () => {
       let callCount = 0;
-      const intermittent = mock(() => {
+      const intermittent = vi.fn(() => {
         callCount++;
         // Fail first 2 attempts, then succeed
         if (callCount <= 2) {
@@ -344,7 +344,7 @@ describe("Reconnect Manager", () => {
 
     it("can be restarted after max retries", async () => {
       let shouldFail = true;
-      const toggleable = mock(() => {
+      const toggleable = vi.fn(() => {
         if (shouldFail) {
           return Promise.reject(new Error("fail"));
         }

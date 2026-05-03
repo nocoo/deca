@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { createEchoHandler } from "./echo-handler";
 import type { MessageRequest } from "./types";
 
@@ -71,7 +71,7 @@ describe("EchoHandler", () => {
 
     const response = await handler.handle(request);
 
-    expect(response.text).toStartWith("🔊");
+    expect(response.text.startsWith("🔊")).toBe(true);
   });
 
   it("simulates delay when configured", async () => {

@@ -7,7 +7,6 @@
  * - Stage 2 behavioral integration (real Dispatcher + mock Agent)
  */
 
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +15,7 @@ import {
   type HeartbeatTask,
   type WakeRequest,
 } from "@deca/agent";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDispatcher } from "./dispatcher";
 import type { DispatchRequest } from "./dispatcher/types";
 import {
@@ -46,7 +46,7 @@ function makeRequest(reason: WakeRequest["reason"] = "interval"): WakeRequest {
 
 function makeMockDispatcher(response: { text: string; success: boolean }) {
   return {
-    dispatch: mock(async (req: DispatchRequest) => response),
+    dispatch: vi.fn(async (req: DispatchRequest) => response),
     getStatus: () => ({
       queued: 0,
       running: 0,
@@ -68,7 +68,7 @@ function createMockDeps(overrides?: Partial<HeartbeatCallbackDeps>) {
 
   const deps: HeartbeatCallbackDeps = {
     dispatcher: {
-      dispatch: mock(async (req: DispatchRequest) => {
+      dispatch: vi.fn(async (req: DispatchRequest) => {
         dispatched.push(req);
         return { text: "Agent response", success: true };
       }),
@@ -84,10 +84,10 @@ function createMockDeps(overrides?: Partial<HeartbeatCallbackDeps>) {
       onIdle: () => Promise.resolve(),
       shutdown: () => Promise.resolve(),
     },
-    sendResult: mock(async (text: string) => {
+    sendResult: vi.fn(async (text: string) => {
       sentResults.push(text);
     }),
-    onError: mock((error: Error, source: string) => {
+    onError: vi.fn((error: Error, source: string) => {
       errors.push({ error, source });
     }),
     ...overrides,
@@ -191,7 +191,7 @@ describe("createHeartbeatCallback", () => {
   it("does not send result when dispatch fails", async () => {
     const { deps, sentResults } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => ({
+        dispatch: vi.fn(async () => ({
           text: "Error: something went wrong",
           success: false,
           error: "something went wrong",
@@ -219,7 +219,7 @@ describe("createHeartbeatCallback", () => {
   it("does not send result when response text is empty", async () => {
     const { deps, sentResults } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => ({ text: "", success: true })),
+        dispatch: vi.fn(async () => ({ text: "", success: true })),
         getStatus: () => ({
           queued: 0,
           running: 0,
@@ -243,7 +243,7 @@ describe("createHeartbeatCallback", () => {
   it("catches dispatch errors and reports via onError", async () => {
     const { deps, errors } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw new Error("Dispatch exploded");
         }),
         getStatus: () => ({
@@ -272,7 +272,7 @@ describe("createHeartbeatCallback", () => {
   it("catches non-Error throws and wraps them", async () => {
     const { deps, errors } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw "string error";
         }),
         getStatus: () => ({
@@ -298,7 +298,7 @@ describe("createHeartbeatCallback", () => {
 
   it("catches sendResult errors and reports via onError", async () => {
     const { deps, errors } = createMockDeps({
-      sendResult: mock(async () => {
+      sendResult: vi.fn(async () => {
         throw new Error("Send failed");
       }),
     });
@@ -313,7 +313,7 @@ describe("createHeartbeatCallback", () => {
   it("works without onError callback (no crash)", async () => {
     const deps: HeartbeatCallbackDeps = {
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw new Error("Boom");
         }),
         getStatus: () => ({
@@ -328,7 +328,7 @@ describe("createHeartbeatCallback", () => {
         onIdle: () => Promise.resolve(),
         shutdown: () => Promise.resolve(),
       },
-      sendResult: mock(async () => {}),
+      sendResult: vi.fn(async () => {}),
       // no onError
     };
     const callback = createHeartbeatCallback(deps);
@@ -936,7 +936,7 @@ describe("createCronCallback", () => {
   it("catches dispatch errors and reports via onError", async () => {
     const { deps, errors } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw new Error("Cron dispatch failed");
         }),
         getStatus: () => ({
@@ -965,7 +965,7 @@ describe("createCronCallback", () => {
   it("catches non-Error throws and wraps them", async () => {
     const { deps, errors } = createMockDeps({
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw "string error from cron";
         }),
         getStatus: () => ({
@@ -991,7 +991,7 @@ describe("createCronCallback", () => {
 
   it("catches sendResult errors and reports via onError", async () => {
     const { deps, errors } = createMockDeps({
-      sendResult: mock(async () => {
+      sendResult: vi.fn(async () => {
         throw new Error("Discord delivery failed");
       }),
     });
@@ -1007,7 +1007,7 @@ describe("createCronCallback", () => {
   it("works without onError callback (no crash)", async () => {
     const deps: HeartbeatCallbackDeps = {
       dispatcher: {
-        dispatch: mock(async () => {
+        dispatch: vi.fn(async () => {
           throw new Error("Boom");
         }),
         getStatus: () => ({
@@ -1022,7 +1022,7 @@ describe("createCronCallback", () => {
         onIdle: () => Promise.resolve(),
         shutdown: () => Promise.resolve(),
       },
-      sendResult: mock(async () => {}),
+      sendResult: vi.fn(async () => {}),
       // no onError
     };
     const callback = createCronCallback(deps);

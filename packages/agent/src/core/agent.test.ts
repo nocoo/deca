@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSessionKey } from "./session-key.js";
 import type { ContentBlock, Message } from "./session.js";
 
@@ -199,7 +199,7 @@ describe("Agent", () => {
       finalContent: [{ type: "text", text: "done" }],
     });
 
-    const onSkillMatch = mock(() => {});
+    const onSkillMatch = vi.fn(() => {});
 
     const agent = new Agent({
       apiKey: "test-key",

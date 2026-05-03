@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test, vi } from "vitest";
 import {
   REACTIONS,
   addReaction,
@@ -15,17 +15,17 @@ function createMockMessage(options?: {
 }) {
   const reactions = new Map<
     string,
-    { users: { remove: ReturnType<typeof mock> } }
+    { users: { remove: ReturnType<ReturnType<typeof vi.fn>> } }
   >();
 
   return {
-    react: mock(async (emoji: string) => {
+    react: vi.fn(async (emoji: string) => {
       if (options?.reactError) {
         throw new Error("Cannot react");
       }
       reactions.set(emoji, {
         users: {
-          remove: mock(async () => {
+          remove: vi.fn(async () => {
             if (options?.removeError) {
               throw new Error("Cannot remove");
             }

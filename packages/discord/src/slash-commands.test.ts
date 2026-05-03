@@ -1,5 +1,5 @@
-import { describe, expect, mock, test } from "bun:test";
 import type { ChatInputCommandInteraction, Client } from "discord.js";
+import { describe, expect, test, vi } from "vitest";
 import { buildCommands, setupSlashCommands } from "./slash-commands";
 import type { MessageHandler, MessageResponse } from "./types";
 
@@ -21,10 +21,10 @@ function createMockInteraction(
     options: {
       getString: (name: string) => options[name] ?? null,
     },
-    reply: mock(() => Promise.resolve()),
-    editReply: mock(() => Promise.resolve()),
-    followUp: mock(() => Promise.resolve()),
-    deferReply: mock(() => {
+    reply: vi.fn(() => Promise.resolve()),
+    editReply: vi.fn(() => Promise.resolve()),
+    followUp: vi.fn(() => Promise.resolve()),
+    deferReply: vi.fn(() => {
       interaction.deferred = true;
       return Promise.resolve();
     }),
@@ -36,8 +36,8 @@ function createMockInteraction(
 
 function createMockClient(): Client {
   return {
-    on: mock(() => {}),
-    off: mock(() => {}),
+    on: vi.fn(() => {}),
+    off: vi.fn(() => {}),
   } as unknown as Client;
 }
 
@@ -45,7 +45,7 @@ function createMockHandler(
   response: MessageResponse = { text: "OK", success: true },
 ): MessageHandler {
   return {
-    handle: mock(() => Promise.resolve(response)),
+    handle: vi.fn(() => Promise.resolve(response)),
   };
 }
 
@@ -120,7 +120,8 @@ describe("slash-commands", () => {
       });
 
       // Get the registered handler
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("ask", {
@@ -138,7 +139,7 @@ describe("slash-commands", () => {
     test("calls onClearSession callback", async () => {
       const client = createMockClient();
       const handler = createMockHandler();
-      const onClearSession = mock(() => Promise.resolve());
+      const onClearSession = vi.fn(() => Promise.resolve());
 
       setupSlashCommands(client, {
         botApplicationId: "client123",
@@ -147,7 +148,8 @@ describe("slash-commands", () => {
         onClearSession,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("clear");
@@ -167,15 +169,17 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("clear");
       await interactionHandler(interaction);
 
       expect(interaction.reply).toHaveBeenCalled();
-      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const replyCall = (
+        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       expect(replyCall[0].content).toContain("not configured");
     });
   });
@@ -184,7 +188,7 @@ describe("slash-commands", () => {
     test("calls onGetStatus callback and displays status info", async () => {
       const client = createMockClient();
       const handler = createMockHandler();
-      const onGetStatus = mock(() =>
+      const onGetStatus = vi.fn(() =>
         Promise.resolve({
           uptime: 3600000,
           guilds: 5,
@@ -206,7 +210,8 @@ describe("slash-commands", () => {
         onGetStatus,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("status");
@@ -215,8 +220,9 @@ describe("slash-commands", () => {
       expect(onGetStatus).toHaveBeenCalled();
       expect(interaction.reply).toHaveBeenCalled();
 
-      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const replyCall = (
+        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       const content = replyCall[0].content;
       expect(content).toContain("Model: glm-4.7");
       expect(content).toContain("Context:");
@@ -234,15 +240,17 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("status");
       await interactionHandler(interaction);
 
       expect(interaction.reply).toHaveBeenCalled();
-      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const replyCall = (
+        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       expect(replyCall[0].content).toContain("running");
     });
   });
@@ -251,7 +259,7 @@ describe("slash-commands", () => {
     test("replies with error on handler failure", async () => {
       const client = createMockClient();
       const handler: MessageHandler = {
-        handle: mock(() => Promise.reject(new Error("Handler error"))),
+        handle: vi.fn(() => Promise.reject(new Error("Handler error"))),
       };
 
       setupSlashCommands(client, {
@@ -260,7 +268,8 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("ask", {
@@ -275,7 +284,7 @@ describe("slash-commands", () => {
     test("uses reply for errors when not deferred", async () => {
       const client = createMockClient();
       const handler = createMockHandler();
-      const onClearSession = mock(() =>
+      const onClearSession = vi.fn(() =>
         Promise.reject(new Error("Clear error")),
       );
 
@@ -286,7 +295,8 @@ describe("slash-commands", () => {
         onClearSession,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("clear");
@@ -294,8 +304,9 @@ describe("slash-commands", () => {
 
       // Should use reply since not deferred
       expect(interaction.reply).toHaveBeenCalled();
-      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const replyCall = (
+        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       expect(replyCall[0].content).toContain("Error");
     });
 
@@ -309,22 +320,24 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("unknown-command");
       await interactionHandler(interaction);
 
       expect(interaction.reply).toHaveBeenCalled();
-      const replyCall = (interaction.reply as ReturnType<typeof mock>).mock
-        .calls[0];
+      const replyCall = (
+        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       expect(replyCall[0].content).toContain("Unknown command");
     });
 
     test("handles non-Error exceptions", async () => {
       const client = createMockClient();
       const handler: MessageHandler = {
-        handle: mock(() => Promise.reject("string error")),
+        handle: vi.fn(() => Promise.reject("string error")),
       };
 
       setupSlashCommands(client, {
@@ -333,7 +346,8 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       const interaction = createMockInteraction("ask", {
@@ -342,8 +356,9 @@ describe("slash-commands", () => {
       await interactionHandler(interaction);
 
       expect(interaction.followUp).toHaveBeenCalled();
-      const followUpCall = (interaction.followUp as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const followUpCall = (
+        interaction.followUp as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       expect(followUpCall[0].content).toContain("An error occurred");
     });
   });
@@ -377,7 +392,8 @@ describe("slash-commands", () => {
         agentId: "myagent",
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       // Create interaction without guildId (DM)
@@ -390,8 +406,9 @@ describe("slash-commands", () => {
       await interactionHandler(interaction);
 
       expect(handler.handle).toHaveBeenCalled();
-      const handleCall = (handler.handle as ReturnType<typeof mock>).mock
-        .calls[0];
+      const handleCall = (
+        handler.handle as ReturnType<ReturnType<typeof vi.fn>>
+      ).mock.calls[0];
       const request = handleCall[0];
       expect(request.sessionKey).toContain("dm:");
       expect(request.sessionKey).toContain("myagent");
@@ -409,13 +426,14 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<typeof mock>).mock.calls[0];
+      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+        .calls[0];
       const interactionHandler = onCall[1];
 
       // Create non-command interaction
       const interaction = {
         isChatInputCommand: () => false,
-        reply: mock(() => Promise.resolve()),
+        reply: vi.fn(() => Promise.resolve()),
       };
 
       await interactionHandler(interaction);

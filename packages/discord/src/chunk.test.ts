@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { DISCORD_MAX_MESSAGE_LENGTH, chunkMessage } from "./chunk";
 
 describe("chunkMessage", () => {

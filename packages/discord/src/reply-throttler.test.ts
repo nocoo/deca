@@ -1,17 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Message } from "discord.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReplyThrottler } from "./reply-throttler";
 
 function createMockMessage(): Message {
   const channel = {
-    send: mock(() => Promise.resolve({ id: "sent-msg-id" })),
-    sendTyping: mock(() => Promise.resolve()),
+    send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
+    sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
   };
 
   return {
     id: "msg-id",
-    reply: mock(() => Promise.resolve({ id: "reply-msg-id" })),
+    reply: vi.fn(() => Promise.resolve({ id: "reply-msg-id" })),
     channel,
   } as unknown as Message;
 }

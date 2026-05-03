@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type DiscordClientConfig,
   connectDiscord,
@@ -49,7 +49,7 @@ describe("connectDiscord", () => {
   beforeEach(() => {
     mockClient = createDiscordClient();
     // Mock the login method
-    mockClient.login = mock(() => Promise.resolve("token"));
+    mockClient.login = vi.fn(() => Promise.resolve("token"));
   });
 
   afterEach(() => {
@@ -58,7 +58,7 @@ describe("connectDiscord", () => {
 
   it("resolves when ready event fires", async () => {
     // Simulate ready event after login
-    const loginMock = mock(() => {
+    const loginMock = vi.fn(() => {
       // Emit ready event shortly after login is called
       setTimeout(() => {
         mockClient.emit(Events.ClientReady, mockClient as never);
@@ -75,7 +75,7 @@ describe("connectDiscord", () => {
   });
 
   it("rejects on error event", async () => {
-    const loginMock = mock(() => {
+    const loginMock = vi.fn(() => {
       setTimeout(() => {
         mockClient.emit(Events.Error, new Error("Connection failed"));
       }, 10);
@@ -90,7 +90,7 @@ describe("connectDiscord", () => {
 
   it("rejects on timeout", async () => {
     // Never emit ready event
-    const loginMock = mock(() => Promise.resolve("token"));
+    const loginMock = vi.fn(() => Promise.resolve("token"));
     mockClient.login = loginMock;
 
     await expect(
@@ -99,7 +99,7 @@ describe("connectDiscord", () => {
   });
 
   it("calls login with token", async () => {
-    const loginMock = mock(() => {
+    const loginMock = vi.fn(() => {
       setTimeout(() => {
         mockClient.emit(Events.ClientReady, mockClient as never);
       }, 10);
@@ -116,7 +116,7 @@ describe("connectDiscord", () => {
 describe("disconnectDiscord", () => {
   it("calls client.destroy()", () => {
     const client = createDiscordClient();
-    const destroyMock = mock(() => {});
+    const destroyMock = vi.fn(() => {});
     client.destroy = destroyMock;
 
     disconnectDiscord(client);
@@ -211,9 +211,7 @@ describe("connectDiscord login error handling", () => {
 
   it("rejects when login throws error", async () => {
     // Mock login to reject immediately
-    mockClient.login = mock(() =>
-      Promise.reject(new Error("Invalid token")),
-    );
+    mockClient.login = vi.fn(() => Promise.reject(new Error("Invalid token")));
 
     await expect(
       connectDiscord(mockClient, "bad-token", { timeout: 1000 }),
@@ -227,7 +225,7 @@ describe("connectDiscord login error handling", () => {
     });
 
     // Mock login to reject AND emit error
-    mockClient.login = mock(() => {
+    mockClient.login = vi.fn(() => {
       setTimeout(() => {
         mockClient.emit(Events.Error, new Error("Second error"));
       }, 5);
