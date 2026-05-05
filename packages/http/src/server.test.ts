@@ -91,6 +91,16 @@ describe("createHttpServer", () => {
       expect(server.isRunning).toBe(false);
     });
 
+    it("uses defaults when port and hostname omitted", () => {
+      const server = createHttpServer({
+        handler: createEchoHandler(),
+      });
+      servers.push(server);
+
+      expect(server.isRunning).toBe(false);
+      expect(server.port).toBeGreaterThan(0);
+    });
+
     it("exposes app instance", () => {
       const server = createTestServer({
         handler: createEchoHandler(),
@@ -422,6 +432,52 @@ describe("createHttpServer", () => {
 
       expect(receivedError).not.toBeNull();
       expect(receivedError?.message).toBe("Test error");
+    });
+  });
+
+  describe("non-Error throws", () => {
+    it("/chat wraps string throw into Error", async () => {
+      const server = createTestServer({
+        handler: {
+          async handle() {
+            throw "string failure";
+          },
+        },
+      });
+
+      await server.start();
+
+      const response = await fetch(`http://127.0.0.1:${server.port}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "test" }),
+      });
+
+      const data = await response.json();
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("string failure");
+    });
+
+    it("/message wraps string throw into Error", async () => {
+      const server = createTestServer({
+        handler: {
+          async handle() {
+            throw "msg failure";
+          },
+        },
+      });
+
+      await server.start();
+
+      const response = await fetch(`http://127.0.0.1:${server.port}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "test" }),
+      });
+
+      const data = await response.json();
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("msg failure");
     });
   });
 
