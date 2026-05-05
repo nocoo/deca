@@ -20,6 +20,7 @@ describe("HeartbeatManager coverage extras", () => {
     const wake = (
       mgr as unknown as {
         wake: {
+          state: { running: boolean; timer: unknown; pendingReason: string };
           setHandler: (h: unknown) => void;
           request: (r: { reason: string }) => void;
         };
@@ -28,10 +29,13 @@ describe("HeartbeatManager coverage extras", () => {
     // Force handler null
     (wake as unknown as { handler: unknown }).handler = null;
     wake.request({ reason: "requested" });
+    expect(wake.state.timer).not.toBeNull();
     // Wait for coalesce window + execute
     await new Promise((r) => setTimeout(r, 300));
-    // No assertion needed: coverage only
-    expect(true).toBe(true);
+    // After execute() returns early, the timer must have been cleared and
+    // running flag reset back to false (finally block).
+    expect(wake.state.timer).toBeNull();
+    expect(wake.state.running).toBe(false);
   });
 
   it("HeartbeatWake.execute retries when result is skipped with requests-in-flight", async () => {
@@ -66,13 +70,18 @@ describe("HeartbeatManager coverage extras", () => {
     const mgr = new HeartbeatManager(tempDir, { intervalMs: 60_000 });
     const wake = (
       mgr as unknown as {
-        wake: { request: (r: { reason: string }) => void; stop: () => void };
+        wake: {
+          state: { timer: unknown; scheduled: boolean };
+          request: (r: { reason: string }) => void;
+          stop: () => void;
+        };
       }
     ).wake;
     wake.request({ reason: "requested" });
-    // Should now have a timer
+    expect(wake.state.timer).not.toBeNull();
     wake.stop();
-    expect(true).toBe(true);
+    expect(wake.state.timer).toBeNull();
+    expect(wake.state.scheduled).toBe(false);
   });
 
   it("parseTasksFromContent: handles plain list items without checkbox", async () => {
@@ -109,9 +118,17 @@ describe("HeartbeatManager coverage extras", () => {
   it("updateConfig: when started+enabled+timer present, reschedules", () => {
     const mgr = new HeartbeatManager(tempDir, { intervalMs: 60_000 });
     mgr.start();
+    const before = (
+      mgr as unknown as { state: { timer: unknown; nextDueMs: number } }
+    ).state;
+    const oldTimer = before.timer;
+    expect(oldTimer).not.toBeNull();
     mgr.updateConfig({ intervalMs: 30_000 });
+    // The timer must have been replaced and intervalMs propagated to status.
+    expect(before.timer).not.toBe(oldTimer);
+    expect(before.timer).not.toBeNull();
+    expect(mgr.getStatus().intervalMs).toBe(30_000);
     mgr.stop();
-    expect(true).toBe(true);
   });
 
   it("isWithinActiveHours: cross-midnight window", async () => {
@@ -205,8 +222,15 @@ describe("HeartbeatManager coverage extras", () => {
   it("requestNow with default reason", () => {
     const mgr = new HeartbeatManager(tempDir, { intervalMs: 60_000 });
     mgr.requestNow();
+    const wake = (
+      mgr as unknown as {
+        wake: { state: { timer: unknown; pendingReason: string } };
+      }
+    ).wake;
+    // Default reason "requested" must be queued and a coalesce timer scheduled.
+    expect(wake.state.pendingReason).toBe("requested");
+    expect(wake.state.timer).not.toBeNull();
     mgr.stop();
-    expect(true).toBe(true);
   });
 
   it("start: returns when intervalMs <= 0", () => {

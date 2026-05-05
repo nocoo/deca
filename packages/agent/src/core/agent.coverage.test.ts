@@ -58,9 +58,11 @@ function createStream(config: StreamConfig) {
 }
 
 function attachMockClient(agent: Agent) {
+  const streamCalls: Array<Record<string, unknown>> = [];
   const client = {
     messages: {
-      stream: () => {
+      stream: (args: Record<string, unknown>) => {
+        streamCalls.push(args);
         const config =
           streamQueue.shift() ??
           ({ deltas: [], finalContent: [] } as StreamConfig);
@@ -72,6 +74,7 @@ function attachMockClient(agent: Agent) {
     },
   };
   (agent as unknown as { client: typeof client }).client = client;
+  return { streamCalls };
 }
 
 describe("Agent coverage extras", () => {
@@ -200,10 +203,21 @@ describe("Agent coverage extras", () => {
       enableHeartbeat: false,
       maxTurns: 1,
     });
-    attachMockClient(agent);
+    const { streamCalls } = attachMockClient(agent);
     await agent.run("s", "hi");
-    // All tools should remain allowed
-    expect(true).toBe(true);
+    // All tools should be exposed to the model — none denied by sandbox policy.
+    expect(streamCalls.length).toBe(1);
+    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+      (t) => t.name,
+    );
+    expect(sentTools).toContain("exec");
+    expect(sentTools).toContain("write");
+    expect(sentTools).toContain("edit");
+    // Sandbox prompt should reflect writable + allowed (not read-only/disabled).
+    const systemBlocks = streamCalls[0]?.system as Array<{ text: string }>;
+    const systemText = systemBlocks.map((b) => b.text).join("\n");
+    expect(systemText).toContain("workspace is writable");
+    expect(systemText).toContain("command execution is allowed");
   });
 
   it("sandbox: enabled=false bypasses sandbox policy", () => {
@@ -435,10 +449,17 @@ describe("Agent coverage extras", () => {
       enableHeartbeat: false,
       maxTurns: 1,
     });
-    attachMockClient(agent);
+    const { streamCalls } = attachMockClient(agent);
     await agent.run("s", "hi");
-    // No assertion needed - exercising branch
-    expect(true).toBe(true);
+    // enableMemory is false, so the "## Memory" section must not appear.
+    const systemBlocks = streamCalls[0]?.system as Array<{ text: string }>;
+    const systemText = systemBlocks.map((b) => b.text).join("\n");
+    expect(systemText).not.toContain("## Memory");
+    // memory_search is filtered out when enableMemory=false (resolveToolsForRun).
+    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+      (t) => t.name,
+    );
+    expect(sentTools).not.toContain("memory_search");
   });
 
   it("memory enabled but no memory tools => no memory section", async () => {
@@ -464,9 +485,17 @@ describe("Agent coverage extras", () => {
       enableHeartbeat: false,
       maxTurns: 1,
     });
-    attachMockClient(agent);
+    const { streamCalls } = attachMockClient(agent);
     await agent.run("s", "hi");
-    expect(true).toBe(true);
+    // Memory is enabled but neither memory_search nor memory_get is registered;
+    // the section must therefore be omitted.
+    const systemBlocks = streamCalls[0]?.system as Array<{ text: string }>;
+    const systemText = systemBlocks.map((b) => b.text).join("\n");
+    expect(systemText).not.toContain("## Memory");
+    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+      (t) => t.name,
+    );
+    expect(sentTools).toEqual(["noop"]);
   });
 
   it("subagent: rejects spawn from already-subagent session", async () => {

@@ -172,16 +172,20 @@ describe("reply-throttler coverage", () => {
 describe("reply-queue coverage", () => {
   it("flush is a no-op when message is null (line 58/67)", async () => {
     const q = new ReplyQueue({ flushIntervalMs: 10 });
-    // No enqueue happened → message is still null
-    await q.flush();
-    expect(true).toBe(true);
+    // No enqueue happened → message is still null; flush should resolve without throwing
+    await expect(q.flush()).resolves.toBeUndefined();
+    // Internal state must remain clean: no message captured
+    const internal = q as unknown as { message: Message | null; queue: unknown[] };
+    expect(internal.message).toBeNull();
+    expect(internal.queue.length).toBe(0);
   });
 
   it("startFlushTimer skips when timer already exists", async () => {
     const q = new ReplyQueue({ flushIntervalMs: 10 });
+    const replyFn = vi.fn(() => Promise.resolve({ id: "x" }));
     const message = {
       id: "m",
-      reply: vi.fn(() => Promise.resolve({ id: "x" })),
+      reply: replyFn,
       channel: {
         send: vi.fn(() => Promise.resolve({ id: "x" })),
         isTextBased: () => true,
@@ -189,9 +193,21 @@ describe("reply-queue coverage", () => {
     } as unknown as Message;
 
     await q.enqueue(message, "ack1", { kind: "ack" });
-    // Second ack triggers startFlushTimer again — should hit `if (this.flushTimer) return`
+    const internal = q as unknown as {
+      flushTimer: ReturnType<typeof setTimeout> | null;
+    };
+    const firstTimer = internal.flushTimer;
+    expect(firstTimer).not.toBeNull();
+
+    // Second ack triggers startFlushTimer again — must hit `if (this.flushTimer) return`
+    // and therefore keep the same timer reference (no replacement).
     await q.enqueue(message, "ack2", { kind: "ack" });
+    expect(internal.flushTimer).toBe(firstTimer);
+    // Both ack messages should have been sent immediately.
+    expect(replyFn).toHaveBeenCalledTimes(2);
+
     q.reset();
+    expect(internal.flushTimer).toBeNull();
   });
 });
 
@@ -332,19 +348,15 @@ describe("client coverage", () => {
 // ---------------------------------------------------------------------------
 
 describe("gateway coverage", () => {
-  it("creates fresh client on reconnect when not injected (lines 130-131)", async () => {
-    // Use real client but mock login to fail; then succeed on second attempt
-    let attempts = 0;
+  it("constructs gateway without injected client (covers default createDiscordClient path)", async () => {
+    // Without `_client`, the gateway uses createDiscordClient() at line 58.
+    // Lines 130-131 (fresh client on reconnect) require a real network connection
+    // to exercise — not feasible in unit tests. We at least verify the no-inject
+    // construction path produces a working interface.
     const handler: MessageHandler = {
       handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
     };
 
-    const onReconnect = vi.fn(() => {});
-    const onReconnectFailed = vi.fn(() => {});
-
-    // Spy on createDiscordClient by using gateway and checking flow:
-    // create gateway WITHOUT injected client → first connect will try to use a real client.
-    // We can't fully mock; instead, exercise via reconnectManager onReconnect/onMaxRetries (lines 154-157)
     const gateway = createDiscordGateway({
       token: "test-token",
       handler,
@@ -355,17 +367,19 @@ describe("gateway coverage", () => {
         maxDelayMs: 5,
       },
       events: {
-        onReconnect,
-        onReconnectFailed,
+        onReconnect: vi.fn(),
+        onReconnectFailed: vi.fn(),
       },
     });
 
-    // Force the doConnect path used by reconnectManager. We can't easily call it,
-    // but we can stop the gateway to clean up.
     expect(gateway.isConnected).toBe(false);
-    gateway.disconnect();
-    attempts++;
-    expect(attempts).toBe(1);
+    expect(gateway.pendingCount).toBe(0);
+    expect(gateway.user).toBeNull();
+    expect(gateway.guilds).toEqual([]);
+    expect(gateway.client).toBeDefined();
+    // disconnect must be idempotent and not throw without an active connection
+    expect(() => gateway.disconnect()).not.toThrow();
+    expect(gateway.isConnected).toBe(false);
   });
 
   it("invokes onReconnect/onReconnectFailed callbacks (lines 154-157)", async () => {
