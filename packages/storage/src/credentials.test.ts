@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -159,5 +159,29 @@ describe("createCredentialManager", () => {
     const result = await manager.list();
     expect(result).toContain("glm");
     expect(result).toContain("minimax");
+  });
+
+  test("get rethrows non-ENOENT errors (e.g. EISDIR)", async () => {
+    // Create a directory at the credential file path so readFile fails
+    const dirAsFile = join(tempDir, "glm.json");
+    await mkdir(dirAsFile, { recursive: true });
+    const manager = createCredentialManager(tempDir);
+    await expect(manager.get("glm")).rejects.toThrow();
+  });
+
+  test("delete rethrows non-ENOENT errors (e.g. EISDIR)", async () => {
+    // Create a directory at the credential file path so unlink fails
+    const dirAsFile = join(tempDir, "glm.json");
+    await mkdir(dirAsFile, { recursive: true });
+    const manager = createCredentialManager(tempDir);
+    await expect(manager.delete("glm")).rejects.toThrow();
+  });
+
+  test("list rethrows non-ENOENT errors (e.g. ENOTDIR)", async () => {
+    // Use a file path as the credentials directory so readdir fails
+    const filePath = join(tempDir, "not-a-dir");
+    await writeFile(filePath, "regular file", "utf-8");
+    const manager = createCredentialManager(filePath);
+    await expect(manager.list()).rejects.toThrow();
   });
 });

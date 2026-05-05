@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -140,5 +140,12 @@ describe("createConfigManager", () => {
     const config = await manager.load();
     expect(config.activeProvider).toBe("minimax");
     expect(config.models?.default).toBe("claude-sonnet");
+  });
+
+  test("load rethrows non-ENOENT errors (e.g. EISDIR)", async () => {
+    // Create a directory at the configPath so readFile fails with EISDIR
+    await mkdir(configPath, { recursive: true });
+    const manager = createConfigManager(configPath);
+    await expect(manager.load()).rejects.toThrow();
   });
 });
