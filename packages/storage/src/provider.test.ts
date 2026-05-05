@@ -129,6 +129,41 @@ describe("createProviderResolver", () => {
 
       expect(result?.id).toBe("glm");
     });
+
+    test("returns null when credential disappears between list and get", async () => {
+      // Custom credential manager: list reports glm, but get returns null.
+      // This exercises the `if (!credential) return null` branch in resolve().
+      const flakyCredentialManager: CredentialManager = {
+        get: async () => null,
+        set: async () => {},
+        delete: async () => {},
+        list: async () => ["glm"],
+        has: async () => true,
+      };
+
+      const resolver = createProviderResolver(
+        configManager,
+        flakyCredentialManager,
+      );
+      const result = await resolver.resolve();
+      expect(result).toBeNull();
+    });
+    test("falls back when DECA_PROVIDER is valid but credential missing", async () => {
+      // DECA_PROVIDER points to a valid provider id, but no credential exists.
+      // The code should skip the DECA_PROVIDER branch (credential is null) and
+      // fall through to activeProvider / available providers.
+      await credentialManager.set("glm", { apiKey: "glm-key" });
+
+      const resolver = createProviderResolver(
+        configManager,
+        credentialManager,
+        { DECA_PROVIDER: "minimax" },
+      );
+      const result = await resolver.resolve();
+
+      // Falls back to glm since minimax has no credential
+      expect(result?.id).toBe("glm");
+    });
   });
 
   describe("resolveOrThrow", () => {

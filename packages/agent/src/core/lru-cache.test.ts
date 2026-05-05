@@ -177,5 +177,12 @@ describe("LRUCache", () => {
       cache.get("a"); // Move "a" to end
       expect([...cache.keys()]).toEqual(["b", "c", "a"]);
     });
+
+    it("returns undefined when stored value itself is undefined", () => {
+      const cache = new LRUCache<string, number | undefined>(3);
+      cache.put("a", undefined);
+      expect(cache.has("a")).toBe(true);
+      expect(cache.get("a")).toBeUndefined();
+    });
   });
 });

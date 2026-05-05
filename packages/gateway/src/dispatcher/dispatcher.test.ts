@@ -567,4 +567,49 @@ describe("createDispatcher", () => {
       await expect(dispatcher.dispatch(request)).resolves.toBeDefined();
     });
   });
+
+  describe("timeout fallback", () => {
+    it("throws when queue.add resolves with undefined", async () => {
+      const dispatcher = createDispatcher({ handler: mockHandler });
+
+      // Spy on the internal queue is not possible; instead test the contract
+      // by stubbing handler to return undefined-like via direct cast.
+      // Easier path: forge by overriding handler to return undefined and let
+      // the queue propagate it. p-queue treats falsy as the resolved value.
+      const undefHandler: DispatchHandler = {
+        // biome-ignore lint/suspicious/noExplicitAny: simulate misbehaving handler
+        handle: vi.fn(() => Promise.resolve(undefined as any)),
+      };
+      const dispatcherUndef = createDispatcher({ handler: undefHandler });
+
+      await expect(
+        dispatcherUndef.dispatch(createMockRequest()),
+      ).rejects.toThrow("Unexpected empty response from handler");
+
+      expect(dispatcher).toBeDefined();
+    });
+
+    it("wraps non-Error throws into Error in error path", async () => {
+      const badHandler: DispatchHandler = {
+        handle: vi.fn(() => {
+          throw "plain string failure";
+        }),
+      };
+      const errors: Array<{ req: DispatchRequest; err: Error }> = [];
+      const dispatcher = createDispatcher({
+        handler: badHandler,
+        events: {
+          onError: (req, err) => errors.push({ req, err }),
+        },
+      });
+
+      await expect(
+        dispatcher.dispatch(createMockRequest()),
+      ).rejects.toThrow("plain string failure");
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].err).toBeInstanceOf(Error);
+      expect(errors[0].err.message).toBe("plain string failure");
+    });
+  });
 });

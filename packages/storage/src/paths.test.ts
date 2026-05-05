@@ -86,6 +86,23 @@ describe("resolvePaths", () => {
 
     expect(paths.stateDir).toBe(join(tempHome, ".my-deca"));
   });
+
+  test("uses process defaults when options omitted", () => {
+    // Exercises the ?? fallbacks for homedir and cwd in resolvePaths
+    const paths = resolvePaths();
+
+    expect(paths.stateDir).toContain(STATE_DIR_NAME);
+    expect(paths.configPath).toContain("config.json");
+    expect(paths.credentialsDir).toContain("credentials");
+  });
+
+  test("uses process defaults when options is empty object", () => {
+    // Exercises the ?? fallbacks for homedir and cwd in resolvePaths
+    const paths = resolvePaths({});
+
+    expect(paths.stateDir).toContain(STATE_DIR_NAME);
+    expect(typeof paths.stateDir).toBe("string");
+  });
 });
 
 describe("hasProjectDir", () => {
@@ -106,5 +123,11 @@ describe("hasProjectDir", () => {
   test("returns true when .deca exists", async () => {
     await mkdir(join(tempCwd, STATE_DIR_NAME));
     expect(hasProjectDir(tempCwd)).toBe(true);
+  });
+
+  test("uses process.cwd() when called with no argument", () => {
+    // Exercises the ?? fallback branch for cwd
+    const result = hasProjectDir();
+    expect(typeof result).toBe("boolean");
   });
 });

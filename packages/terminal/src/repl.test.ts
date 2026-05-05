@@ -586,6 +586,69 @@ describe("createTerminal", () => {
       expect(terminal.isRunning).toBe(false);
     });
 
+    it("writes trailing newline when streaming yields text", async () => {
+      const input = createMockInput();
+      const output = createMockOutput();
+
+      const terminal = createTerminal({
+        handler: createEchoHandler({
+          prefix: "",
+          simulateStreaming: true,
+          streamingDelayMs: 0,
+        }),
+        input,
+        output,
+        streaming: true,
+      });
+
+      output.clear();
+      const response = await terminal.send("xy");
+
+      expect(response.success).toBe(true);
+      expect(output.data.endsWith("\n")).toBe(true);
+    });
+
+    it("uses TTY=false fallback when isTTY undefined", async () => {
+      const input = createMockInput();
+      const output = createMockOutput();
+      // biome-ignore lint/performance/noDelete: simulate stream without isTTY
+      delete (output as unknown as { isTTY?: boolean }).isTTY;
+
+      const terminal = createTerminal({
+        handler: createEchoHandler(),
+        input,
+        output,
+      });
+
+      const startPromise = terminal.start();
+      await new Promise((r) => setTimeout(r, 50));
+
+      terminal.stop();
+      await startPromise;
+
+      expect(terminal.isRunning).toBe(false);
+    });
+
+    it("does not resume readline after exit command via line input", async () => {
+      const input = createMockInput();
+      const output = createMockOutput();
+
+      const terminal = createTerminal({
+        handler: createEchoHandler(),
+        input,
+        output,
+      });
+
+      const startPromise = terminal.start();
+      await new Promise((r) => setTimeout(r, 50));
+
+      input.push("exit\n");
+      await startPromise;
+
+      expect(terminal.isRunning).toBe(false);
+      expect(output.data).toContain("Goodbye!");
+    });
+
     it("handles stream close event", async () => {
       const input = createMockInput();
       const output = createMockOutput();
