@@ -243,4 +243,66 @@ describe("createAgentAdapter", () => {
 
     expect(mockCronShutdown).not.toHaveBeenCalled();
   });
+
+  it("forwards onToolStart and onToolEnd progress through onReply", async () => {
+    mockRun.mockImplementationOnce(async (_sessionKey, _content, opts) => {
+      opts?.onToolStart?.("search");
+      opts?.onToolEnd?.("search");
+      return { text: "done", turns: 1, toolCalls: 1 };
+    });
+
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
+    const replies: Array<{ text: string; meta: unknown }> = [];
+
+    const response = await adapter.handle({
+      sessionKey: "s",
+      content: "go",
+      sender: { id: "u" },
+      callbacks: {
+        onReply: (text, meta) => replies.push({ text, meta }),
+      },
+    });
+
+    expect(response.success).toBe(true);
+    expect(replies).toHaveLength(2);
+    expect(replies[0].text).toContain("search");
+    expect(replies[1].text).toContain("search");
+  });
+
+  it("does not invoke onToolStart/onToolEnd when onReply absent", async () => {
+    let toolStartFn: ((name: string) => void) | undefined;
+    let toolEndFn: ((name: string) => void) | undefined;
+    mockRun.mockImplementationOnce(async (_sessionKey, _content, opts) => {
+      toolStartFn = opts?.onToolStart;
+      toolEndFn = opts?.onToolEnd;
+      return { text: "done", turns: 1, toolCalls: 0 };
+    });
+
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
+
+    const response = await adapter.handle({
+      sessionKey: "s",
+      content: "go",
+      sender: { id: "u" },
+    });
+
+    expect(response.success).toBe(true);
+    expect(toolStartFn).toBeUndefined();
+    expect(toolEndFn).toBeUndefined();
+  });
+
+  it("wraps non-Error throw with message", async () => {
+    mockRun.mockRejectedValueOnce("string failure");
+
+    const adapter = await createAgentAdapter({ apiKey: "test-key" });
+
+    const response = await adapter.handle({
+      sessionKey: "s",
+      content: "go",
+      sender: { id: "u" },
+    });
+
+    expect(response.success).toBe(false);
+    expect(response.error).toBe("string failure");
+  });
 });
