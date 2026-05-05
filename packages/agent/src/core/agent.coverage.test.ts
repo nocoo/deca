@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type AgentEventPayload, onAgentEvent } from "./agent-events.js";
 import { Agent } from "./agent.js";
 import type { ContentBlock } from "./session.js";
 
@@ -250,9 +251,15 @@ describe("Agent coverage extras", () => {
       enableHeartbeat: false,
       maxTurns: 1,
     });
-    attachMockClient(agent);
+    const { streamCalls } = attachMockClient(agent);
     await agent.run("s", "hi");
-    expect(true).toBe(true);
+    // enableContext=true → buildContextPrompt appends the "# Project Context"
+    // section. With an empty workspaceDir, bootstrap files are still loaded
+    // (with [MISSING] placeholders), proving the branch ran.
+    expect(streamCalls.length).toBe(1);
+    const systemBlocks = streamCalls[0]?.system as Array<{ text: string }>;
+    const systemText = systemBlocks.map((b) => b.text).join("\n");
+    expect(systemText).toContain("# Project Context");
   });
 
   it("skill match with empty matchedTrigger and userPart slice empty falls back to original", async () => {
@@ -563,6 +570,10 @@ describe("Agent coverage extras", () => {
   });
 
   it("subagent: handles errors in child run (instanceof Error path)", async () => {
+    const events: AgentEventPayload[] = [];
+    const off = onAgentEvent((e) => {
+      if (e.stream === "subagent") events.push(e);
+    });
     const agent = new Agent({
       apiKey: "k",
       sessionDir: tempDir,
@@ -594,10 +605,21 @@ describe("Agent coverage extras", () => {
       task: "fail",
     });
     await new Promise((r) => setTimeout(r, 50));
-    expect(true).toBe(true);
+    off();
+    // The catch branch should emit an "error" phase event with the Error.message
+    // (instanceof Error path — not the String(err) fallback).
+    const errorEvent = events.find((e) => e.data.phase === "error");
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent?.data.error).toBe("child failed");
+    expect(errorEvent?.data.task).toBe("fail");
+    expect(errorEvent?.sessionKey).toBe("agent:main:s:p2");
   });
 
   it("subagent: handles non-Error rejection (string path)", async () => {
+    const events: AgentEventPayload[] = [];
+    const off = onAgentEvent((e) => {
+      if (e.stream === "subagent") events.push(e);
+    });
     const agent = new Agent({
       apiKey: "k",
       sessionDir: tempDir,
@@ -628,7 +650,12 @@ describe("Agent coverage extras", () => {
       task: "fail",
     });
     await new Promise((r) => setTimeout(r, 50));
-    expect(true).toBe(true);
+    off();
+    // Non-Error throw should hit the String(err) fallback path.
+    const errorEvent = events.find((e) => e.data.phase === "error");
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent?.data.error).toBe("string-rejection");
+    expect(errorEvent?.sessionKey).toBe("agent:main:s:p3");
   });
 
   it("baseUrl falls back to ANTHROPIC_BASE_URL env", () => {
