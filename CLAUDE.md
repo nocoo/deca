@@ -32,7 +32,7 @@ bun --filter @deca/agent test:unit
 bun --filter @deca/discord test:unit
 
 # 单个文件
-bun test packages/agent/src/core/session.test.ts
+vitest run packages/agent/src/core/session.test.ts
 ```
 
 ### L2: Lint (代码检查)

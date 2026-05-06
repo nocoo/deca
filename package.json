@@ -14,8 +14,7 @@
     "format": "biome format .",
     "prepare": "husky",
     "eval": "bun run eval/runner.ts",
-    "eval:report": "bun run eval/reporter.ts",
-    "eval:test": "bun test --cwd eval"
+    "eval:report": "bun run eval/reporter.ts"
   },
   "workspaces": ["packages/*"],
   "devDependencies": {
