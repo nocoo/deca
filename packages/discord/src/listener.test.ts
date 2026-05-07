@@ -11,25 +11,27 @@ import {
 import type { AllowlistConfig, MessageHandler, MessageResponse } from "./types";
 
 // Mock factories
-function createMockUser(overrides: Partial<User> = {}): User {
+function createMockUser(overrides: Record<string, unknown> = {}): User {
   return {
     id: "user123",
     username: "testuser",
     displayName: "Test User",
     bot: false,
     ...overrides,
-  } as User;
+  } as unknown as User;
 }
 
-function createMockGuild(overrides: Partial<Guild> = {}): Guild {
+function createMockGuild(overrides: Record<string, unknown> = {}): Guild {
   return {
     id: "guild456",
     name: "Test Guild",
     ...overrides,
-  } as Guild;
+  } as unknown as Guild;
 }
 
-function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
+function createMockChannel(
+  overrides: Record<string, unknown> = {},
+): TextChannel {
   return {
     id: "channel789",
     name: "test-channel",
@@ -42,10 +44,18 @@ function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
   } as unknown as TextChannel;
 }
 
-function createMockMessage(overrides: Partial<Message> = {}): Message {
-  const author = createMockUser(overrides.author as Partial<User>);
-  const guild = createMockGuild(overrides.guild as Partial<Guild>);
-  const channel = createMockChannel(overrides.channel as Partial<TextChannel>);
+function createMockMessage(
+  overrides: Record<string, unknown> = {},
+): Message {
+  const author = createMockUser(
+    (overrides.author as Record<string, unknown>) ?? {},
+  );
+  const guild = createMockGuild(
+    (overrides.guild as Record<string, unknown>) ?? {},
+  );
+  const channel = createMockChannel(
+    (overrides.channel as Record<string, unknown>) ?? {},
+  );
 
   // Track reactions for testing
   const reactionsCache = new Map<
@@ -628,7 +638,7 @@ describe("createMessageListener", () => {
   });
 
   it("processes message through event listener callback", async () => {
-    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    let messageHandler: ((message: Message) => Promise<void>) | undefined;
     const client = {
       user: { id: "bot123", username: "testbot" },
       on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {
@@ -655,7 +665,7 @@ describe("createMessageListener", () => {
   });
 
   it("ignores messages when shouldProcessMessage returns false", async () => {
-    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    let messageHandler: ((message: Message) => Promise<void>) | undefined;
     const client = {
       user: { id: "bot123", username: "testbot" },
       on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {
@@ -682,7 +692,7 @@ describe("createMessageListener", () => {
   });
 
   it("queues message when debounce is enabled", async () => {
-    let messageHandler: ((message: Message) => Promise<void>) | null = null;
+    let messageHandler: ((message: Message) => Promise<void>) | undefined;
     const client = {
       user: { id: "bot123", username: "testbot" },
       on: vi.fn((event: string, handler: (msg: Message) => Promise<void>) => {

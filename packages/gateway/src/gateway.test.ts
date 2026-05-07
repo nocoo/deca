@@ -316,7 +316,7 @@ describe("createGateway", () => {
 
   describe("terminal error handling", () => {
     it("catches terminal start errors", async () => {
-      let capturedError: Error | null = null;
+      let capturedError: Error | undefined;
 
       mockTerminalStart.mockImplementation(() =>
         Promise.reject(new Error("Terminal failed")),
@@ -343,7 +343,7 @@ describe("createGateway", () => {
     });
 
     it("catches terminal start errors (non-Error)", async () => {
-      let capturedError: Error | null = null;
+      let capturedError: Error | undefined;
 
       mockTerminalStart.mockImplementation(() =>
         Promise.reject("string error"),
@@ -532,7 +532,7 @@ describe("createGateway", () => {
 
       await gateway.start();
 
-      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const setupCall = mockSetupSlashCommands.mock.calls[0] as unknown as [unknown, { agentId?: string; onClearSession: (k: string) => Promise<void>; onGetStatus: () => Promise<unknown> | unknown }];
       const config = setupCall[1];
       expect(config.agentId).toBe("my-agent");
     });
@@ -549,7 +549,7 @@ describe("createGateway", () => {
 
       await gateway.start();
 
-      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const setupCall = mockSetupSlashCommands.mock.calls[0] as unknown as [unknown, { agentId?: string; onClearSession: (k: string) => Promise<void>; onGetStatus: () => Promise<unknown> | unknown }];
       const config = setupCall[1];
 
       await config.onClearSession("test-session-key");
@@ -569,10 +569,10 @@ describe("createGateway", () => {
 
       await gateway.start();
 
-      const setupCall = mockSetupSlashCommands.mock.calls[0];
+      const setupCall = mockSetupSlashCommands.mock.calls[0] as unknown as [unknown, { agentId?: string; onClearSession: (k: string) => Promise<void>; onGetStatus: () => Promise<unknown> | unknown }];
       const config = setupCall[1];
 
-      const status = await config.onGetStatus("test-session");
+      const status = await (config.onGetStatus as unknown as (k: string) => Promise<{ guilds: number; uptime: number; model: string; contextTokens: number; session: { key: string; messageCount: number; totalChars: number } }>)("test-session");
 
       expect(status.guilds).toBe(1);
       expect(typeof status.uptime).toBe("number");
@@ -671,7 +671,7 @@ describe("createEchoGateway", () => {
       });
       gateways.push(gateway);
 
-      const response = await gateway.handler.handle({
+      const response = await (gateway.handler as NonNullable<typeof gateway.handler>).handle({
         sessionKey: "test:session:123",
         content: "hello",
         sender: { id: "user1" },
@@ -688,7 +688,7 @@ describe("createEchoGateway", () => {
       });
       gateways.push(gateway);
 
-      const response = await gateway.handler.handle({
+      const response = await (gateway.handler as NonNullable<typeof gateway.handler>).handle({
         sessionKey: "test:session:123",
         content: "world",
         sender: { id: "user1" },

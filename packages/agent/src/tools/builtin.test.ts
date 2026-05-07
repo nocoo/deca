@@ -355,7 +355,7 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async (url: string | URL | Request) => {
+      globalThis.fetch = (async (url: string | URL | Request) => {
         const urlStr = url instanceof Request ? url.url : url.toString();
         expect(urlStr).toBe("https://api.tavily.com/search");
         return new Response(
@@ -371,7 +371,7 @@ describe("builtin tools", () => {
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
-      };
+      }) as unknown as typeof fetch;
 
       try {
         const result = await searchTool.execute({ query: "test query" }, ctx);
@@ -389,11 +389,11 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async () =>
+      globalThis.fetch = (async () =>
         new Response("Unauthorized", {
           status: 401,
           statusText: "Unauthorized",
-        });
+        })) as unknown as typeof fetch;
 
       try {
         const result = await searchTool.execute({ query: "test" }, ctx);
@@ -410,11 +410,11 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async () =>
+      globalThis.fetch = (async () =>
         new Response(JSON.stringify({ results: [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
-        });
+        })) as unknown as typeof fetch;
 
       try {
         const result = await searchTool.execute({ query: "test" }, ctx);
@@ -430,7 +430,7 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async () =>
+      globalThis.fetch = (async () =>
         new Response(
           JSON.stringify({
             answer: "The answer is 42",
@@ -444,7 +444,7 @@ describe("builtin tools", () => {
             ],
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
-        );
+        )) as unknown as typeof fetch;
 
       try {
         const result = await searchTool.execute(
@@ -485,7 +485,7 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async (url: string | URL | Request) => {
+      globalThis.fetch = (async (url: string | URL | Request) => {
         const urlStr = url instanceof Request ? url.url : url.toString();
         expect(urlStr).toBe("https://api.tavily.com/research");
         return new Response(
@@ -498,7 +498,7 @@ describe("builtin tools", () => {
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
-      };
+      }) as unknown as typeof fetch;
 
       try {
         const result = await researchTool.execute(
@@ -520,11 +520,11 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async () =>
+      globalThis.fetch = (async () =>
         new Response(JSON.stringify({}), {
           status: 200,
           headers: { "Content-Type": "application/json" },
-        });
+        })) as unknown as typeof fetch;
 
       try {
         const result = await researchTool.execute({ topic: "test" }, ctx);
@@ -540,11 +540,11 @@ describe("builtin tools", () => {
       const originalFetch = globalThis.fetch;
 
       process.env.TAVILY_API_KEY = "test-key";
-      globalThis.fetch = async () =>
+      globalThis.fetch = (async () =>
         new Response("Server Error", {
           status: 500,
           statusText: "Internal Server Error",
-        });
+        })) as unknown as typeof fetch;
 
       try {
         const result = await researchTool.execute({ topic: "test" }, ctx);

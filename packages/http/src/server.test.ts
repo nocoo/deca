@@ -44,7 +44,7 @@ describe("createHttpServer", () => {
     it("calls event callbacks", async () => {
       let started = false;
       let stopped = false;
-      let startInfo: { hostname: string; port: number } | null = null;
+      let startInfo: { hostname: string; port: number } | undefined;
 
       const server = createTestServer({
         handler: createEchoHandler(),
@@ -287,7 +287,7 @@ describe("createHttpServer", () => {
     });
 
     it("handles handler errors", async () => {
-      let receivedError: Error | null = null;
+      let receivedError: Error | undefined;
 
       const server = createTestServer({
         handler: {
@@ -407,7 +407,7 @@ describe("createHttpServer", () => {
     });
 
     it("calls onError when handler throws", async () => {
-      let receivedError: Error | null = null;
+      let receivedError: Error | undefined;
 
       const server = createTestServer({
         handler: {

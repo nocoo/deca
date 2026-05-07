@@ -116,7 +116,7 @@ describe("connectDiscord", () => {
 describe("disconnectDiscord", () => {
   it("calls client.destroy()", () => {
     const client = createDiscordClient();
-    const destroyMock = vi.fn(() => {});
+    const destroyMock = vi.fn(() => Promise.resolve());
     client.destroy = destroyMock;
 
     disconnectDiscord(client);

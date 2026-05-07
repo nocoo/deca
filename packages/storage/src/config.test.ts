@@ -124,7 +124,7 @@ describe("createConfigManager", () => {
   test("get/set activeProvider", async () => {
     const manager = createConfigManager(configPath);
 
-    await manager.save({ activeProvider: "openrouter" });
+    await manager.save({ activeProvider: "openrouter" as never });
 
     const config = await manager.load();
     expect(config.activeProvider).toBe("openrouter");

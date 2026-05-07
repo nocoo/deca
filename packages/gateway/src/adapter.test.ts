@@ -10,7 +10,7 @@ const { mockRun, mockCronInitialize, mockCronShutdown } = vi.hoisted(() => ({
       turns: 1,
       toolCalls: 0,
     }),
-  ),
+  ) as unknown as ReturnType<typeof vi.fn> & ((sessionKey: string, content: string, opts?: { onTextDelta?: (d: string) => void; onToolStart?: (name: string) => void; onToolEnd?: (name: string) => void }) => Promise<{ text: string; turns: number; toolCalls: number }>),
   mockCronInitialize: vi.fn(() => Promise.resolve()),
   mockCronShutdown: vi.fn(() => Promise.resolve()),
 }));
@@ -145,8 +145,9 @@ describe("createAgentAdapter", () => {
     await adapter.handle(createRequest("test message"));
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    expect(mockRun.mock.calls[0][0]).toBe("test:session:123");
-    expect(mockRun.mock.calls[0][1]).toBe("test message");
+    const firstCall = mockRun.mock.calls[0] as unknown as [string, string, unknown];
+    expect(firstCall[0]).toBe("test:session:123");
+    expect(firstCall[1]).toBe("test message");
   });
 
   it("passes onTextDelta callback to agent.run", async () => {
@@ -157,7 +158,7 @@ describe("createAgentAdapter", () => {
     await adapter.handle(createRequest("hello", deltaCallback));
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    const options = mockRun.mock.calls[0][2];
+    const options = (mockRun.mock.calls[0] as unknown as [string, string, { onTextDelta?: unknown }])[2];
     expect(options.onTextDelta).toBe(deltaCallback);
   });
 
@@ -259,7 +260,7 @@ describe("createAgentAdapter", () => {
       content: "go",
       sender: { id: "u" },
       callbacks: {
-        onReply: (text, meta) => replies.push({ text, meta }),
+        onReply: async (text, meta) => { replies.push({ text, meta }); },
       },
     });
 

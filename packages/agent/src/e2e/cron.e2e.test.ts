@@ -306,7 +306,7 @@ describe("CronService E2E", () => {
 
   describe("Output Standardization", () => {
     it("should call onTrigger with complete CronJob", async () => {
-      let receivedJob: CronJob | null = null;
+      let receivedJob: CronJob | undefined;
 
       const service = new CronService({
         storagePath,
@@ -535,7 +535,7 @@ describe("CronService E2E", () => {
 
   describe("Integration Point", () => {
     it("should provide all fields needed by adapter", async () => {
-      let jobForAdapter: CronJob | null = null;
+      let jobForAdapter: CronJob | undefined;
 
       const service = new CronService({
         storagePath,

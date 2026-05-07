@@ -215,7 +215,7 @@ describe("createTerminal", () => {
       const input = createMockInput();
       const output = createMockOutput();
 
-      let receivedResponse: MessageResponse | null = null;
+      let receivedResponse: MessageResponse | undefined;
 
       const terminal = createTerminal({
         handler: createEchoHandler(),
@@ -240,7 +240,7 @@ describe("createTerminal", () => {
       const input = createMockInput();
       const output = createMockOutput();
 
-      let receivedError: Error | null = null;
+      let receivedError: Error | undefined;
 
       const terminal = createTerminal({
         handler: {

@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { sendReply, sendToChannel, showTyping } from "./sender";
 
 // Mock message factory
-function createMockMessage(overrides: Partial<Message> = {}): Message {
+function createMockMessage(
+  overrides: Record<string, unknown> = {},
+): Message {
   const channelOverrides = (overrides.channel as object | undefined) ?? {};
   const channel = {
     send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
@@ -23,7 +25,9 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
 }
 
 // Mock channel factory
-function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
+function createMockChannel(
+  overrides: Record<string, unknown> = {},
+): TextChannel {
   return {
     id: "channel-id",
     send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
@@ -76,7 +80,7 @@ describe("sendReply", () => {
       await sendReply(message, longMessage);
 
       // Verify first chunk was sent as reply
-      const replyCall = replyMock.mock.calls[0];
+      const replyCall = replyMock.mock.calls[0] as unknown as [string];
       expect(replyCall[0]).toHaveLength(2000);
     });
 
@@ -91,7 +95,7 @@ describe("sendReply", () => {
 
       // Verify remaining content sent to channel
       expect(sendMock).toHaveBeenCalled();
-      const sendCall = sendMock.mock.calls[0];
+      const sendCall = sendMock.mock.calls[0] as unknown as [string];
       expect(sendCall[0]).toHaveLength(500);
     });
 

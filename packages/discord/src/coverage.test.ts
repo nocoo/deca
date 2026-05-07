@@ -230,7 +230,7 @@ describe("reconnect coverage", () => {
     m.schedule();
     await new Promise((r) => setTimeout(r, 50));
     expect(onMaxRetries).toHaveBeenCalled();
-    const errArg = onMaxRetries.mock.calls[0][0] as unknown as Error;
+    const errArg = (onMaxRetries.mock.calls[0] as unknown as [Error])[0];
     expect(errArg).toBeInstanceOf(Error);
     expect(errArg.message).toBe("string failure");
     m.stop();
@@ -430,7 +430,7 @@ describe("gateway coverage", () => {
 // listener.ts
 // ---------------------------------------------------------------------------
 
-function makeMessage(overrides: Partial<Message> = {}): Message {
+function makeMessage(overrides: Record<string, unknown> = {}): Message {
   const author = {
     id: "user123",
     username: "u",
@@ -480,7 +480,7 @@ describe("listener coverage", () => {
     const handler: MessageHandler = {
       handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
     };
-    let onMessage: ((m: Message) => Promise<void>) | null = null;
+    let onMessage: ((m: Message) => Promise<void>) | undefined = undefined;
     const client = {
       user: { id: "bot123", username: "b" },
       on: vi.fn((event: string, h: (m: Message) => Promise<void>) => {
@@ -496,7 +496,7 @@ describe("listener coverage", () => {
 
     // Message that is only a bot mention — extracts to empty
     const m = makeMessage({ content: "<@bot123>" });
-    await onMessage?.(m);
+    await (onMessage as ((m: Message) => Promise<void>) | undefined)?.(m);
     await new Promise((r) => setTimeout(r, 60));
 
     // Handler must not be called — empty content path
@@ -616,7 +616,7 @@ describe("listener coverage", () => {
       handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
     };
     const sendTyping = vi.fn(() => Promise.resolve());
-    let onMessage: ((m: Message) => Promise<void>) | null = null;
+    let onMessage: ((m: Message) => Promise<void>) | undefined = undefined;
     const client = {
       user: { id: "bot123", username: "b" },
       on: vi.fn((event: string, h: (m: Message) => Promise<void>) => {
@@ -634,7 +634,7 @@ describe("listener coverage", () => {
       content: "hi",
       channel: { sendTyping, isSendable: () => false } as never,
     });
-    await onMessage?.(m);
+    await (onMessage as ((m: Message) => Promise<void>) | undefined)?.(m);
     await new Promise((r) => setTimeout(r, 60));
     expect(sendTyping).not.toHaveBeenCalled();
     cleanup();

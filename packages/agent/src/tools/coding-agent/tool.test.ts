@@ -7,7 +7,7 @@ import type { CodingAgentResult } from "./types.js";
 
 const { mockIsAvailable, mockExecute } = vi.hoisted(() => ({
   mockIsAvailable: vi.fn(() => Promise.resolve(true)),
-  mockExecute: vi.fn(() =>
+  mockExecute: vi.fn((..._args: unknown[]) =>
     Promise.resolve({
       success: true,
       result: "Task completed",
@@ -17,8 +17,9 @@ const { mockIsAvailable, mockExecute } = vi.hoisted(() => ({
       costUsd: 0.05,
       model: "claude-4",
       sessionId: "s1",
-    } satisfies CodingAgentResult),
-  ),
+    } as CodingAgentResult),
+  ) as unknown as ReturnType<typeof vi.fn> &
+    ((args: unknown) => Promise<CodingAgentResult>),
 }));
 
 vi.mock("./claude-code.js", () => ({

@@ -80,21 +80,25 @@ describe("tool-policy", () => {
         name: "read",
         description: "Read file",
         inputSchema: { type: "object", properties: {} },
+        execute: async () => "",
       },
       {
         name: "write",
         description: "Write file",
         inputSchema: { type: "object", properties: {} },
+        execute: async () => "",
       },
       {
         name: "exec",
         description: "Execute command",
         inputSchema: { type: "object", properties: {} },
+        execute: async () => "",
       },
       {
         name: "memory_search",
         description: "Search memory",
         inputSchema: { type: "object", properties: {} },
+        execute: async () => "",
       },
     ];
 

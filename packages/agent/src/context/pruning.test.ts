@@ -47,7 +47,7 @@ describe("pruning", () => {
 
     it("should merge softTrim settings", () => {
       const settings = resolvePruningSettings({
-        softTrim: { maxChars: 1000 },
+        softTrim: { maxChars: 1000 } as never,
       });
       expect(settings.softTrim.maxChars).toBe(1000);
       expect(settings.softTrim.headChars).toBe(

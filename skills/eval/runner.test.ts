@@ -110,7 +110,7 @@ describe("executeCase", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const result = await executeCase(testCase, testConfig);
 
@@ -132,7 +132,7 @@ describe("executeCase", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const result = await executeCase(testCase, testConfig);
 
@@ -143,7 +143,7 @@ describe("executeCase", () => {
   it("should return error on HTTP error response", async () => {
     globalThis.fetch = vi.fn(async () => {
       return new Response("Internal Server Error", { status: 500 });
-    });
+    }) as unknown as typeof fetch;
 
     const result = await executeCase(testCase, testConfig);
 
@@ -162,7 +162,7 @@ describe("executeCase", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const result = await executeCase(testCase, testConfig);
 
@@ -174,7 +174,7 @@ describe("executeCase", () => {
   it("should return error on network failure", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("Connection refused");
-    });
+    }) as unknown as typeof fetch;
 
     const result = await executeCase(testCase, testConfig);
 
@@ -190,7 +190,7 @@ describe("executeCase", () => {
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
       });
-    });
+    }) as unknown as typeof fetch;
 
     const configWithKey = { ...testConfig, apiKey: "test-key-123" };
     await executeCase(testCase, configWithKey);
@@ -206,7 +206,7 @@ describe("executeCase", () => {
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
       });
-    });
+    }) as unknown as typeof fetch;
 
     await executeCase(testCase, testConfig);
 
@@ -219,7 +219,7 @@ describe("executeCase", () => {
         JSON.stringify({ response: "response", success: true }),
         { status: 200 },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const caseWithoutCheck: EvalCase = {
       ...testCase,
@@ -256,7 +256,7 @@ describe("runCases", () => {
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const results = await runCases(cases, testConfig);
 
@@ -277,7 +277,7 @@ describe("runCases", () => {
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const progressCalls: Array<[number, number, string]> = [];
 
@@ -402,7 +402,7 @@ describe("run", () => {
         JSON.stringify({ response: "I am Tomato 🍅", success: true }),
         { status: 200 },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const result = await run({
       gatewayUrl: "http://localhost:9999",
@@ -424,7 +424,7 @@ describe("run", () => {
         JSON.stringify({ response: "hello", success: true }),
         { status: 200 },
       );
-    });
+    }) as unknown as typeof fetch;
 
     const result = await run({
       gatewayUrl: "http://localhost:9999",
@@ -457,7 +457,7 @@ describe("run", () => {
         });
       }
       throw new Error("Network error");
-    });
+    }) as unknown as typeof fetch;
 
     const result = await run({
       gatewayUrl: "http://localhost:9999",
@@ -473,7 +473,7 @@ describe("run", () => {
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
       });
-    });
+    }) as unknown as typeof fetch;
 
     const result = await run({
       outputDir: testOutputDir,

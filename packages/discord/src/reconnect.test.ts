@@ -12,14 +12,14 @@ import {
 
 describe("Reconnect Manager", () => {
   let manager: ReconnectManager;
-  let connectFn: ReturnType<typeof vi.fn>;
-  let onReconnect: ReturnType<typeof vi.fn>;
-  let onMaxRetries: ReturnType<typeof vi.fn>;
+  let connectFn: ReturnType<typeof vi.fn> & (() => Promise<void>);
+  let onReconnect: ReturnType<typeof vi.fn> & ((attempts: number) => void);
+  let onMaxRetries: ReturnType<typeof vi.fn> & ((lastError: Error) => void);
 
   beforeEach(() => {
-    connectFn = vi.fn(() => Promise.resolve());
-    onReconnect = vi.fn(() => {});
-    onMaxRetries = vi.fn(() => {});
+    connectFn = vi.fn(() => Promise.resolve()) as unknown as typeof connectFn;
+    onReconnect = vi.fn(() => {}) as unknown as typeof onReconnect;
+    onMaxRetries = vi.fn(() => {}) as unknown as typeof onMaxRetries;
   });
 
   afterEach(() => {

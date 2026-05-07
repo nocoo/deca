@@ -169,7 +169,7 @@ describe("createDispatcher", () => {
 
       const trackingHandler: DispatchHandler = {
         handle: vi.fn().mockImplementation(async (req: DispatchRequest) => {
-          executionOrder.push(req.requestId);
+          executionOrder.push(req.requestId ?? "");
           return { text: "ok", success: true };
         }),
       };

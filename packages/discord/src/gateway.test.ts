@@ -101,7 +101,7 @@ describe("DiscordGateway", () => {
       const onCalls: [string, unknown][] = [];
       mockClient.on = ((event: string, listener: unknown) => {
         onCalls.push([event, listener]);
-        return originalOn(event, listener);
+        return (originalOn as unknown as (e: string, l: unknown) => unknown)(event, listener);
       }) as typeof mockClient.on;
 
       gateway = createDiscordGateway({
@@ -142,7 +142,7 @@ describe("DiscordGateway", () => {
 
   describe("disconnect", () => {
     it("disconnects client", async () => {
-      const destroySpy = vi.fn(() => {});
+      const destroySpy = vi.fn(() => {}) as unknown as () => Promise<void>;
       mockClient.destroy = destroySpy;
 
       gateway = createDiscordGateway({
@@ -343,7 +343,7 @@ describe("DiscordGateway", () => {
 
   describe("shutdown", () => {
     it("performs graceful shutdown", async () => {
-      const destroySpy = vi.fn(() => {});
+      const destroySpy = vi.fn(() => {}) as unknown as () => Promise<void>;
       mockClient.destroy = destroySpy;
 
       gateway = createDiscordGateway({
