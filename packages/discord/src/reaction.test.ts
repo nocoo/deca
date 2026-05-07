@@ -15,7 +15,7 @@ function createMockMessage(options?: {
 }) {
   const reactions = new Map<
     string,
-    { users: { remove: ReturnType<ReturnType<typeof vi.fn>> } }
+    { users: { remove: ReturnType<typeof vi.fn> } }
   >();
 
   return {

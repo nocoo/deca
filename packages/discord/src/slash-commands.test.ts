@@ -120,7 +120,7 @@ describe("slash-commands", () => {
       });
 
       // Get the registered handler
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -148,7 +148,7 @@ describe("slash-commands", () => {
         onClearSession,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -169,7 +169,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -178,7 +178,7 @@ describe("slash-commands", () => {
 
       expect(interaction.reply).toHaveBeenCalled();
       const replyCall = (
-        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.reply as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(replyCall[0].content).toContain("not configured");
     });
@@ -210,7 +210,7 @@ describe("slash-commands", () => {
         onGetStatus,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -221,7 +221,7 @@ describe("slash-commands", () => {
       expect(interaction.reply).toHaveBeenCalled();
 
       const replyCall = (
-        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.reply as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       const content = replyCall[0].content;
       expect(content).toContain("Model: glm-4.7");
@@ -240,7 +240,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -249,7 +249,7 @@ describe("slash-commands", () => {
 
       expect(interaction.reply).toHaveBeenCalled();
       const replyCall = (
-        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.reply as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(replyCall[0].content).toContain("running");
     });
@@ -268,7 +268,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -295,7 +295,7 @@ describe("slash-commands", () => {
         onClearSession,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -305,7 +305,7 @@ describe("slash-commands", () => {
       // Should use reply since not deferred
       expect(interaction.reply).toHaveBeenCalled();
       const replyCall = (
-        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.reply as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(replyCall[0].content).toContain("Error");
     });
@@ -320,7 +320,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -329,7 +329,7 @@ describe("slash-commands", () => {
 
       expect(interaction.reply).toHaveBeenCalled();
       const replyCall = (
-        interaction.reply as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.reply as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(replyCall[0].content).toContain("Unknown command");
     });
@@ -346,7 +346,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -357,7 +357,7 @@ describe("slash-commands", () => {
 
       expect(interaction.followUp).toHaveBeenCalled();
       const followUpCall = (
-        interaction.followUp as ReturnType<ReturnType<typeof vi.fn>>
+        interaction.followUp as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(followUpCall[0].content).toContain("An error occurred");
     });
@@ -392,7 +392,7 @@ describe("slash-commands", () => {
         agentId: "myagent",
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 
@@ -407,7 +407,7 @@ describe("slash-commands", () => {
 
       expect(handler.handle).toHaveBeenCalled();
       const handleCall = (
-        handler.handle as ReturnType<ReturnType<typeof vi.fn>>
+        handler.handle as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       const request = handleCall[0];
       expect(request.sessionKey).toContain("dm:");
@@ -426,7 +426,7 @@ describe("slash-commands", () => {
         messageHandler: handler,
       });
 
-      const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+      const onCall = (client.on as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const interactionHandler = onCall[1];
 

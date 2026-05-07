@@ -49,7 +49,7 @@ function createMockMessage(overrides: Partial<Message> = {}): Message {
   // Track reactions for testing
   const reactionsCache = new Map<
     string,
-    { users: { remove: ReturnType<ReturnType<typeof vi.fn>> } }
+    { users: { remove: ReturnType<typeof vi.fn> } }
   >();
 
   return {
@@ -304,7 +304,7 @@ describe("processMessage", () => {
     });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const call = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const request = call[0];
 
@@ -336,7 +336,7 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const replyCall = (message.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0];
     expect(replyCall[0]).toContain("Something went wrong");
   });
@@ -351,7 +351,7 @@ describe("processMessage", () => {
 
     // Should send error message, not throw
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const replyCall = (message.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
@@ -368,7 +368,7 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const replyCall = (message.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
@@ -396,7 +396,7 @@ describe("processMessage", () => {
     await processMessage(message, "bot123", { handler, debugMode: false });
 
     expect(message.reply).toHaveBeenCalled();
-    const replyCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const replyCall = (message.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0];
     expect(replyCall[0]).toContain("error");
   });
@@ -420,9 +420,9 @@ describe("processMessage", () => {
 
       // Should have 2 replies: debug message + actual response
       expect(message.reply).toHaveBeenCalledTimes(2);
-      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const firstCall = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls[0];
-      const secondCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const secondCall = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls[1];
 
       // First message should be debug info
@@ -462,7 +462,7 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const firstCall = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls[0];
       // Session key should be truncated (last 12 chars with ... prefix)
       expect(firstCall[0]).toMatch(/Session: \.\.\.[a-z0-9:]+/i);
@@ -474,7 +474,7 @@ describe("processMessage", () => {
 
       await processMessage(message, "bot123", { handler, debugMode: true });
 
-      const firstCall = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const firstCall = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls[0];
       // Should contain ISO timestamp format
       expect(firstCall[0]).toMatch(/Time: \d{4}-\d{2}-\d{2}T/);
@@ -748,7 +748,7 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const call = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("dm");
@@ -773,7 +773,7 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const call = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("thread");
@@ -796,7 +796,7 @@ describe("processMessage edge cases", () => {
     await processMessage(message, "bot123", { handler });
 
     expect(handler.handle).toHaveBeenCalled();
-    const call = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const call = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const request = call[0];
     expect(request.channel.type).toBe("thread");

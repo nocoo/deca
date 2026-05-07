@@ -453,7 +453,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
   };
   const reactionsCache = new Map<
     string,
-    { users: { remove: ReturnType<ReturnType<typeof vi.fn>> } }
+    { users: { remove: ReturnType<typeof vi.fn> } }
   >();
   return {
     id: "msg",
@@ -510,7 +510,7 @@ describe("listener coverage", () => {
     await processMessage(m, "bot123", { handler });
 
     expect(m.reply).toHaveBeenCalled();
-    const call = (m.reply as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const call = (m.reply as ReturnType<typeof vi.fn>).mock
       .calls[0];
     expect(call[0]).toContain("没有生成回复");
   });
@@ -573,7 +573,7 @@ describe("listener coverage", () => {
     });
 
     expect(handler.handle).toHaveBeenCalled();
-    const req = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const req = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
     expect(req.sessionKey).toBe("agent:myagent:user:main-user-1");
   });
@@ -588,7 +588,7 @@ describe("listener coverage", () => {
       mainChannelId: "channel789",
     });
 
-    const req = (handler.handle as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const req = (handler.handle as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
     // No mainUserId provided → falls back to message.author.id
     expect(req.sessionKey).toContain("user123");
@@ -649,7 +649,7 @@ describe("slash-commands coverage", () => {
       messageHandler: handler,
     });
 
-    const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const onCall = (client.on as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const handlerFn = onCall[1];
 
@@ -657,7 +657,7 @@ describe("slash-commands coverage", () => {
     await handlerFn(interaction);
 
     expect(interaction.editReply).toHaveBeenCalled();
-    const arg = (interaction.editReply as ReturnType<ReturnType<typeof vi.fn>>)
+    const arg = (interaction.editReply as ReturnType<typeof vi.fn>)
       .mock.calls[0][0];
     expect(arg).toContain("Failed to process");
   });
@@ -676,14 +676,14 @@ describe("slash-commands coverage", () => {
       messageHandler: handler,
     });
 
-    const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const onCall = (client.on as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const handlerFn = onCall[1];
 
     const interaction = makeSlashInteraction("ask", { question: "q" });
     await handlerFn(interaction);
 
-    const arg = (interaction.editReply as ReturnType<ReturnType<typeof vi.fn>>)
+    const arg = (interaction.editReply as ReturnType<typeof vi.fn>)
       .mock.calls[0][0];
     expect(arg).toContain("BadStuff");
   });
@@ -711,13 +711,13 @@ describe("slash-commands coverage", () => {
       onGetStatus,
     });
 
-    const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const onCall = (client.on as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const handlerFn = onCall[1];
     const interaction = makeSlashInteraction("status");
     await handlerFn(interaction);
 
-    const reply = (interaction.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const reply = (interaction.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0][0];
     expect(reply.content).not.toContain("Session:");
   });
@@ -756,13 +756,13 @@ describe("slash-commands coverage", () => {
       onGetStatus,
     });
 
-    const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const onCall = (client.on as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const handlerFn = onCall[1];
     const interaction = makeSlashInteraction("status");
     await handlerFn(interaction);
 
-    const reply = (interaction.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const reply = (interaction.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0][0];
     expect(reply.content).toContain("HIT");
     expect(reply.content).toMatch(/\dm ago/);
@@ -797,13 +797,13 @@ describe("slash-commands coverage", () => {
       onGetStatus,
     });
 
-    const onCall = (client.on as ReturnType<ReturnType<typeof vi.fn>>).mock
+    const onCall = (client.on as ReturnType<typeof vi.fn>).mock
       .calls[0];
     const handlerFn = onCall[1];
     const interaction = makeSlashInteraction("status");
     await handlerFn(interaction);
 
-    const reply = (interaction.reply as ReturnType<ReturnType<typeof vi.fn>>)
+    const reply = (interaction.reply as ReturnType<typeof vi.fn>)
       .mock.calls[0][0];
     expect(reply.content).toContain("MISS");
     expect(reply.content).toMatch(/\ds ago/);

@@ -28,7 +28,7 @@ describe("debounce", () => {
   });
 
   describe("createDebounceManager", () => {
-    let handler: DebouncedHandler & ReturnType<ReturnType<typeof vi.fn>>;
+    let handler: DebouncedHandler & ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
       handler = vi.fn(async () => {});

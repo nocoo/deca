@@ -76,7 +76,7 @@ describe("ReplyQueue", () => {
       await queue.enqueue(message, "Ack", { kind: "ack" });
       await queue.enqueue(message, "Done!", { kind: "final" });
 
-      const callCount = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const callCount = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls.length;
       await new Promise((r) => setTimeout(r, 60));
 
@@ -149,7 +149,7 @@ describe("ReplyQueue", () => {
       await queue.enqueue(message, "Ack", { kind: "ack" });
       await queue.finish();
 
-      const callCount = (message.reply as ReturnType<ReturnType<typeof vi.fn>>)
+      const callCount = (message.reply as ReturnType<typeof vi.fn>)
         .mock.calls.length;
       await new Promise((r) => setTimeout(r, 60));
 
