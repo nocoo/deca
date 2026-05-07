@@ -98,6 +98,8 @@ export interface HttpEventCallbacks {
   onRequest?: (path: string, method: string) => void;
 }
 
+import type { Hono } from "hono";
+
 // ============================================================================
 // Server Instance
 // ============================================================================
@@ -119,7 +121,7 @@ export interface HttpServer {
   readonly port: number;
 
   /** Get the Hono app instance (for testing) */
-  readonly app: unknown;
+  readonly app: Hono;
 }
 
 // ============================================================================

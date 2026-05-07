@@ -471,7 +471,7 @@ credentialSuite.tests.push({
       if (!list.includes("discord")) {
         throw new Error("Should include discord");
       }
-      if (list.includes("invalid" as keyof typeof list)) {
+      if (list.includes("invalid" as never)) {
         throw new Error("Should not include invalid");
       }
       if (list.length !== 2) {

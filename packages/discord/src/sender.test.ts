@@ -4,18 +4,21 @@ import { sendReply, sendToChannel, showTyping } from "./sender";
 
 // Mock message factory
 function createMockMessage(overrides: Partial<Message> = {}): Message {
+  const channelOverrides = (overrides.channel as object | undefined) ?? {};
   const channel = {
     send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
     sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
-    ...overrides.channel,
+    isSendable: () => true,
+    ...channelOverrides,
   };
 
+  const { channel: _ignored, ...restOverrides } = overrides;
   return {
     id: "msg-id",
     reply: vi.fn(() => Promise.resolve({ id: "reply-msg-id" })),
     channel,
-    ...overrides,
+    ...restOverrides,
   } as unknown as Message;
 }
 
@@ -26,6 +29,7 @@ function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
     send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
     sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
+    isSendable: () => true,
     ...overrides,
   } as unknown as TextChannel;
 }
@@ -89,6 +93,21 @@ describe("sendReply", () => {
       expect(sendMock).toHaveBeenCalled();
       const sendCall = sendMock.mock.calls[0];
       expect(sendCall[0]).toHaveLength(500);
+    });
+
+    it("skips chunked sends when channel is not sendable", async () => {
+      const sendMock = vi.fn(() => Promise.resolve({ id: "sent-id" }));
+      const message = createMockMessage({
+        channel: { send: sendMock, isSendable: () => false } as never,
+      });
+
+      const longMessage = "a".repeat(2500);
+      const result = await sendReply(message, longMessage);
+
+      // First chunk goes via reply; subsequent chunks are skipped
+      expect(message.reply).toHaveBeenCalled();
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(result).toHaveLength(1);
     });
   });
 

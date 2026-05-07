@@ -189,6 +189,7 @@ describe("reply-queue coverage", () => {
       channel: {
         send: vi.fn(() => Promise.resolve({ id: "x" })),
         isTextBased: () => true,
+    isSendable: () => true,
       },
     } as unknown as Message;
 
@@ -449,6 +450,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     send: vi.fn(() => Promise.resolve({ id: "x" })),
     sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
+    isSendable: () => true,
     ...(overrides.channel as object),
   };
   const reactionsCache = new Map<
@@ -526,6 +528,7 @@ describe("listener coverage", () => {
       send: vi.fn(() => Promise.resolve({ id: "x" })),
       sendTyping: vi.fn(() => Promise.resolve()),
       isTextBased: () => true,
+    isSendable: () => true,
       parentId: null,
     };
     const m = makeMessage({
@@ -546,6 +549,7 @@ describe("listener coverage", () => {
       send: vi.fn(),
       sendTyping: vi.fn(),
       isTextBased: () => true,
+    isSendable: () => true,
       parentId: null,
     };
     const m = makeMessage({
@@ -592,6 +596,48 @@ describe("listener coverage", () => {
       .calls[0][0];
     // No mainUserId provided → falls back to message.author.id
     expect(req.sessionKey).toContain("user123");
+  });
+
+  it("skips typing indicator when channel is not sendable", async () => {
+    const handler: MessageHandler = {
+      handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
+    };
+    const sendTyping = vi.fn(() => Promise.resolve());
+    const m = makeMessage({
+      content: "hello",
+      channel: { sendTyping, isSendable: () => false } as never,
+    });
+    await processMessage(m, "bot123", { handler });
+    expect(sendTyping).not.toHaveBeenCalled();
+  });
+
+  it("skips typing indicator in debounced flow when channel is not sendable", async () => {
+    const handler: MessageHandler = {
+      handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
+    };
+    const sendTyping = vi.fn(() => Promise.resolve());
+    let onMessage: ((m: Message) => Promise<void>) | null = null;
+    const client = {
+      user: { id: "bot123", username: "b" },
+      on: vi.fn((event: string, h: (m: Message) => Promise<void>) => {
+        if (event === "messageCreate") onMessage = h;
+      }),
+      off: vi.fn(),
+    } as unknown as Client;
+
+    const cleanup = createMessageListener(client, {
+      handler,
+      debounce: { enabled: true, windowMs: 20 },
+    });
+
+    const m = makeMessage({
+      content: "hi",
+      channel: { sendTyping, isSendable: () => false } as never,
+    });
+    await onMessage?.(m);
+    await new Promise((r) => setTimeout(r, 60));
+    expect(sendTyping).not.toHaveBeenCalled();
+    cleanup();
   });
 });
 

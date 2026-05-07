@@ -231,7 +231,9 @@ export async function processMessage(
   await markReceived(message);
 
   // Show typing indicator
-  await showTyping(message.channel);
+  if (message.channel.isSendable()) {
+    await showTyping(message.channel);
+  }
 
   // Extract and clean content
   const content = extractContent(message.content, botUserId);
@@ -273,7 +275,9 @@ async function processDebouncedMessage(
   await markReceived(firstMessage);
 
   // Show typing indicator
-  await showTyping(firstMessage.channel);
+  if (firstMessage.channel.isSendable()) {
+    await showTyping(firstMessage.channel);
+  }
 
   // Clean combined content
   const content = extractContent(combinedContent, botUserId);

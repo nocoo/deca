@@ -4,7 +4,7 @@
  * Handles sending messages to Discord, including chunking long messages.
  */
 
-import type { Message, TextBasedChannel } from "discord.js";
+import type { Message, SendableChannels } from "discord.js";
 import { chunkMessage } from "./chunk";
 
 /**
@@ -32,6 +32,7 @@ export async function sendReply(
 
   // Send remaining chunks to channel
   for (let i = 1; i < chunks.length; i++) {
+    if (!message.channel.isSendable()) break;
     const sent = await message.channel.send(chunks[i]);
     sentMessages.push(sent);
   }
@@ -47,7 +48,7 @@ export async function sendReply(
  * @returns Array of sent messages
  */
 export async function sendToChannel(
-  channel: TextBasedChannel,
+  channel: SendableChannels,
   content: string,
 ): Promise<Message[]> {
   const chunks = chunkMessage(content);
@@ -67,7 +68,7 @@ export async function sendToChannel(
  *
  * @param channel - Target channel
  */
-export async function showTyping(channel: TextBasedChannel): Promise<void> {
+export async function showTyping(channel: SendableChannels): Promise<void> {
   try {
     await channel.sendTyping();
   } catch {

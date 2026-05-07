@@ -8,7 +8,7 @@
  * - Session key ("main" vs "cron")
  */
 
-import type { HeartbeatTask, WakeRequest } from "@deca/agent";
+import type { HeartbeatResult, HeartbeatTask, WakeRequest } from "@deca/agent";
 import { stripHeartbeatToken } from "@deca/agent";
 import type { Dispatcher } from "./dispatcher";
 import type { MessageResponse } from "./types";
@@ -71,11 +71,14 @@ export type HeartbeatCallbackDeps = ScheduledCallbackDeps;
  */
 export function createHeartbeatCallback(
   deps: ScheduledCallbackDeps,
-): (tasks: HeartbeatTask[], request: WakeRequest) => Promise<void> {
+): (
+  tasks: HeartbeatTask[],
+  request: WakeRequest,
+) => Promise<HeartbeatResult | undefined> {
   return async (
     tasks: HeartbeatTask[],
     request: WakeRequest,
-  ): Promise<void> => {
+  ): Promise<HeartbeatResult | undefined> => {
     if (tasks.length === 0) {
       return;
     }

@@ -37,6 +37,7 @@ function createMockChannel(overrides: Partial<TextChannel> = {}): TextChannel {
     send: vi.fn(() => Promise.resolve({ id: "sent-id" })),
     sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
+    isSendable: () => true,
     ...overrides,
   } as unknown as TextChannel;
 }
@@ -810,6 +811,7 @@ describe("processMessage edge cases", () => {
       send: vi.fn(() => Promise.resolve({ id: "sent-id" })),
       sendTyping: vi.fn(() => Promise.resolve()),
       isTextBased: () => true,
+    isSendable: () => true,
       // No 'name' property
     } as unknown as TextChannel;
 

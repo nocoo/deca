@@ -180,7 +180,7 @@ export function createHttpServer(config: HttpServerConfig): HttpServer {
       fetch: app.fetch,
     });
 
-    actualPort = server.port;
+    actualPort = server.port ?? actualPort;
     isRunning = true;
 
     events.onStart?.({ hostname, port: actualPort });

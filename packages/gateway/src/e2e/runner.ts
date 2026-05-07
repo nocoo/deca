@@ -82,6 +82,9 @@ async function testHandlerIntegration(): Promise<TestResult> {
       echoPrefix: "Test: ",
     });
 
+    if (!gateway.handler) {
+      throw new Error("gateway handler not initialized");
+    }
     const response = await gateway.handler.handle({
       sessionKey: "e2e:test:session",
       content: "hello world",

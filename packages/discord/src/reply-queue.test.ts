@@ -7,6 +7,7 @@ function createMockMessage(): Message {
     send: vi.fn(() => Promise.resolve({ id: "sent-msg-id" })),
     sendTyping: vi.fn(() => Promise.resolve()),
     isTextBased: () => true,
+    isSendable: () => true,
   };
 
   return {

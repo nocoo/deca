@@ -77,8 +77,8 @@ export function createGateway(config: GatewayConfig): Gateway {
         try {
           // Use fetch() instead of cache.get() to handle cold cache on startup
           const channel = await client.channels.fetch(discord.mainChannelId);
-          if (channel?.isTextBased()) {
-            await sendToChannel(channel as TextBasedChannel, text);
+          if (channel?.isSendable()) {
+            await sendToChannel(channel, text);
             delivered = true;
           }
         } catch (error) {
@@ -194,6 +194,9 @@ export function createGateway(config: GatewayConfig): Gateway {
             await adapter?.agent.reset(sessionKey);
           },
           onGetStatus: async (sessionKey: string) => {
+            if (!adapter) {
+              throw new Error("adapter_not_ready");
+            }
             const agentStatus = await adapter.agent.getStatus(sessionKey);
             return {
               uptime: Date.now() - startTime,
