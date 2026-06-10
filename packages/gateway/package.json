@@ -31,6 +31,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.26.4"
   }
 }
