@@ -17,6 +17,9 @@
     "eval:report": "bun run eval/reporter.ts"
   },
   "workspaces": ["packages/*"],
+  "overrides": {
+    "ws": "^8.20.1"
+  },
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
     "@types/node": "18",
