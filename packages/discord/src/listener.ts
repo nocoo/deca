@@ -14,7 +14,6 @@ import {
 import { isAllowed } from "./allowlist";
 import { type DebounceManager, createDebounceManager } from "./debounce";
 import {
-  type GracefulShutdown,
   createGracefulShutdown,
 } from "./graceful-shutdown";
 import { markError, markReceived, markSuccess } from "./reaction";
@@ -267,7 +266,7 @@ export async function processMessage(
 async function processDebouncedMessage(
   firstMessage: Message,
   combinedContent: string,
-  allMessages: Message[],
+  _allMessages: Message[],
   botUserId: string,
   config: ListenerConfig,
 ): Promise<void> {

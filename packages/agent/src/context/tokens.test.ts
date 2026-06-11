@@ -3,9 +3,9 @@ import type { ContentBlock, Message } from "../core/session.js";
 import {
   CHARS_PER_TOKEN_ESTIMATE,
   estimateMessageChars,
-  estimateMessageTokens,
   estimateMessagesChars,
   estimateMessagesTokens,
+  estimateMessageTokens,
 } from "./tokens.js";
 
 describe("tokens", () => {

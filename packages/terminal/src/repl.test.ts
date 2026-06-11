@@ -272,7 +272,7 @@ describe("createTerminal", () => {
       const input = createMockInput();
       const output = createMockOutput();
 
-      const receivedDeltas: string[] = [];
+      const _receivedDeltas: string[] = [];
 
       const terminal = createTerminal({
         handler: createEchoHandler({
@@ -611,7 +611,6 @@ describe("createTerminal", () => {
     it("uses TTY=false fallback when isTTY undefined", async () => {
       const input = createMockInput();
       const output = createMockOutput();
-      // biome-ignore lint/performance/noDelete: simulate stream without isTTY
       delete (output as unknown as { isTTY?: boolean }).isTTY;
 
       const terminal = createTerminal({

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Tool } from "../tools/types.js";
 import {
-  type ToolPolicy,
   filterToolsByPolicy,
   isToolAllowed,
   mergeToolPolicies,
+  type ToolPolicy,
 } from "./tool-policy.js";
 
 describe("tool-policy", () => {

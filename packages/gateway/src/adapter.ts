@@ -17,7 +17,6 @@ import type {
   MessageHandler,
   MessageRequest,
   MessageResponse,
-  ReplyMeta,
 } from "./types";
 
 export interface AgentAdapter extends MessageHandler {

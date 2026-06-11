@@ -1,5 +1,5 @@
 import type { Message } from "discord.js";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   DEFAULT_DEBOUNCE_WINDOW_MS,
   type DebouncedHandler,

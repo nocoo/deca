@@ -13,7 +13,7 @@ import type {
   User,
 } from "discord.js";
 import { ChannelType as DJSChannelType, Events } from "discord.js";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the REST class so registerCommands does not hit the network
 const mockPut = vi.fn(() => Promise.resolve());
@@ -480,7 +480,7 @@ describe("listener coverage", () => {
     const handler: MessageHandler = {
       handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
     };
-    let onMessage: ((m: Message) => Promise<void>) | undefined = undefined;
+    let onMessage: ((m: Message) => Promise<void>) | undefined ;
     const client = {
       user: { id: "bot123", username: "b" },
       on: vi.fn((event: string, h: (m: Message) => Promise<void>) => {
@@ -616,7 +616,7 @@ describe("listener coverage", () => {
       handle: vi.fn(() => Promise.resolve({ text: "ok", success: true })),
     };
     const sendTyping = vi.fn(() => Promise.resolve());
-    let onMessage: ((m: Message) => Promise<void>) | undefined = undefined;
+    let onMessage: ((m: Message) => Promise<void>) | undefined ;
     const client = {
       user: { id: "bot123", username: "b" },
       on: vi.fn((event: string, h: (m: Message) => Promise<void>) => {

@@ -1,6 +1,6 @@
 import type { Client, Guild, Message, TextChannel, User } from "discord.js";
 import { ChannelType as DJSChannelType } from "discord.js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type ListenerConfig,
   createMessageListener,
@@ -8,7 +8,7 @@ import {
   processMessage,
   shouldProcessMessage,
 } from "./listener";
-import type { AllowlistConfig, MessageHandler, MessageResponse } from "./types";
+import type { MessageHandler, MessageResponse } from "./types";
 
 // Mock factories
 function createMockUser(overrides: Record<string, unknown> = {}): User {

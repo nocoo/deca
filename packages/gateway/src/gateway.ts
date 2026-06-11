@@ -15,7 +15,6 @@ import {
 } from "@deca/discord";
 import { type HttpServer, createHttpServer } from "@deca/http";
 import { type Terminal, createTerminal } from "@deca/terminal";
-import type { TextBasedChannel } from "discord.js";
 
 import {
   type AgentAdapter,

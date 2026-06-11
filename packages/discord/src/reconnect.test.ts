@@ -166,7 +166,7 @@ describe("Reconnect Manager", () => {
         maxRetries: 10,
       });
 
-      const startTime = Date.now();
+      const _startTime = Date.now();
       manager.schedule();
 
       // Wait a bit

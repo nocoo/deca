@@ -5,7 +5,7 @@
  */
 
 import { join } from "node:path";
-import { type Subprocess, spawn } from "bun";
+import { spawn } from "bun";
 
 export interface SpawnerConfig {
   /** Port to run server on (default: random) */
@@ -227,7 +227,7 @@ function pollForReady(
   port: number,
   timeout: ReturnType<typeof setTimeout>,
   resolve: () => void,
-  reject: (error: Error) => void,
+  _reject: (error: Error) => void,
 ): void {
   const checkInterval = setInterval(async () => {
     try {

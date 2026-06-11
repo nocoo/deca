@@ -27,7 +27,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { MemorySearchResult } from "../core/memory.js";
-import type { Tool, ToolContext } from "./types.js";
+import type { Tool } from "./types.js";
 
 const execAsync = promisify(execCallback);
 
