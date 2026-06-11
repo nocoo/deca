@@ -46,7 +46,7 @@ function makeRequest(reason: WakeRequest["reason"] = "interval"): WakeRequest {
 
 function makeMockDispatcher(response: { text: string; success: boolean }) {
   return {
-    dispatch: vi.fn(async (req: DispatchRequest) => response),
+    dispatch: vi.fn(async (_req: DispatchRequest) => response),
     getStatus: () => ({
       queued: 0,
       running: 0,
@@ -596,11 +596,10 @@ describe("heartbeat behavioral (Stage 2 integration)", () => {
       "- [ ] Run diagnostics\n",
     );
 
-    const { manager, dispatcher, dispatched, sentResults, errors } =
-      wireHeartbeat({
-        agentResponse: "Error occurred",
-        agentSuccess: false,
-      });
+    const { manager, dispatcher, dispatched, sentResults } = wireHeartbeat({
+      agentResponse: "Error occurred",
+      agentSuccess: false,
+    });
 
     const result = await manager.trigger();
     await dispatcher.shutdown();

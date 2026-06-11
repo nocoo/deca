@@ -7,8 +7,8 @@ import {
 } from "./pruning.js";
 import {
   CHARS_PER_TOKEN_ESTIMATE,
-  estimateMessageTokens,
   estimateMessagesTokens,
+  estimateMessageTokens,
 } from "./tokens.js";
 
 export const BASE_CHUNK_RATIO = 0.4;

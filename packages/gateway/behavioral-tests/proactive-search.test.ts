@@ -16,7 +16,6 @@ import {
   waitForReaction,
 } from "@deca/discord/e2e";
 import {
-  type BotProcess,
   getGatewayDir,
   spawnBot,
 } from "@deca/discord/e2e/spawner";

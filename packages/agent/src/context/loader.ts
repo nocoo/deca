@@ -1,9 +1,9 @@
 import {
   type BootstrapFile,
+  buildBootstrapContextFiles,
   type ContextFile,
   DEFAULT_HEARTBEAT_FILENAME,
   DEFAULT_SOUL_FILENAME,
-  buildBootstrapContextFiles,
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
 } from "./bootstrap.js";

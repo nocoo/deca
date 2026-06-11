@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type BootstrapFile,
+  buildBootstrapContextFiles,
   DEFAULT_AGENTS_FILENAME,
   DEFAULT_BOOTSTRAP_FILENAME,
   DEFAULT_BOOTSTRAP_MAX_CHARS,
@@ -13,7 +14,6 @@ import {
   DEFAULT_SOUL_FILENAME,
   DEFAULT_TOOLS_FILENAME,
   DEFAULT_USER_FILENAME,
-  buildBootstrapContextFiles,
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
   resolveBootstrapMaxChars,

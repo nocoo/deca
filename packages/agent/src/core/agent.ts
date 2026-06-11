@@ -22,9 +22,9 @@ import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   ContextLoader,
+  compactHistoryIfNeeded,
   DEFAULT_CONTEXT_WINDOW_TOKENS,
   type PruneResult,
-  compactHistoryIfNeeded,
   pruneContextMessages,
 } from "../context/index.js";
 import {
@@ -42,18 +42,18 @@ import {
   resolveSessionLane,
 } from "./command-queue.js";
 import { MemoryManager, type MemorySearchResult } from "./memory.js";
+import { type ContentBlock, type Message, SessionManager } from "./session.js";
 import {
   isSubagentSessionKey,
   normalizeAgentId,
   resolveAgentIdFromSessionKey,
   resolveSessionKey,
 } from "./session-key.js";
-import { type ContentBlock, type Message, SessionManager } from "./session.js";
 import { SkillManager, type SkillMatch } from "./skills.js";
 import {
-  type ToolPolicy,
   filterToolsByPolicy,
   mergeToolPolicies,
+  type ToolPolicy,
 } from "./tool-policy.js";
 
 // ============== 类型定义 ==============

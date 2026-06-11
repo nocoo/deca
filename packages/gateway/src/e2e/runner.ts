@@ -12,7 +12,6 @@
 import {
   type DiscordMessageData,
   fetchChannelMessages,
-  waitForBotResponse,
 } from "@deca/discord/e2e/fetcher";
 import {
   createTestMessage,
@@ -614,7 +613,7 @@ async function waitForBotReplies(
 /**
  * Wait for bot reply, excluding the original webhook message.
  */
-async function waitForBotReply(
+async function _waitForBotReply(
   config: { botToken: string; channelId: string },
   testId: string,
   excludeMessageId: string | undefined,

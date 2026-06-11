@@ -1,39 +1,39 @@
 // Core exports
 export { Agent, type AgentConfig, type RunResult } from "./agent.js";
 export {
-  SessionManager,
-  type Message,
-  type ContentBlock,
-} from "./session.js";
-export {
-  resolveSessionKey,
-  normalizeAgentId,
-  isSubagentSessionKey,
-  resolveAgentIdFromSessionKey,
-  buildUserSessionKey,
-  buildChannelSessionKey,
-  buildThreadSessionKey,
-  parseUnifiedSessionKey,
-  type SessionKeyType,
-  type UnifiedSessionKeyInfo,
-} from "./session-key.js";
-export { MemoryManager, type MemorySearchResult } from "./memory.js";
-export { SkillManager, type Skill, type SkillMatch } from "./skills.js";
+  type AgentEventPayload,
+  type AgentEventStream,
+  emitAgentEvent,
+  onAgentEvent,
+} from "./agent-events.js";
 export {
   enqueueInLane,
   resolveGlobalLane,
   resolveSessionLane,
 } from "./command-queue.js";
-export {
-  emitAgentEvent,
-  onAgentEvent,
-  type AgentEventPayload,
-  type AgentEventStream,
-} from "./agent-events.js";
 export { LRUCache } from "./lru-cache.js";
+export { MemoryManager, type MemorySearchResult } from "./memory.js";
 export {
-  type ToolPolicy,
-  isToolAllowed,
+  type ContentBlock,
+  type Message,
+  SessionManager,
+} from "./session.js";
+export {
+  buildChannelSessionKey,
+  buildThreadSessionKey,
+  buildUserSessionKey,
+  isSubagentSessionKey,
+  normalizeAgentId,
+  parseUnifiedSessionKey,
+  resolveAgentIdFromSessionKey,
+  resolveSessionKey,
+  type SessionKeyType,
+  type UnifiedSessionKeyInfo,
+} from "./session-key.js";
+export { type Skill, SkillManager, type SkillMatch } from "./skills.js";
+export {
   filterToolsByPolicy,
+  isToolAllowed,
   mergeToolPolicies,
+  type ToolPolicy,
 } from "./tool-policy.js";

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { STATE_DIR_NAME, hasProjectDir, resolvePaths } from "./paths";
+import { hasProjectDir, resolvePaths, STATE_DIR_NAME } from "./paths";
 
 describe("resolvePaths", () => {
   let tempHome: string;

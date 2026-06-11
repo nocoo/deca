@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryManager } from "./memory.js";
+import { type ContentBlock, SessionManager } from "./session.js";
 import {
   buildAgentMainSessionKey,
   isSubagentSessionKey,
@@ -10,7 +11,6 @@ import {
   parseAgentSessionKey,
   resolveAgentIdFromSessionKey,
 } from "./session-key.js";
-import { type ContentBlock, SessionManager } from "./session.js";
 import { SkillManager } from "./skills.js";
 import {
   filterToolsByPolicy,

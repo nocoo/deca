@@ -4,8 +4,8 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { estimateMessageChars } from "../context/tokens.js";
 import { stripHeartbeatToken } from "../heartbeat/tokens.js";
-import { normalizeMainKey, toAgentStoreSessionKey } from "./session-key.js";
 import type { ContentBlock, Message } from "./session.js";
+import { normalizeMainKey, toAgentStoreSessionKey } from "./session-key.js";
 import { SkillManager } from "./skills.js";
 import { isToolAllowed } from "./tool-policy.js";
 

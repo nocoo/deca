@@ -232,4 +232,4 @@ export const claudeCodeProvider: CodingAgentProvider = {
   },
 };
 
-export { parseClaudeStreamOutput, extractModifiedFiles, summarizeResult };
+export { extractModifiedFiles, parseClaudeStreamOutput, summarizeResult };

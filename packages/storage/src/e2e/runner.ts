@@ -9,14 +9,14 @@
  *   bun run packages/storage/src/e2e/runner.ts --debug
  */
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createConfigManager } from "../config";
 import { createCredentialManager } from "../credentials";
-import { STATE_DIR_NAME, hasProjectDir, resolvePaths } from "../paths";
+import { hasProjectDir, resolvePaths, STATE_DIR_NAME } from "../paths";
 import { createProviderResolver } from "../provider";
 import type { DecaConfig, ProviderCredential } from "../types";
 

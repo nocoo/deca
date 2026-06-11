@@ -1,17 +1,17 @@
 // Heartbeat exports
 export {
-  HeartbeatManager,
-  type HeartbeatTask,
+  type ActiveHours,
   type HeartbeatConfig,
-  type HeartbeatResult,
   type HeartbeatHandler,
+  HeartbeatManager,
+  type HeartbeatResult,
+  type HeartbeatTask,
   type WakeReason,
   type WakeRequest,
-  type ActiveHours,
 } from "./manager.js";
 
 export {
   HEARTBEAT_OK,
-  stripHeartbeatToken,
   type StripResult,
+  stripHeartbeatToken,
 } from "./tokens.js";

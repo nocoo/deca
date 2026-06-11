@@ -88,7 +88,7 @@ basicSuite.tests.push({
   name: "terminal handles empty input gracefully",
   fn: async ({ terminal }) => {
     // Send empty line - should just show prompt again without crash
-    const response = await terminal.send("");
+    const _response = await terminal.send("");
 
     // Should not crash, just return prompt or empty echo
     // The terminal should still be responsive

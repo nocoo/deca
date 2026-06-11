@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import type { Message } from "../core/session.js";
 import {
   BASE_CHUNK_RATIO,
-  DEFAULT_COMPACTION_TRIGGER_RATIO,
-  DEFAULT_CONTEXT_WINDOW_TOKENS,
-  MIN_CHUNK_RATIO,
   buildCompactionSummary,
   chunkMessagesByMaxTokens,
   compactHistoryIfNeeded,
   computeAdaptiveChunkRatio,
+  DEFAULT_COMPACTION_TRIGGER_RATIO,
+  DEFAULT_CONTEXT_WINDOW_TOKENS,
+  MIN_CHUNK_RATIO,
   shouldTriggerCompaction,
   splitMessagesByTokenShare,
   summarizeInStages,

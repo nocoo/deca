@@ -11,12 +11,11 @@ import {
   buildCompactionSummary,
   summarizeInStages,
 } from "../context/compaction.js";
-import { ContextLoader } from "../context/loader.js";
+import type { Message } from "../core/session.js";
 import {
   resolveSessionKey,
   toAgentStoreSessionKey,
 } from "../core/session-key.js";
-import type { Message } from "../core/session.js";
 import { SkillManager } from "../core/skills.js";
 import { isToolAllowed } from "../core/tool-policy.js";
 import { stripHeartbeatToken } from "../heartbeat/tokens.js";
