@@ -27,10 +27,10 @@
     "@deca/http": "workspace:*",
     "@deca/storage": "workspace:*",
     "@deca/terminal": "workspace:*",
-    "p-queue": "^9.1.0"
+    "p-queue": "^9.3.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.26.4"
   }
 }
