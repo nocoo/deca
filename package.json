@@ -18,7 +18,8 @@
   },
   "workspaces": ["packages/*"],
   "overrides": {
-    "ws": "^8.20.1"
+    "ws": "^8.20.1",
+    "vite": "^8.0.16"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
