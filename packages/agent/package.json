@@ -13,7 +13,7 @@
     "format": "biome format src --write"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.104.2",
+    "@anthropic-ai/sdk": "0.105.0",
     "@deca/storage": "workspace:*"
   },
   "devDependencies": {
