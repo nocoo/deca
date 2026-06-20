@@ -15,7 +15,7 @@
     "test:coverage": "bun --bun vitest run --coverage"
   },
   "dependencies": {
-    "hono": "^4.12.25"
+    "hono": "4.12.26"
   },
   "devDependencies": {
     "@types/bun": "latest"
