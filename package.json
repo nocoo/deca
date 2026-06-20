@@ -20,7 +20,8 @@
   "overrides": {
     "ws": "^8.20.1",
     "vite": "^8.0.16",
-    "@babel/core": "^7.29.6"
+    "@babel/core": "^7.29.6",
+    "undici": "^6.27.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
