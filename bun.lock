@@ -6,7 +6,7 @@
       "name": "deca",
       "devDependencies": {
         "@biomejs/biome": "^2.5.1",
-        "@types/node": "^26.0.0",
+        "@types/node": "^26.0.1",
         "@vitest/coverage-istanbul": "^4.1.9",
         "@vitest/coverage-v8": "^4.1.9",
         "husky": "^9.1.7",
@@ -17,7 +17,7 @@
       "name": "@deca/agent",
       "version": "0.1.0",
       "dependencies": {
-        "@anthropic-ai/sdk": "0.105.0",
+        "@anthropic-ai/sdk": "0.106.0",
         "@deca/storage": "workspace:*",
       },
       "devDependencies": {
@@ -84,7 +84,7 @@
     "ws": "^8.20.1",
   },
   "packages": {
-    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.105.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-sDyu+aM9cE6uZE+HgRjjHRb+qqb87GHZOx+8bE0YlWetdL1YcVLxn8h9ltxGOflyChTe6PMEo50kMQV4cw0hfg=="],
+    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.106.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-ufwVvYNDBj2dzOGupBCTaNzBLxqcTnGOzI4z8Wouxlt+mT3J3HuOmatgCy1VmwCHOUueqZ41ERhm0O99OUcbWA=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
@@ -238,7 +238,7 @@
 
     "@types/estree": ["@types/estree@1.0.8", "", {}, "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="],
 
-    "@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+    "@types/node": ["@types/node@26.0.1", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw=="],
 
     "@types/ws": ["@types/ws@8.18.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg=="],
 
