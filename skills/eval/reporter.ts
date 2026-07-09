@@ -9,7 +9,7 @@
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import type {
   CategoryStats,
   EvalReport,

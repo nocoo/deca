@@ -2,9 +2,9 @@
  * Unit tests for eval reporter
  */
 
-import { afterEach, describe, expect, it } from "vitest";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   calculateByCategory,
   calculateSummary,

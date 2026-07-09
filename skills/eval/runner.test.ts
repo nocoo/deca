@@ -2,15 +2,15 @@
  * Unit tests for eval runner
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  type RunnerConfig,
   createPendingResults,
   executeCase,
   fetchWithTimeout,
   getGitCommit,
+  type RunnerConfig,
   run,
   runCases,
   savePendingResults,
@@ -185,7 +185,7 @@ describe("executeCase", () => {
   it("should include API key header when configured", async () => {
     let capturedHeaders: Headers | undefined;
 
-    globalThis.fetch = vi.fn(async (url: string, options: RequestInit) => {
+    globalThis.fetch = vi.fn(async (_url: string, options: RequestInit) => {
       capturedHeaders = new Headers(options.headers);
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
@@ -201,7 +201,7 @@ describe("executeCase", () => {
   it("should not include API key header when not configured", async () => {
     let capturedHeaders: Headers | undefined;
 
-    globalThis.fetch = vi.fn(async (url: string, options: RequestInit) => {
+    globalThis.fetch = vi.fn(async (_url: string, options: RequestInit) => {
       capturedHeaders = new Headers(options.headers);
       return new Response(JSON.stringify({ response: "ok", success: true }), {
         status: 200,
