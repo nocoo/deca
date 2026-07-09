@@ -208,7 +208,7 @@ describe("Agent coverage extras", () => {
     await agent.run("s", "hi");
     // All tools should be exposed to the model — none denied by sandbox policy.
     expect(streamCalls.length).toBe(1);
-    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+    const sentTools = (streamCalls[0].tools as Array<{ name: string }>).map(
       (t) => t.name,
     );
     expect(sentTools).toContain("exec");
@@ -463,7 +463,7 @@ describe("Agent coverage extras", () => {
     const systemText = systemBlocks.map((b) => b.text).join("\n");
     expect(systemText).not.toContain("## Memory");
     // memory_search is filtered out when enableMemory=false (resolveToolsForRun).
-    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+    const sentTools = (streamCalls[0].tools as Array<{ name: string }>).map(
       (t) => t.name,
     );
     expect(sentTools).not.toContain("memory_search");
@@ -499,7 +499,7 @@ describe("Agent coverage extras", () => {
     const systemBlocks = streamCalls[0]?.system as Array<{ text: string }>;
     const systemText = systemBlocks.map((b) => b.text).join("\n");
     expect(systemText).not.toContain("## Memory");
-    const sentTools = (streamCalls[0]?.tools as Array<{ name: string }>).map(
+    const sentTools = (streamCalls[0].tools as Array<{ name: string }>).map(
       (t) => t.name,
     );
     expect(sentTools).toEqual(["noop"]);
