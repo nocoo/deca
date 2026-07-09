@@ -4,13 +4,13 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  createQuickCheckResult,
   DEFAULT_PASS_THRESHOLD,
   type EvalCase,
-  type Judgement,
-  type QuickCheck,
-  createQuickCheckResult,
   getPassThreshold,
   isJudgementPassing,
+  type Judgement,
+  type QuickCheck,
   runQuickCheck,
 } from "./types.js";
 

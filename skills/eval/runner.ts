@@ -14,10 +14,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { allCases, getCaseById } from "./cases/index.js";
 import {
+  createQuickCheckResult,
   type EvalCase,
   type EvalResult,
   type PendingResults,
-  createQuickCheckResult,
 } from "./types.js";
 
 // =============================================================================
