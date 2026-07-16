@@ -17,7 +17,7 @@
     "@deca/storage": "workspace:*"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
+    "@biomejs/biome": "^2.5.4",
     "@types/bun": "latest"
   }
 }
