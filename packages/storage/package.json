@@ -13,7 +13,7 @@
     "format": "biome format src --write"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
+    "@biomejs/biome": "^2.5.7",
     "@types/bun": "latest"
   }
 }
