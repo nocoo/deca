@@ -22,7 +22,8 @@
     "vite": "^8.0.16",
     "@babel/core": "^7.29.6",
     "undici": "^6.28.0",
-    "postcss": "^8.5.18"
+    "postcss": "^8.5.18",
+    "nanoid": "^3.3.17"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",
