@@ -206,6 +206,9 @@ describe("CronService coverage extras", () => {
   });
 
   it("scheduleNext fires timer and triggers job", async () => {
+    // Avoid wall-clock waits: under CI coverage load, Date.now()+N can already
+    // be past when calculateNextRun runs (nextRunAtMs undefined → no timer).
+    // Drive the scheduled callback via setTimeout spy instead.
     const triggered: string[] = [];
     const svc = new CronService({
       storagePath,
@@ -214,15 +217,27 @@ describe("CronService coverage extras", () => {
       },
     });
     await svc.initialize();
-    // Add job that fires in 10ms
-    await svc.addJob({
-      name: "soon",
-      instruction: "x",
-      schedule: { kind: "at", atMs: Date.now() + 10 },
-      enabled: true,
-    });
-    await new Promise((r) => setTimeout(r, 100));
-    expect(triggered.length).toBeGreaterThanOrEqual(1);
-    await svc.shutdown();
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    try {
+      await svc.addJob({
+        name: "soon",
+        instruction: "x",
+        schedule: { kind: "at", atMs: Date.now() + 60_000 },
+        enabled: true,
+      });
+
+      expect(setTimeoutSpy).toHaveBeenCalled();
+      const timerCb = setTimeoutSpy.mock.calls.at(-1)?.[0] as
+        | (() => void | Promise<void>)
+        | undefined;
+      expect(timerCb).toBeTypeOf("function");
+
+      await timerCb?.();
+      expect(triggered.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      setTimeoutSpy.mockRestore();
+      await svc.shutdown();
+    }
   });
 });
