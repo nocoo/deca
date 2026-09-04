@@ -21,7 +21,7 @@
     "browserslist": "^4.28.7",
     "ws": "^8.20.1",
     "vite": "^8.0.16",
-    "@babel/core": "^7.29.6",
+    "@babel/core": "^8.0.1",
     "undici": "^6.28.0",
     "postcss": "^8.5.18",
     "nanoid": "^3.3.17"
