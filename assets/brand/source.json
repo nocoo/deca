@@ -1,0 +1,34 @@
+{
+	"project": "deca",
+	"series": "material",
+	"study": "2026-09-07-01",
+	"finishing": "01",
+	"archive": "https://github.com/nocoo/hexly.ai/tree/main/artwork/logo-family/deca/2026-09-07-01",
+	"review": "https://hexly.ai/logos/deca",
+	"masters": {
+		"logo.png": {
+			"sha256": "329bb7b41d8eac9909d35cba76f04a0e2786a702f328f2e7ccf7e8dbde478262",
+			"source": "artwork/logo-family/deca/2026-09-07-01/finishing/01/exports/deca-transparent-2048.png",
+			"width": 2048,
+			"height": 2048
+		},
+		"assets/brand/icon.png": {
+			"sha256": "b6281bdc5ac357a99f05bf4579530b71365aaa7751d1b633694e0700463e178d",
+			"source": "artwork/logo-family/deca/2026-09-07-01/finishing/01/exports/deca-icon-2048.png",
+			"width": 2048,
+			"height": 2048
+		},
+		"assets/brand/icon-rounded.png": {
+			"sha256": "f01d5f3278c4811a1ac4e1d92092fc410cf02e8d953356b361c1a532e24923af",
+			"source": "artwork/logo-family/deca/2026-09-07-01/finishing/01/exports/deca-rounded-2048.png",
+			"width": 2048,
+			"height": 2048
+		},
+		"assets/brand/background.png": {
+			"sha256": "d9c313fb5691bf1e3fa1e6b1aaacc0b70461cc630654cd23398c09066c6655c5",
+			"source": "artwork/logo-family/deca/2026-09-07-01/finishing/01/background.png",
+			"width": 2048,
+			"height": 2048
+		}
+	}
+}

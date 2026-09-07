@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/brand/icon-rounded.png" alt="Deca logo" width="180" height="180" />
+</p>
+
 # 🤖 Deca
 
 > 本地优先的 macOS AI Agent 控制网关
@@ -158,3 +162,5 @@ bun run lint             # 运行代码检查
 ## 📄 许可证
 
 MIT
+
+Logo assets and usage: [guide](docs/12-logo-usage.md) · [identity study](https://hexly.ai/logos/deca).
