@@ -8,7 +8,6 @@ import {
   Client,
   Events,
   GatewayIntentBits,
-  type IntentsBitField,
   Partials,
 } from "discord.js";
 import { DEFAULT_CONNECTION_TIMEOUT } from "./types";
@@ -147,23 +146,4 @@ export function disconnectDiscord(client: Client): void {
  */
 export function isClientConnected(client: Client): boolean {
   return client.isReady();
-}
-
-/**
- * Get client intents as a readable format for debugging.
- *
- * @param client - Discord client instance
- * @returns Array of intent names
- */
-export function getClientIntents(client: Client): string[] {
-  const intents = client.options.intents as IntentsBitField;
-  const names: string[] = [];
-
-  for (const [name, value] of Object.entries(GatewayIntentBits)) {
-    if (typeof value === "number" && intents.has(value)) {
-      names.push(name);
-    }
-  }
-
-  return names;
 }

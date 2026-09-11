@@ -5,7 +5,6 @@ import {
   connectDiscord,
   createDiscordClient,
   disconnectDiscord,
-  getClientIntents,
   isClientConnected,
 } from "./client";
 
@@ -154,43 +153,6 @@ describe("isClientConnected", () => {
     const client = createDiscordClient();
 
     expect(isClientConnected(client)).toBe(false);
-  });
-});
-
-describe("getClientIntents", () => {
-  it("returns array of intent names", () => {
-    const client = createDiscordClient();
-
-    const intents = getClientIntents(client);
-
-    expect(Array.isArray(intents)).toBe(true);
-    expect(intents.length).toBeGreaterThan(0);
-    expect(intents).toContain("Guilds");
-    expect(intents).toContain("GuildMessages");
-    expect(intents).toContain("DirectMessages");
-    expect(intents).toContain("MessageContent");
-  });
-
-  it("returns only requested intents for custom config", () => {
-    const client = createDiscordClient({
-      intents: [GatewayIntentBits.Guilds],
-    });
-
-    const intents = getClientIntents(client);
-
-    expect(intents).toContain("Guilds");
-    expect(intents).not.toContain("DirectMessages");
-    expect(intents).not.toContain("MessageContent");
-  });
-
-  it("returns empty array when no intents", () => {
-    const client = createDiscordClient({
-      intents: [],
-    });
-
-    const intents = getClientIntents(client);
-
-    expect(intents).toEqual([]);
   });
 });
 
