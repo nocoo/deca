@@ -9,10 +9,11 @@ on:
 
 jobs:
   quality:
-    uses: nocoo/base-ci/.github/workflows/bun-quality.yml@aec4adc1a817c56790d1698329ef9398a15a754a  # v2026.5
+    uses: nocoo/base-ci/.github/workflows/quality.yml@ab52d72877d386c9a8fd224e9ac868e88be90539
     with:
+      runtime-version: "1.4.2"
+      install-policy: "blocked"
       test-command: "bun run test:coverage"
-      typecheck-command: "true"
-      enable-l2: "false"
-      ignore-scripts: true
+      typecheck: false
+      disabled-check-reasons: '{"typecheck": "no root typecheck script; workspace packages have standalone checks"}'
     secrets: inherit
