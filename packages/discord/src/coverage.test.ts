@@ -39,7 +39,6 @@ import { createGracefulShutdown } from "./graceful-shutdown";
 import { createMessageListener, processMessage, shouldProcessMessage } from "./listener";
 import { createReconnectManager } from "./reconnect";
 import { ReplyQueue } from "./reply-queue";
-import { ReplyThrottler } from "./reply-throttler";
 import { sendReply } from "./sender";
 import { parseUnifiedSessionKey } from "./session";
 import { setupSlashCommands, registerCommands } from "./slash-commands";
@@ -138,30 +137,6 @@ describe("sender coverage", () => {
 
     await sendReply(message, "");
     expect(replyMock).toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// reply-throttler.ts
-// ---------------------------------------------------------------------------
-
-describe("reply-throttler coverage", () => {
-  it("respects explicit minIntervalMs and maxProgress (lines 21-22)", () => {
-    // Pass values so ?? defaults don't kick in
-    const t = new ReplyThrottler({ minIntervalMs: 1000, maxProgress: 1 });
-    expect(t).toBeDefined();
-  });
-
-  it("uses defaults when no config provided (lines 21-22 default branch)", () => {
-    // No constructor args → ?? falls through to defaults
-    const t = new ReplyThrottler();
-    expect(t).toBeDefined();
-  });
-
-  it("uses defaults when config omits fields", () => {
-    // Empty object → both fields are undefined → defaults used
-    const t = new ReplyThrottler({});
-    expect(t).toBeDefined();
   });
 });
 

@@ -97,9 +97,6 @@ export {
   type DebounceManager,
 } from "./debounce";
 
-// Reply Throttling
-export { ReplyThrottler } from "./reply-throttler";
-
 // Reply Queue (batched progress updates)
 export { ReplyQueue } from "./reply-queue";
 
