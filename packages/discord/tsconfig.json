@@ -9,7 +9,7 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["bun-types"]
+    "types": ["bun"]
   },
   "include": ["src/**/*", "cli.ts"],
   "exclude": ["node_modules", "dist"]
