@@ -2,6 +2,8 @@
 
 > 本地优先的 macOS AI Agent 系统
 
+Current quality requirements and hook behavior are defined in [CLAUDE.md](CLAUDE.md). The historical four-layer names below map lint to G1 and behavioral/echo runs to integration or system testing; they do not replace the six 6DQ dimensions.
+
 ## 📚 文档索引
 
 | 文档 | 说明 |
@@ -48,7 +50,7 @@ deca/
 └── eval/                # Prompt 评估系统
 ```
 
-## 🧪 四层测试
+## 🧪 Historical test-layer names
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -82,7 +84,7 @@ bun --filter @deca/gateway test:behavioral  # 行为测试
 
 # Git
 git commit               # 触发 pre-commit hooks (unit + lint)
-git push                 # 触发 pre-push hooks (unit + lint + e2e)
+git push                 # 触发 pre-push hooks (unit + lint)
 ```
 
 ## 📐 模块边界

@@ -1,132 +1,85 @@
-# Deca Project Instructions
+# Deca
 
-> AI Agent 须知
+Local personal Agent gateway joining Discord, terminal and HTTP channels with file and command tools.
+Profile: cli-library.
+Direction: [architecture](docs/01-architecture.md). Frameworks must preserve this handbook.
 
-详见 [AGENTS.md](AGENTS.md) 获取完整文档索引。
+## Sources of Truth
 
-## 快速参考
+This file is the quality contract; hooks, CI and config are enforcement. Close implementation gaps without lowering the contract. Historical test results are not evidence of a current passing run.
 
-- **四层测试**: [docs/04-testing.md](docs/04-testing.md)
-- **模块边界**: [docs/02-modules.md](docs/02-modules.md)
-- **开发流程**: [docs/03-development.md](docs/03-development.md)
+| Fact | Where |
+|---|---|
+| Human / module docs | [README.md](README.md), [AGENTS.md](AGENTS.md), [module boundaries](docs/02-modules.md) |
+| Test / development procedures | [testing](docs/04-testing.md), [development](docs/03-development.md) |
+| Packages / versions | `package.json` workspaces and `packages/*/package.json` |
+| Enforcement | `.husky/pre-commit`, `.husky/pre-push`, package Vitest configs and CI |
+| Accidents | [Retrospective.md](Retrospective.md) |
+| Machine workflow | global `AGENTS.md` and Git rules |
 
-## 核心规则
+## Project Invariants
 
-1. TDD 优先 - 先写测试
-2. 90% 覆盖率
-3. 原子化提交
-4. Gateway 是唯一组装点
+- Gateway is the sole composition point. Channels never import Agent or each other; Agent may depend on Storage.
+- Tools run with the current user's permissions; workspace paths are not a filesystem sandbox. Open channels only to trusted users.
+- Preserve TDD, session persistence and channel isolation; exclude `references/` from ordinary project-code searches.
+- Both Gateway entrypoints must acquire `~/.deca/run/gateway.lock`; spawned production children must not inherit test variables that bypass locking.
+- `bun run dev` uses `serve.ts` and loads real provider/Discord configuration; use the explicit CLI Echo entrypoint for credential-free local checks.
+- Keep credentials outside Git; behavioral tests can invoke real models, Discord and external tools and need explicit live-test scope.
 
-## 四层测试 (L1-L4)
+## Stack / Layout
 
-### L1: Unit Test (单元测试)
-- **特点**: Mock 依赖，快速，隔离
-- **运行时机**: pre-commit
+| Component | Path / choice |
+|---|---|
+| Composition | `packages/gateway`, Bun TypeScript |
+| Agent / storage | `packages/agent`, `packages/storage`; JSONL and local files |
+| Channels | `packages/discord`, `packages/http`, `packages/terminal` |
+| Tooling | Bun workspaces, Vitest and Biome; root pins Bun 1.1.34 while CI selects 1.4.2 |
+
+## Commands
+
+Run from root with Bun and Node 24+ for development tooling. Install frozen dependencies. HTTP defaults to loopback; set `HTTP_API_KEY` for authenticated requests. `ANTHROPIC_API_KEY`, provider options, Discord and Tavily credentials are needed only for their live features.
 
 ```bash
-# 全部单元测试
-bun run test:unit
-
-# 特定模块
-bun --filter @deca/agent test:unit
-bun --filter @deca/discord test:unit
-
-# 单个文件
-vitest run packages/agent/src/core/session.test.ts
-```
-
-### L2: Lint (代码检查)
-- **特点**: Biome 静态分析
-- **运行时机**: pre-commit
-
-```bash
-# 全部 lint
+bun install --frozen-lockfile
 bun run lint
-
-# 特定模块
-bun --filter @deca/agent lint
+bun run test:unit
+bun run test:coverage
+bun --filter @deca/http test:e2e
+ECHO_MODE=true DISCORD_TOKEN= TERMINAL=false HTTP_PORT=7014 bun run packages/gateway/cli.ts
+bun --filter @deca/gateway test:behavioral  # authorized real-service testing only
 ```
 
-### L3: E2E Test (端到端测试)
-- **特点**: Echo 模式，验证通道集成，无真实 LLM
-- **运行时机**: pre-push
+## Verification
 
-```bash
-# 全部 E2E
-bun --filter '@deca/*' test:e2e
+6DQ = L1/L2/L3 + G1/G2 + D1 (test isolation). Status: `enforced`, `planned`, `manual`, or `N/A`; partial enforcement below does not certify the full required bar.
+L1 requires statements, branches, functions and lines each ≥95%, with no skipped/focused tests; preserve any stricter package threshold. Native tools must identify unmeasured metrics as gaps.
+G1 requires check-only strict analysis/formatting with zero errors/warnings. G2 requires dependency and secret scans, with missing required scanners failing.
 
-# 特定模块
-bun --filter @deca/agent test:e2e      # Memory + Cron
-bun --filter @deca/discord test:e2e    # Discord 通道
-bun --filter @deca/gateway test:e2e    # Gateway 集成
-bun --filter @deca/http test:e2e       # HTTP API
-bun --filter @deca/terminal test:e2e   # Terminal REPL
-bun --filter @deca/storage test:e2e    # Storage 层
-```
+| Dimension | Status | Required proof and current evidence/gap |
+|---|---|---|
+| L1 TypeScript | planned | Hook/CI run coverage. Agent branches currently require 94%; other package metrics are 95%, with gateway/lock/tool entry exclusions still requiring review. |
+| L2 HTTP / storage | planned | HTTP runner spawns a local server; storage/integration runners exist. Full 100% API method coverage and a mandatory integration gate are not established. |
+| L3 channel / Agent | manual | Echo and behavioral runners exist; Discord/LLM lanes use real external services and credentials. |
+| G1 TypeScript | planned | Hooks/CI enforce Biome, but CI explicitly disables root typechecking and package lint coverage differs. |
+| G2 | enforced | Shared base-ci quality workflow enables gitleaks and OSV by default; local hooks contain no security scan. |
+| D1 | planned | HTTP spawner selects a test port; provider/Discord runners can load daily credentials and state. Per-run storage and destructive-operation guards need complete enforcement. |
 
-### L4: Behavioral Test (行为测试)
-- **特点**: 真实 LLM + 真实 Discord，验证 Agent 行为
-- **运行时机**: 手动/CI
-- **依赖**: `~/.deca/credentials/` 下的凭证文件
+Pre-commit runs working-tree lint and coverage; pre-push runs unit tests and lint, not the old documented E2E lane. CI uses shared quality checks with typechecking disabled. No bundler/build script exists: applications run directly with Bun.
 
-```bash
-# 全部行为测试
-bun --filter @deca/gateway test:behavioral
+Target hooks: pre-commit checks G1 + L1 against the index snapshot (`git checkout-index`) in <30s; pre-push checks L2 and G2 in parallel against every stdin push ref/commit in <3min, plus build where applicable. L3 runs in CI or an explicit manual lane.
+Never bypass commit/push hooks, force-push, or use autofix in checks. Documentation changes do not authorize deploying or implementing new gates.
 
-# 特定行为测试
-bun --filter @deca/gateway test:behavioral:memory
+## Resources / Isolation
 
-# Debug 模式 (显示 Bot 输出)
-cd packages/gateway && bun run behavioral-tests/tools.test.ts --debug
-cd packages/gateway && bun run behavioral-tests/session.test.ts --debug
-```
+Keep tests separate from `.deca/sessions`, `.deca/memory` and `~/.deca` daily state. HTTP test ports are chosen in 40000–49999; development example port is 7014. Discord and behavioral tests may send messages, so do not run them for handbook normalization.
 
-**行为测试文件** (`packages/gateway/behavioral-tests/`):
-| 文件 | 验证内容 |
-|------|----------|
-| `tools.test.ts` | Agent 工具使用 (write, read, edit, exec, list, grep) |
-| `session.test.ts` | Session 隔离和持久化 |
-| `memory.test.ts` | 记忆系统 |
-| `cron.test.ts` | 定时任务 |
-| `skills.test.ts` | Skill 加载 |
+## Operations / Release
+
+Follow [contributing](docs/05-contributing.md) and [behavioral testing](docs/09-behavioral-tests.md). Preserve per-package versions; no root release/deploy script exists. Process shutdown must target only the test-owned Gateway, never other active sessions.
 
 ## Retrospective
 
-### 2026-02-07: claude_code 工具行为测试
+Move accident narratives to [Retrospective.md](Retrospective.md); keep at most about ten concise recurring project rules here. Put architecture and operational detail in linked docs.
 
-**问题**: 行为测试中，Agent 调用 `claude_code` 后文件创建成功，但测试验证失败。
-
-**根因**: 测试在收到 Agent 响应后立即验证文件存在性，但 `claude_code` 工具的文件写入可能还未完成（异步时序问题）。
-
-**解决**: 在验证前添加 3 秒等待时间，确保文件操作完成。
-
-**经验**: 
-1. 涉及外部进程（如 Claude CLI）的测试需要考虑异步完成时间
-2. Agent 会智能选择工具 —— 对于简单任务优先使用轻量内置工具，只有复杂任务才会调用"重型"工具
-3. 测试失败时先检查实际结果（文件是否真的存在），再判断是逻辑错误还是时序问题
-
-### 2026-02-07: references 目录搜索范围
-
-**问题**: 搜索代码时意外匹配到 `references/` 目录下的参考项目代码，导致混淆。
-
-**规则**: `references/` 目录存放参考项目代码，仅用于调研学习，不属于本项目代码。搜索时应排除此目录，除非明确要求调研参考项目。
-
-### 2026-02-08: 多实例 Gateway 导致 Discord 重复回复
-
-**问题**: Discord E2E 测试频道出现重复回复（同一消息被两个 bot 实例响应）。
-
-**根因**: 
-1. `cli.ts` 缺少 lock 机制，而 `serve.ts` 有 lock
-2. `spawner.ts` 继承了父进程的测试环境变量 (`VITEST`, `NODE_ENV=test`)，导致子进程的 lock 被跳过
-3. 旧的 Gateway 进程残留（在添加 lock 之前启动），与新进程同时连接 Discord
-
-**解决**:
-1. 在 `cli.ts` 中添加 `acquireGatewayLock()` 调用
-2. 在 `spawner.ts` 中清除测试环境变量，让子进程能正确获取 lock
-3. 杀掉残留的旧进程
-
-**经验**:
-1. 所有 Gateway 入口点（`cli.ts`, `serve.ts`）都必须使用 lock 机制
-2. Spawner 启动子进程时需要清理测试相关环境变量，否则子进程会继承"测试模式"行为
-3. 调试重复响应问题时，先用 `ps aux | grep` 检查是否有多个进程在运行
-4. Lock 文件位置: `~/.deca/run/gateway.lock`
+- Wait for actual external-process completion before checking tool-created files.
+- Keep Gateway singleton locks and child environment cleanup intact.
